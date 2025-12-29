@@ -86,8 +86,8 @@ class RenderPass {
 
 	std::vector<RenderTargetDescriptor> renderTargets;
 	std::vector<BufferUsageDescriptor> buffersUsed;
-	std::shared_ptr<TextureCollection> texturesUsed;
-	std::vector<TextureUsageDescriptor> auxillaryTexturesUsed.
+	std::shared_ptr<TextureCollection> texturesUsed
+	std::vector<TextureUsageDescriptor> auxillaryTexturesUsed
 
 	std::shared_ptr<ShaderProgram> shader;
 	BlendingEquation blendFunc = BlendingEquation::Disabled;
