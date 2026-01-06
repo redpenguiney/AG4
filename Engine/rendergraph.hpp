@@ -30,7 +30,7 @@ struct ProcessedRenderPass {
 
 	RenderTargetDescriptor renderTarget;
 	std::vector<TextureBinding> textures;
-	std::vector<DrawingSet> thingsToDraw;
+	std::vector<RenderGroup*> thingsToDraw;
 	
 	RenderingParameters params;
 
@@ -45,7 +45,6 @@ public:
 	~RenderGraph() = default;
 	RenderGraph(const RenderGraph&) = delete;
 private:
-	std::vector<IndirectDrawCommand> drawCommands;
 	//BufferedBuffer indirectDrawingCommandBuffer;
 
 	// Already sorted.

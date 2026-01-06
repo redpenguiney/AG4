@@ -107,7 +107,7 @@ public:
 	RenderTargetDescriptor renderTarget;
 	std::vector<BufferUsageDescriptor> buffersUsed;
 	std::shared_ptr<TextureUsageDescriptor> texturesUsed;
-	std::vector<std::shared_ptr<RenderGroup>> drawnObjects;
+	std::vector<RenderGroup*> drawnObjects; // managed by RenderGroups, non-owning
 
 	RenderingParameters params;
 };

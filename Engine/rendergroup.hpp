@@ -2,6 +2,8 @@
 #include <memory>
 #include <vector>
 #include <unordered_map>
+#include "indirect_draw_command.hpp"
+
 class RenderPass;
 class Meshpool;
 class Gameobject;
@@ -16,7 +18,7 @@ public:
 	void RemoveGameobject(Gameobject& obj);
 
 private:
-	void AddGameobject(Gameobject& obj);
+	void AddGameobject(Gameobject& obj, GameobjectCreateParams& params);
 
 	RenderGroup(std::vector<std::shared_ptr<RenderPass>> renderPasses, std::shared_ptr<Meshpool> meshpool);
 	~RenderGroup();
@@ -24,4 +26,8 @@ private:
 	std::shared_ptr<Meshpool> meshpool;
 
 	static std::unordered_map<Meshpool*, std::vector<std::shared_ptr<RenderGroup>>> renderGroupsByMeshpool;
+
+	void AddDrawCommand(IndirectDrawCommand cmd);
+
+	std::vector<IndirectDrawCommand> commands;
 };

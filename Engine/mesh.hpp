@@ -1,4 +1,6 @@
 #pragma once
+#include <memory>
+#include <vector>
 #include "mesh_provider.hpp"
 
 class Meshpool;
