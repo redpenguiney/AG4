@@ -4,7 +4,11 @@
     "openal-soft",
     "glew",
     "glfw3",
-    "stb"
+    "boost-asio",
+    "freetype",
+    "stb",
+    "assimp",
+    "winsock2"
   ],
   "builtin-baseline": "67a300519ea09dbf02b4d06982e781a01b617b93"
 }

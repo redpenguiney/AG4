@@ -1,6 +1,6 @@
 #include "buffered_buffer.hpp"
-#include "debug/debug.hpp"
-#include "debug/assert.hpp"
+//#include "debug.hpp"
+#include "assert.hpp"
 #include <cstddef>
 #include <cstdio>
 #include <cwchar>

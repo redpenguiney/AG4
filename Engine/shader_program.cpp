@@ -1,6 +1,6 @@
-#include "gengine.hpp"
+#include "graphics_engine.hpp"
 #include "shader_program.hpp"
-#include "debug/assert.hpp"
+#include "assert.hpp"
 #include <cstring>
 #include <memory>
 #include <string>

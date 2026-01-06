@@ -6,7 +6,7 @@
 //concept CanGoInPool = requires (const T & a) { { a.live } -> std::same_as<bool&>; };
 
 // Singleton class. T must have a boolean member "live"
-template <typename T>
+template <typename T, typename...ConstructorArgs>
 	//requires CanGoInPool<T>
 class MemoryPool {
 public:
@@ -23,7 +23,7 @@ public:
 		return pool;
 	}
 
-	T* New() {
+	T* New(ConstructorArgs... args) {
 		T* foundObj = nullptr;
 
 		for (auto& f : firstFree) {
@@ -50,7 +50,7 @@ public:
 		}
 
 		// placement new to call constructor
-		new (foundObj) T;
+		new (foundObj) T(args...);
 
 		return foundObj;
 	}
@@ -82,12 +82,14 @@ public:
 			free(p);
 		}
 	}
+	
+	const std::vector<StorageType*>& GetIterable() { return pages; }	
+	static constexpr size_t objectsPerPage = 256;
 
 private:
 	MemoryPool() {}
 	MemoryPool(const MemoryPool&) = delete;
 
-	static constexpr size_t objectsPerPage = 256;
 	static constexpr size_t pageSize = sizeof(T) * objectsPerPage;
 	std::vector<StorageType*> pages;
 	std::vector<StorageType*> firstFree; // for each page, first unallocated. nullptr if the page is entirely allocated.

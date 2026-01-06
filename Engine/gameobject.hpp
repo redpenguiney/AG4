@@ -8,18 +8,27 @@
 #include "memory_pool.hpp"
 
 class Collider;
+class Mesh;
+class RenderPass;
+class RenderGroup;
+class Meshpool;
+
 struct DrawHandle {
-	unsigned pool; // 0 for null draw handle
+	Meshpool* pool; // nullptr for null draw handle
 	unsigned instanceIndex;
-	unsigned meshIndex;
-	unsigned drawCommandIndex;
+	RenderGroup* group;
+};
+
+struct GameobjectCreateParams {
+	std::vector<std::shared_ptr<RenderPass>> renderPasses;
+	std::shared_ptr<Mesh> mesh;
 };
 
 class Gameobject {
 public:
 	// We use a factory function so gameobjects are always created in an object pool.
 	// You own the returned pointer and may safely place it in whatever wrappers (std::shared_ptr, std::unique_ptr, etc.) you please.
-	static Gameobject* New();
+	static Gameobject* New(GameobjectCreateParams params);
 
 	~Gameobject();
 
@@ -30,10 +39,17 @@ public:
 	const glm::vec3& Scale() const;
 	const glm::quat& Rotation() const;
 
+	void SetPosition(const glm::dvec3&);
+	void SetScale(const glm::vec3&);
+	void SetRotation(const glm::quat&);
+
+	const glm::mat3x3& GetRotSclMatrix();
+
+	bool Live();
 
 protected:
 
-	Gameobject();
+	Gameobject(GameobjectCreateParams params);
 	Gameobject(const Gameobject&) = delete;
 
 	glm::dvec3 position;
@@ -48,6 +64,10 @@ protected:
 	DrawHandle render;
 
 	friend class MemoryPool<Gameobject>;
+	friend class RenderGroup;
+	friend class GraphicsEngine;
+
+private:
 
 };
 

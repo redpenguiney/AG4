@@ -1,6 +1,7 @@
 #include "framebuffer.hpp"
-#include "debug/assert.hpp"
-#include "gengine.hpp"
+#include "assert.hpp"
+//#include "graphics_engine.hpp"
+#include "window.hpp"
 
 Framebuffer::Framebuffer(const unsigned int fbWidth, const unsigned int fbHeight, const std::vector<TextureCreateParams>& attachmentParams, const bool haveDepthRenderbuffer): 
 width(fbWidth), 
@@ -108,8 +109,8 @@ void Framebuffer::ClearDepthRenderbuffer() {
 
 void Framebuffer::Unbind() {
     currentlyBound = 0;
-    unsigned int windowWidth = GraphicsEngine::Get().window.width;
-    unsigned int windowHeight = GraphicsEngine::Get().window.height;
+    unsigned int windowWidth = Window::Get().width;
+    unsigned int windowHeight = Window::Get().height;
     glViewport(0, 0, windowWidth, windowHeight);
     
     glBindFramebuffer(GL_FRAMEBUFFER, 0); // TODO: other binding locations

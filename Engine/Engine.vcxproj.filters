@@ -66,7 +66,7 @@
     <ClCompile Include="indirect_draw_command.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="mesh.cpp">
+    <ClCompile Include="meshold.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="mesh_multifromfile.cpp">
@@ -78,7 +78,7 @@
     <ClCompile Include="mesh_voxels.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meshpool.cpp">
+    <ClCompile Include="meshpoolold.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="shader_input_provider.cpp">
@@ -103,6 +103,24 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="tinyobjloader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="let_me_hash_a_tuple.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="checked_uint.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="static_meshpool.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="rendergroup.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="mesh.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="rendergraph.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -140,9 +158,6 @@
     <ClInclude Include="cursor.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="material.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="texture_collection.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -158,13 +173,13 @@
     <ClInclude Include="shader_input_provider.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="meshpool.hpp">
+    <ClInclude Include="meshpoolold.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="mesh_provider.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="mesh.hpp">
+    <ClInclude Include="meshold.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="indirect_draw_command.hpp">
@@ -192,6 +207,21 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="rendergraph.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="let_me_hash_a_tuple.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="checked_uint.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="static_meshpool.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="mesh.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="rendergroup.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

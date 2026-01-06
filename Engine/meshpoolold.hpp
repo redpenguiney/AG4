@@ -11,7 +11,7 @@
 
 #include <glm/mat4x4.hpp>
 #include <glm/mat3x3.hpp>
-#include "utility/uint.hpp"
+#include "checked_uint.hpp"
 
 const unsigned int INSTANCED_VERTEX_BUFFERING_FACTOR = 3; /// TODO: based on mesh params?
 const unsigned int MESH_BUFFERING_FACTOR = 1; /// TODO; meshpool supports >1 but GE doesn't

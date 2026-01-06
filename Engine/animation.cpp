@@ -1,6 +1,6 @@
 #include "animation.hpp"
-#include "debug/log.hpp"
-#include "debug/assert.hpp"
+#include "log.hpp"
+#include "assert.hpp"
 #include "glm/gtx/quaternion.hpp"
 
 std::optional<glm::mat4x4> Animation::BoneTransformAtTime(unsigned int boneId, float time) const {

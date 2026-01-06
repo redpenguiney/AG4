@@ -1,0 +1,783 @@
+//#include "meshpoolold.hpp"
+//#include "GL/glew.h"
+//#include "mesh.hpp"
+//
+//#include "shader_program.hpp"
+//
+//#include <algorithm>
+//#include "../debug/assert.hpp"
+//#include "graphics_engine.hpp"
+//
+////#define MESHPOOL_LOGGING
+//
+//Meshpool::Meshpool(const MeshVertexFormat& meshVertexFormat) :
+//    format(meshVertexFormat),
+//
+//    vertexSize(format.GetNonInstancedVertexSize()),
+//    instanceSize(format.GetInstancedVertexSize()),
+//
+//    vertices(GL_ARRAY_BUFFER, MESH_BUFFERING_FACTOR, 0),
+//    indices(GL_ELEMENT_ARRAY_BUFFER, MESH_BUFFERING_FACTOR, 0),
+//    instances(GL_ARRAY_BUFFER, INSTANCED_VERTEX_BUFFERING_FACTOR, 0),
+//    drawCommands(),
+//    bones( std::nullopt),
+//    //boneOffsetBuffer(std::nullopt),
+//
+//    vaoId(0),
+//
+//    currentVertexCapacity(0),
+//    currentInstanceCapacity(0),
+//    //currentDrawCommandCapacity(0),
+//
+//    meshIndexEnd(0),
+//    instanceEnd(0)
+//{
+//#ifdef MESHPOOL_LOGGING 
+//    DebugLogInfo("Meshpool created"); 
+//#endif
+//
+//
+//    if (format.supportsAnimation) {
+//        bones.emplace(GL_SHADER_STORAGE_BUFFER, 1, 0);
+//        //boneOffsetBuffer.emplace(GL_SHADER_STORAGE_BUFFER, 1, 0);
+//    }
+//}
+//
+//Meshpool::~Meshpool()
+//{
+//	if (vaoId != 0) {
+//		glDeleteVertexArrays(1, &vaoId.value);
+//	}
+//}
+//
+//std::vector<Meshpool::DrawHandle> Meshpool::AddObject(const std::shared_ptr<Mesh>& mesh, const std::shared_ptr<Material>& material, CheckedUint count)
+//{
+//    //DebugLogInfo("Adding count ", count, " for meshid ", mesh->meshId);
+//    Assert(material != nullptr);
+//    // find valid slot for mesh
+//    CheckedUint slot;
+//    {
+//        // see if this mesh is already in the pool
+//        if (meshUsers.contains(mesh->meshId)) {
+//            slot = meshUsers.at(mesh->meshId);
+//            
+//        }
+//        else {
+//            // for simplicity we like to assume indices and vertices are the same size in bytes and pad up the difference
+//            CheckedUint meshNBytes = std::max(mesh->vertices.size() * size_t(vertexSize), mesh->indices.size() * indexSize);
+//
+//            CheckedUint powerOfTwo = vertexSize;
+//            CheckedUint exponent = 0;
+//            while (powerOfTwo < meshNBytes) {
+//                powerOfTwo *= 2;
+//                exponent++;
+//            }
+//            Assert(exponent < availableMeshSlots.size());
+//
+//            // first, check availableMeshSlots
+//            if (availableMeshSlots.at(exponent).size() > 0) {
+//                slot = availableMeshSlots[exponent].back();
+//                availableMeshSlots[exponent].pop_back();
+//            }
+//            // if they've got nothing, take a slot from the end of the vertices buffer
+//            else {
+//                slot = meshIndexEnd;
+//                meshIndexEnd += powerOfTwo / vertexSize;
+//
+//                // make sure vertices has room. (vaoId will be 0 if this is the first object being put in the pool) 
+//                if (meshIndexEnd >= currentVertexCapacity || vaoId == 0) {
+//                    ExpandVertexCapacity();
+//                }
+//            }
+//
+//            meshUpdates.emplace_back(MeshUpdate{ MESH_BUFFERING_FACTOR, mesh, slot });
+//            
+//            meshUsers[mesh->meshId] = slot;
+//            meshSlotContents[slot] = MeshSlotUsageInfo{
+//                .meshId = unsigned(mesh->meshId),
+//                .sizeClass = exponent,
+//                .nUsers = 0
+//            };
+//            
+//        }
+//    }
+//    
+//    
+//    
+//
+//    std::vector<DrawHandle> ret;
+//    CheckedUint nCreated = 0;
+//    while (nCreated < count) {
+//        CheckedUint nInstances, firstInstance;
+//        if (availableInstanceSlots.size() != 0) {
+//            nInstances = 1;
+//            firstInstance = availableInstanceSlots.back();
+//            availableInstanceSlots.pop_back();
+//            
+//        }
+//        else {
+//            firstInstance = instanceEnd;
+//            nInstances = count - nCreated;
+//            instanceEnd += nInstances;
+//            ExpandInstanceCapacity();
+//        }
+//
+//        auto drawCommandBufferIndex = GetCommandBuffer(material);
+//        DrawCommandBuffer& commandBuffer = drawCommands[drawCommandBufferIndex].value();
+//
+//        // find slot for draw command
+//        CheckedUint drawCommandIndex = commandBuffer.GetNewDrawCommandSlot();
+//
+//        //DebugLogInfo("Wrote id ", mesh->meshId, " to command ", drawCommandIndex);
+//
+//        IndirectDrawCommand command = {
+//            .count = static_cast<CheckedUint>(mesh->indices.size()),
+//            .instanceCount = nInstances,
+//            //.firstIndex = slot.value * (indexSize), /// TODO MIGHT BE WRONG 
+//            .firstIndex = slot.value, // TODO how in the world does THIS work?!?!
+//            .baseVertex = static_cast<int>(slot),
+//            .baseInstance = firstInstance
+//        };
+//
+//#ifdef MESHPOOL_LOGGING
+//        DebugLogInfo("Wrote command ", command.ToString(), " at index ", drawCommandIndex);
+//#endif
+//
+//        if (mesh->dynamic) {
+//            commandBuffer.dynamicMeshCommandLocations[mesh->meshId].push_back(drawCommandIndex);
+//        }
+//
+//        commandBuffer.clientCommands[drawCommandIndex] = command;
+//        //commandBuffer.drawCount++;
+//
+//        // fortunately, the last added one will take precedence when multiple of these update the same command
+//        commandBuffer.commandUpdates.emplace_back(IndirectDrawCommandUpdate{
+//            .updatesLeft = INSTANCED_VERTEX_BUFFERING_FACTOR,
+//            .command = command,
+//            .commandSlot = drawCommandIndex
+//            });
+//
+//        nCreated += nInstances;
+//
+//        for (CheckedUint i = 0; i < nInstances; i++) {
+//            ret.emplace_back(DrawHandle{
+//                .meshIndex = (int)slot,
+//                .instanceSlot = (int)(firstInstance + i),
+//                .drawBufferIndex = (int)drawCommandBufferIndex
+//                });
+//
+//            instanceSlotsToCommands[firstInstance + i] = CommandLocation{ .drawCommandIndex = drawCommandIndex };
+//        }
+//
+//        meshSlotContents[slot].nUsers++;
+//
+//    }
+//    
+//    Assert(meshSlotContents[slot].nUsers != 0);
+//
+//    return ret;
+//}
+//
+//void Meshpool::RemoveObject(const DrawHandle& handle)
+//{
+//    
+//
+//    // something else can use this instance
+//    availableInstanceSlots.push_back(handle.instanceSlot);
+//
+//    auto& drawBuffer = drawCommands[handle.drawBufferIndex].value();
+//
+//    auto commandIndex = instanceSlotsToCommands[handle.instanceSlot].drawCommandIndex;
+//    CheckedUint originalNInstances = drawBuffer.clientCommands[commandIndex].instanceCount;
+//    IndirectDrawCommand emptyCommand(0, 0, 0, 0, 0);
+//
+//    Assert(handle.instanceSlot >= drawBuffer.clientCommands[commandIndex].baseInstance);
+//    Assert(handle.instanceSlot < originalNInstances + drawBuffer.clientCommands[commandIndex].baseInstance);
+//
+//    //DebugLogInfo("Removing object with instance ", handle.instanceSlot, " mesh index ", handle.meshIndex, " command buffer ", handle.drawBufferIndex, " command index ", commandIndex, " object's command has (before this call) ", originalNInstances);
+//
+//    // to remove the object, we need to remove its draw command, or, if it's one of multiple instances being drawn in a single command, we have to split that command up.
+//    if ((unsigned int)originalNInstances == 1) {
+//
+//        // mark the draw command slot as free
+//        drawBuffer.availableDrawCommandSlots.push_back(instanceSlotsToCommands[handle.instanceSlot].drawCommandIndex);
+//        //DebugLogInfo("Freed command index ", instanceSlotsToCommands[handle.instanceSlot].drawCommandIndex);
+//
+//        drawBuffer.clientCommands[commandIndex] = emptyCommand;
+//        drawBuffer.commandUpdates.emplace_back(IndirectDrawCommandUpdate{
+//            .updatesLeft = INSTANCED_VERTEX_BUFFERING_FACTOR,
+//            .command = emptyCommand,
+//            .commandSlot = instanceSlotsToCommands[handle.instanceSlot].drawCommandIndex
+//        });
+//
+//        unsigned int meshId = meshSlotContents.at(handle.meshIndex).meshId;
+//        if (Mesh::Get(meshId)->dynamic) {
+//            for (unsigned int i = 0; i < drawBuffer.dynamicMeshCommandLocations[meshId].size(); i++) {
+//                if (drawBuffer.dynamicMeshCommandLocations[meshId][i] == instanceSlotsToCommands[handle.instanceSlot].drawCommandIndex) {
+//                    drawBuffer.dynamicMeshCommandLocations[meshId][i] = drawBuffer.dynamicMeshCommandLocations[meshId].back();
+//                    drawBuffer.dynamicMeshCommandLocations[meshId].pop_back();
+//                    if (drawBuffer.dynamicMeshCommandLocations[meshId].size() == 0) {
+//                        drawBuffer.dynamicMeshCommandLocations.erase(meshId);
+//                    }
+//                    break;
+//                }
+//
+//            }
+//            
+//        }
+//
+//        //drawBuffer.drawCount--;
+//
+//        //if (drawBuffer.drawCount == 0) { // then we just took out the last thing being drawn in this indirect draw buffer, delete it
+//            //DebugLogInfo("Hmm? ", handle.drawBufferIndex);
+//            //drawCommands[handle.drawBufferIndex] = std::nullopt;
+//        //}
+//
+//        Assert(meshSlotContents.contains(handle.meshIndex));
+//        Assert(meshSlotContents.at(handle.meshIndex).nUsers > 0);
+//        if ((unsigned int)(--(meshSlotContents.at(handle.meshIndex).nUsers)) == 0) { // decrement count and if we just took out the last command using this mesh, then we should free up the mesh too
+//            //DebugLogInfo("Freed mesh index ", handle.meshIndex);
+//            availableMeshSlots[meshSlotContents.at(handle.meshIndex).sizeClass].push_back(handle.meshIndex);
+//            //meshSlotContents.erase(meshSlotContents.at(handle.meshIndex).meshId);
+//
+//            if (GraphicsEngine::Get().dynamicMeshLocations.count(meshSlotContents.at(handle.meshIndex).meshId)) {
+//                GraphicsEngine::Get().dynamicMeshLocations.erase(meshSlotContents.at(handle.meshIndex).meshId);
+//            }
+//
+//            //DebugLogInfo("Erassing meshid ", meshSlotContents[handle.meshIndex].meshId , " at mesh index ", handle.meshIndex);
+//            meshUsers.erase(meshSlotContents[handle.meshIndex].meshId); // TODO: could potentially lead to unneccesarily recopying mesh
+//            meshSlotContents.erase(handle.meshIndex);
+//        }
+//    }
+//    else {
+//        // then one instance out of multiple is being removed; we have to (potentially) split up the draw command
+//
+//        CheckedUint firstIndex = commandIndex;
+//
+//        IndirectDrawCommand firstHalf = drawBuffer.clientCommands[firstIndex];
+//        IndirectDrawCommand secondHalf = firstHalf;
+//        
+//        Assert(firstHalf.baseInstance <= handle.instanceSlot);
+//
+//        firstHalf.instanceCount = handle.instanceSlot - firstHalf.baseInstance;
+//
+//        if (firstHalf.instanceCount + 1 < (unsigned int)originalNInstances) {
+//            secondHalf.baseInstance = handle.instanceSlot + 1;
+//            secondHalf.instanceCount = originalNInstances - (firstHalf.instanceCount) - 1;
+//        }
+//        else {
+//            secondHalf.instanceCount = 0;
+//        }
+//
+//        Assert(firstHalf.instanceCount + secondHalf.instanceCount == originalNInstances - 1);
+//
+//        if (firstHalf.instanceCount == 0) {
+//            std::swap(firstHalf, secondHalf);
+//            if (firstHalf.instanceCount == 0) {
+//                firstHalf = emptyCommand;
+//            }
+//        }
+//
+//            
+//        drawBuffer.clientCommands[firstIndex] = firstHalf;
+//
+//        // fortunately, the last added one will take precedence when multiple of these update the same command
+//        drawBuffer.commandUpdates.emplace_back(IndirectDrawCommandUpdate{
+//            .updatesLeft = INSTANCED_VERTEX_BUFFERING_FACTOR,
+//            .command = firstHalf,
+//            .commandSlot = firstIndex
+//        });
+//
+//        // if we need a second half, add it
+//        if (secondHalf.instanceCount != 0) {
+//            meshSlotContents.at(handle.meshIndex).nUsers++;
+//
+//            // find slot for draw command
+//            CheckedUint secondIndex = drawBuffer.GetNewDrawCommandSlot();
+//             
+//            drawBuffer.clientCommands[secondIndex] = secondHalf;
+//            //drawCount++;
+//
+//            // fortunately, the last added one will take precedence when multiple of these update the same command
+//            drawBuffer.commandUpdates.emplace_back(IndirectDrawCommandUpdate{
+//                .updatesLeft = INSTANCED_VERTEX_BUFFERING_FACTOR,
+//                .command = secondHalf,
+//                .commandSlot = secondIndex
+//            });
+//            
+//
+//            // TODO this makes me sad because O(n)
+//            for (CheckedUint i = secondHalf.baseInstance; i < secondHalf.baseInstance + secondHalf.instanceCount; i++) {
+//                instanceSlotsToCommands[i].drawCommandIndex = secondIndex;
+//            }
+//        }
+//    }
+//}
+//
+////void Meshpool::SetNormalMatrix(const DrawHandle& handle, const glm::mat3x3& normal)
+////{
+////    SetInstancedVertexAttribute<glm::mat3x3>(handle, MeshVertexFormat::AttributeIndexFromAttributeName(format.NORMAL_MATRIX_ATTRIBUTE_NAME), normal);
+////}
+////
+////void Meshpool::SetModelMatrix(const DrawHandle& handle, const glm::mat4x4& model)
+////{
+////    SetInstancedVertexAttribute<glm::mat4x4>(handle, MeshVertexFormat::AttributeIndexFromAttributeName(format.MODEL_MATRIX_ATTRIBUTE_NAME), model);
+////}
+//
+//void Meshpool::SetBoneState(const DrawHandle& handle, CheckedUint nBones, glm::mat4x4* offsets)
+//{
+//    Assert(format.supportsAnimation);
+//        
+//    Assert(format.maxBones >= nBones.value);
+//    glm::mat4x4* bonesLocation = (glm::mat4x4*)(bones->Data() + handle.instanceSlot * format.maxBones * sizeof(glm::mat4x4));
+//    
+//    // make sure we don't segfault 
+//    Assert(handle.instanceSlot < currentInstanceCapacity);
+//    Assert(handle.meshIndex < currentVertexCapacity);
+//    Assert((char*)bonesLocation <= bones->Data() + (sizeof(glm::mat4x4) * format.maxBones * currentInstanceCapacity));
+//    Assert((char*)bonesLocation >= bones->Data());
+//    
+//    // copy in bone transforms
+//    memcpy(bonesLocation, offsets, nBones.value * sizeof(glm::mat4x4));
+//}
+//
+////void Meshpool::Draw() {
+//    /*glBindVertexArray(vaoId);
+//    indices.Bind();
+//    if (bones.has_value()) {
+//        bones->BindBase(BONE_BUFFER_BINDING);
+//        boneOffsetBuffer->BindBase(BONE_OFFSET_BUFFER_BINDING);
+//    }*/
+//    
+//    //double start1 = Time();
+//    //glPointSize(4.0);
+//
+//    // We want to sort the draw commands by draw order, shader binding, texture binding, and other GL state paramters to reduce GL state changes which seriously hurt performance.
+//    // TODO: is caching this sorted buffer worth doing? probably not since there shouldn't be very many of these
+//    
+//     
+//    
+////}
+//
+//void Meshpool::Commit() {
+//    // write vertex/index changes to buffer
+//    for (unsigned int i = 0; i < meshUpdates.size(); i++) {
+//        auto meshUpdate = meshUpdates[i];
+//
+//        // copy vertices and indices
+//        // TODO: if something only modifies a portion of a mesh, we could optimize that by not memcpying everything
+//        memcpy(vertices.Data() + meshUpdate.meshIndex * vertexSize, meshUpdate.mesh->vertices.data(), meshUpdate.mesh->vertices.size() * sizeof(GLfloat));
+//        memcpy(indices.Data() + meshUpdate.meshIndex * indexSize, meshUpdate.mesh->indices.data(), meshUpdate.mesh->indices.size() * sizeof(GLuint));
+//
+//        meshUpdate.updatesLeft--;
+//        if (meshUpdate.updatesLeft == 0) {     
+//            // pop erase isn't always acceptable;
+//            // we have to ensure that when multiple updates affect the same object, 
+//            //  the last update (closest to the end of the vector) stays at the end so it takes precedence
+//            // Order doesn't need to be preserved between updates affecting different objects, though. (TODO: can we exploit this to avoid using erase()?)
+//            //if (meshUpdates.back().meshIndex == meshUpdates[i].meshIndex) {
+//                meshUpdates.erase(meshUpdates.begin() + i);
+//            //}
+//            //else {
+//                //meshUpdates[i] = meshUpdates.back();
+//                //meshUpdates.pop_back();
+//            //}
+//            i--;
+//        }
+//    }
+//    // write indirect draw commands to buffer
+//    //DebugLogInfo("Offset of  ", this, " is ", instances.GetOffset() / instanceSize);
+//    for (auto& drawBuffer : drawCommands) {
+//        if (!drawBuffer.has_value()) { continue; }
+//        //if (drawBuffer->commandUpdates.size() > 0) DebugLogInfo("Updating ", drawBuffer->commandUpdates.size());
+//        for (auto it = drawBuffer->commandUpdates.begin(); it != drawBuffer->commandUpdates.end(); ) {
+//            auto& update = *it;
+//            Assert(update.updatesLeft != 0);
+//            update.updatesLeft--;
+//
+//            IndirectDrawCommand command = update.command; // deliberate copy
+//
+//            // The tricky thing is, when either vertices or instances grow, these base instances/vertices need to get fixed too!
+//            // (TODO: why didn't i just use 3 seperate buffers for triple buffering like a sane person)
+//            // TODO: also GL_UNSYCRONIZED_BIT good?
+//            command.baseInstance += instances.GetOffset() / instanceSize;
+//            //DebugLogInfo("Offsetting base instance by ", instances.GetOffset() / instanceSize);
+//            command.baseVertex += vertices.GetOffset() / vertexSize;
+//
+//            //DebugLogInfo("UPdating ", update.commandSlot);
+//            memcpy(drawBuffer->buffer.Data() + (update.commandSlot * sizeof(IndirectDrawCommand)), &command, sizeof(IndirectDrawCommand));
+//
+//            if (update.updatesLeft == 0) {
+//                // pop erase isn't always acceptable;
+//                // we have to ensure that when multiple updates affect the same object, 
+//                //  the last update (closest to the end of the vector) stays at the end so it takes precedence
+//                // Order doesn't need to be preserved between updates affecting different objects, though. (TODO: can we exploit this to avoid using erase()?)
+//                //if (drawBuffer->commandUpdates.back().commandSlot == drawBuffer->commandUpdates[i].commandSlot) {
+//                    it = drawBuffer->commandUpdates.erase(it);
+//                    
+//                //}
+//                //else {
+//                    //drawBuffer->commandUpdates[i] = drawBuffer->commandUpdates.back();
+//                    //drawBuffer->commandUpdates.pop_back();
+//                //}
+//
+//                //DebugLogInfo("bye bye")
+//            }
+//            else {
+//                it++;
+//            }
+//        }
+//
+//        drawBuffer->buffer.Commit();
+//    }
+//    
+//    vertices.Commit();
+//    instances.Commit();
+//    indices.Commit();
+//    
+//    if (bones) {
+//        bones->Commit();
+//        //boneOffsetBuffer->Commit();
+//    }
+//}
+//
+//void Meshpool::FlipBuffers()
+//{
+//    vertices.Flip();
+//    instances.Flip();
+//    indices.Flip();
+//    for (auto& c : drawCommands) {
+//        if (!c.has_value()) { continue; }
+//        c->buffer.Flip();
+//    }
+//    if (bones) {
+//        bones->Flip();
+//        //boneOffsetBuffer->Flip();
+//    }
+//}
+//
+//std::vector<Meshpool::DrawCommandBuffer*> Meshpool::GetDrawCommandBuffers()
+//{
+//    std::vector<DrawCommandBuffer*> cmds;
+//    for (auto& maybeBuffer : drawCommands) {
+//        if (maybeBuffer.has_value()) {
+//            cmds.push_back(&*maybeBuffer);
+//        }
+//    }
+//
+//    return cmds;
+//}
+//
+//void Meshpool::ExpandVertexCapacity()
+//{
+//
+//
+//    // determine new vertex capacity
+//    if (currentVertexCapacity == 0) {
+//        currentVertexCapacity = 1;
+//    }
+//    while (currentVertexCapacity <= meshIndexEnd) {
+//        currentVertexCapacity *= 2;
+//    }
+//
+//    // resize buffers
+//    vertices.Reallocate(currentVertexCapacity * vertexSize);
+//    indices.Reallocate(currentVertexCapacity * indexSize);
+//
+//    // delete old vao
+//    if (vaoId != 0) {
+//        glDeleteVertexArrays(1, &vaoId.value);
+//    }
+//
+//    // make new vao
+//    glGenVertexArrays(1, &vaoId.value);
+//    glBindVertexArray(vaoId);
+//    vertices.Bind();
+//    format.SetNonInstancedVaoVertexAttributes(vaoId.value, instanceSize, vertexSize);
+//    
+//#ifdef MESHPOOL_LOGGING 
+//    DebugLogInfo("EVC", vaoId);
+//#endif
+//
+//    // because we just recreated the vao, we have to rebind the instanced attributes too 
+//    // but when we're initializing, we don't want to do this because calling ExpandInstanced() in initializiation will and we don't have an instanced vertex buffer yet
+//    if (instances.bufferId != 0) {
+//        instances.Bind();
+//        format.SetInstancedVaoVertexAttributes(vaoId.value, instanceSize, vertexSize);
+//    }
+//
+//    // Tragically, for every indirect draw command we have to update the 2nd and 3rd buffers' baseVertex since it was offset to correct for the OLD vertex buffer's size.
+//    if (MESH_BUFFERING_FACTOR > 1) {
+//        for (auto& b : drawCommands) {
+//            if (!b.has_value()) { continue; }
+//            CheckedUint commandSlot = 0;
+//            for (auto& command : b->clientCommands) {
+//                b->commandUpdates.emplace_back(IndirectDrawCommandUpdate{
+//                    .updatesLeft = 3,
+//                    .command = command,
+//                    .commandSlot = commandSlot
+//                    });
+//                commandSlot++;
+//            }
+//        }
+//    }
+//    
+//}
+//
+//void Meshpool::DrawCommandBuffer::ExpandDrawCommandCapacity()
+//{
+//    //DebugLogInfo("Expanding drawcommand capacity from ", currentDrawCommandCapacity, " for ", this);
+//
+//    // update capacity
+//    CheckedUint oldCapacity = currentDrawCommandCapacity;
+//    if (currentDrawCommandCapacity == 0) {
+//        currentDrawCommandCapacity = 1; // TODO: why does putting any number besides 1 cause problems?
+//    }
+//    else {
+//        currentDrawCommandCapacity *= 2;
+//    }
+//
+//#ifdef MESHPOOL_LOGGING 
+//    DebugLogInfo("EDCC from ", oldCapacity, " to ", currentDrawCommandCapacity);
+//#endif
+//    
+//
+//    // expand draw command buffer
+//    buffer.Reallocate(currentDrawCommandCapacity * sizeof(IndirectDrawCommand));
+//
+//    // add new instance slots
+//    for (CheckedUint i = oldCapacity; i < currentDrawCommandCapacity; i++) {
+//        availableDrawCommandSlots.push_back(i);
+//    }
+//    std::sort(availableDrawCommandSlots.begin(), availableDrawCommandSlots.end(), std::greater<CheckedUint>());
+//
+//    // we need to update all the commands on the GPU now because (with multiple buffering) indirect draw commands from the 2nd buffer now overlap the 1st buffer's memory region
+//    if (INSTANCED_VERTEX_BUFFERING_FACTOR > 1) { // TODO: wrong condition?
+//        CheckedUint commandSlot = 0;
+//        for (auto& command : clientCommands) {
+//#ifdef MESHPOOL_LOGGING
+//            DebugLogInfo("\tcmd: ", command.ToString());
+//#endif
+//            if (command.instanceCount == 0) { continue; }
+//            commandUpdates.emplace_back(IndirectDrawCommandUpdate{
+//                .updatesLeft = INSTANCED_VERTEX_BUFFERING_FACTOR,
+//                .command = command,
+//                .commandSlot = commandSlot
+//                });
+//            commandSlot++;
+//        }
+//    }
+//
+//    clientCommands.resize(currentDrawCommandCapacity, IndirectDrawCommand(0, 0, 0, 0, 0));
+//}
+//
+//void Meshpool::DrawCommandBuffer::Draw() {
+//
+//    //DebugLogInfo(material->drawOrder);
+//    Assert(pool);
+//    buffer.Bind();
+//    auto& shader = material->shader;
+//    shader->Use();
+//
+//    // TODO: should cache a LOT of this stuff to avoid redundant state changes
+//
+//    shader->Uniform("vertexColorEnabled", pool->format.attributes.color.has_value());
+//    shader->Uniform("shaderTime", GraphicsEngine::Get().shaderTime); // skybox needs done seperately bruh
+//
+//    if (pool->format.supportsAnimation) {
+//        shader->Uniform("maxBones", pool->format.maxBones);
+//        //DebugLogInfo("Modified by ");
+//        shader->Uniform("boneOffsetModifier", pool->instances.GetOffset() / pool->instanceSize);
+//    }
+//
+//    
+//
+//    if (shader->useClusteredLighting) {
+//        shader->Uniform("pointLightCount", GraphicsEngine::Get().pointLightCount);
+//        shader->Uniform("spotLightCount", GraphicsEngine::Get().spotLightCount);
+//        shader->Uniform("pointLightOffset", CheckedUint(GraphicsEngine::Get().pointLightDataBuffer.GetOffset() / sizeof(GraphicsEngine::PointLightInfo)));
+//        shader->Uniform("spotLightOffset", CheckedUint(GraphicsEngine::Get().spotLightDataBuffer.GetOffset() / sizeof(GraphicsEngine::SpotLightInfo)));
+//        GraphicsEngine::Get().pointLightDataBuffer.BindBase(0);
+//        GraphicsEngine::Get().spotLightDataBuffer.BindBase(1);
+//    }
+//
+//    material->Use();
+//
+//    // if (materialId == 4) {
+//    //     std::cout << "BINDING THING WITH FONTMAP.\n";
+//    // }
+//
+//    shader->Uniform("specularMappingEnabled", material->Count(Texture::SpecularMap));
+//    shader->Uniform("fontMappingEnabled", material->Count(Texture::FontMap));
+//    shader->Uniform("normalMappingEnabled", material->Count(Texture::NormalMap));
+//    shader->Uniform("parallaxMappingEnabled", material->Count(Texture::DisplacementMap));
+//    shader->Uniform("colorMappingEnabled", material->Count(Texture::ColorMap));
+//
+//    glPointSize(3.0);
+//
+//    for (int i = 0; i < GetDrawCount(); i++) {
+//        auto cmd = clientCommands.at(i);
+//        cmd.baseInstance += pool->instances.GetOffset() / pool->instanceSize; //command->buffer.GetOffset() / sizeof(IndirectDrawCommand);
+//        cmd.baseVertex += pool->vertices.GetOffset() / pool->vertexSize;
+//        //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+//        //GLenum buffers[]{ GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
+//        //if (prePostProc) {
+//            //glDrawBuffers(2, buffers);
+//        //}
+//
+//        glDrawElementsInstancedBaseVertexBaseInstance(pool->format.primitiveType, cmd.count, GL_UNSIGNED_INT, (const void*)(cmd.firstIndex * sizeof(GLuint)).value, cmd.instanceCount, cmd.baseVertex, cmd.baseInstance);
+//    }
+//    // TODO: INDIRECT DRAWING
+//    //glMultiDrawElementsIndirect(format.primitiveType, GL_UNSIGNED_INT, (void*)command->buffer.GetOffset(), command->GetDrawCount(), 0);
+//}
+//
+//Meshpool::DrawCommandBuffer::DrawCommandBuffer(DrawCommandBuffer&& old) noexcept :
+//    pool(old.pool),
+//    material(old.material),
+//    buffer(std::move(old.buffer)),
+//    currentDrawCommandCapacity(old.currentDrawCommandCapacity),
+//    availableDrawCommandSlots(old.availableDrawCommandSlots),
+//    commandUpdates(old.commandUpdates),
+//    clientCommands(old.clientCommands)
+//{
+//    old.material = nullptr;
+//}
+//
+//Meshpool::DrawCommandBuffer& Meshpool::DrawCommandBuffer::operator=(DrawCommandBuffer&& old) noexcept
+//{
+//    return *this;
+//}
+//
+//void Meshpool::ExpandInstanceCapacity()
+//{
+//    // if this is true, then we don't actually need to expan
+//    if (currentInstanceCapacity > instanceEnd) {
+//        return;
+//    }
+//
+//    //DebugLogInfo("Expanding instance capacity from ", currentInstanceCapacity, " for ", this);
+//
+//    // determine new instance capacity
+//    if (currentInstanceCapacity == 0) {
+//        currentInstanceCapacity = 1;
+//    }
+//    while (currentInstanceCapacity <= instanceEnd) {
+//        currentInstanceCapacity *= 2;
+//    }
+//
+//    instanceSlotsToCommands.resize(currentInstanceCapacity, Meshpool::CommandLocation(0));
+//
+//    // Update buffers.
+//    instances.Reallocate(currentInstanceCapacity * instanceSize);
+//    if (format.supportsAnimation) {
+//        bones->Reallocate(currentInstanceCapacity * sizeof(glm::mat4x4) * format.maxBones);
+//        //boneOffsetBuffer->Reallocate(currentInstanceCapacity * sizeof(GLuint));
+//    }
+//
+//    // Associate data with the vao and describe format of instanced data
+//    Assert(vaoId != 0);
+//    instances.Bind();
+//    glBindVertexArray(vaoId);
+//    format.SetInstancedVaoVertexAttributes(vaoId.value, instanceSize, vertexSize);
+//
+//#ifdef MESHPOOL_LOGGING 
+//    DebugLogInfo("EIC ", vaoId);
+//#endif
+//
+//    //DebugLogInfo("Updating instance capacity.");
+//
+//    // Tragically, for every indirect draw command we have to update the 2nd and 3rd buffers' baseInstance since it was offset to correct for the OLD instance buffer's size.
+//    if (INSTANCED_VERTEX_BUFFERING_FACTOR > 1) {
+//        for (auto& b : drawCommands) {
+//            if (!b.has_value()) { continue; }
+//#ifdef MESHPOOL_LOGGING
+//            DebugLogInfo("Updating ", b->clientCommands.size(), " for instance buffer resize");
+//#endif
+//            CheckedUint commandSlot = 0;
+//            for (auto& command : b->clientCommands) {
+//                if (command.instanceCount == 0) { continue; }
+//                b->commandUpdates.emplace_back(IndirectDrawCommandUpdate{
+//                    .updatesLeft = INSTANCED_VERTEX_BUFFERING_FACTOR,
+//                    .command = command,
+//                    .commandSlot = commandSlot
+//                });
+//                commandSlot++;
+//            }
+//        }
+//    }
+//    
+//}
+//
+//CheckedUint Meshpool::GetCommandBuffer(const std::shared_ptr<Material>& material)
+//{
+//    CheckedUint i = 0;
+//    for (auto& buffer : drawCommands) {
+//        if (buffer.has_value() && buffer->material == material) {
+//            return i;
+//        }
+//        i++;
+//    }
+//
+//    BufferedBuffer b(GL_DRAW_INDIRECT_BUFFER, INSTANCED_VERTEX_BUFFERING_FACTOR, 0);
+//    std::optional<DrawCommandBuffer> oB(std::nullopt);
+//    oB.emplace(this, material, std::move(b));
+//
+//    if (availableDrawCommandBufferIndices.size()) {
+//        CheckedUint index = availableDrawCommandBufferIndices.back();
+//        availableDrawCommandBufferIndices.pop_back();
+//        drawCommands.emplace(drawCommands.begin() + index, std::move(oB));
+//        return index;
+//    }
+//    else {
+//        drawCommands.emplace_back(std::move(oB));
+//        return drawCommands.size() - 1;
+//    }
+//}
+//
+//Meshpool::DrawCommandBuffer::DrawCommandBuffer(Meshpool* pool, const std::shared_ptr<Material>& m, BufferedBuffer&& b):
+//    pool(pool),
+//    material(m),
+//    buffer(std::move(b))
+//{
+//    
+//}
+//
+//CheckedUint Meshpool::DrawCommandBuffer::GetNewDrawCommandSlot()
+//{
+//    if (availableDrawCommandSlots.size() == 0) {
+//        ExpandDrawCommandCapacity();
+//    }
+//    unsigned drawCommandIndex = availableDrawCommandSlots.back();
+//    availableDrawCommandSlots.pop_back();
+//    return drawCommandIndex;
+//}
+//
+//int Meshpool::DrawCommandBuffer::GetDrawCount()
+//{
+//    return currentDrawCommandCapacity;
+//}
+//
+//template<typename AttributeType>
+//void Meshpool::SetInstancedVertexAttribute(const DrawHandle& handle, const CheckedUint attributeName, const AttributeType& value) {
+//    CheckedUint attributeIndex = MeshVertexFormat::AttributeIndexFromAttributeName(attributeName); // TODO: could sparsely populate vertexAttributes but with name instead of index?
+//    
+//    Assert(attributeIndex < MeshVertexFormat::N_ATTRIBUTES);
+//    Assert(format.vertexAttributes[attributeIndex]->instanced == true);
+//
+//    AttributeType* attributeLocation = (AttributeType*)(format.vertexAttributes[attributeIndex]->offset + instances.Data() + (handle.instanceSlot * instanceSize));
+//
+//    bool test = int(1) < currentInstanceCapacity;
+//    // make sure we don't segfault 
+//    Assert(handle.instanceSlot < currentInstanceCapacity);
+//    Assert((char*)attributeLocation <= instances.Data() + (instanceSize * currentInstanceCapacity));
+//    Assert((char*)attributeLocation >= instances.Data());
+//    *attributeLocation = value;
+//}
+//
+//// explicit template instantiations
+//template void Meshpool::SetInstancedVertexAttribute<glm::mat4x4>(const DrawHandle& handle, const CheckedUint attributeName, const glm::mat4x4&);
+//template void Meshpool::SetInstancedVertexAttribute<glm::mat3x3>(const DrawHandle& handle, const CheckedUint attributeName, const glm::mat3x3&);
+//template void Meshpool::SetInstancedVertexAttribute<glm::vec4>(const DrawHandle& handle, const CheckedUint attributeName, const glm::vec4&);
+//template void Meshpool::SetInstancedVertexAttribute<glm::vec3>(const DrawHandle& handle, const CheckedUint attributeName, const glm::vec3&);
+//template void Meshpool::SetInstancedVertexAttribute<glm::vec2>(const DrawHandle& handle, const CheckedUint attributeName, const glm::vec2&);
+//template void Meshpool::SetInstancedVertexAttribute<float>(const DrawHandle& handle, const CheckedUint attributeName, const float&);

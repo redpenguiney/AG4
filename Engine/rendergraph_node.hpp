@@ -2,12 +2,14 @@
 #include <memory>
 #include <vector>
 #include "glm/vec4.hpp"
+#include "glm/vec2.hpp"
 #include "GL/glew.h"
 #include "texture_collection.hpp"
-class Material;
+
 class Framebuffer;
 class BufferedBuffer;
 class ShaderProgram;
+class RenderGroup;
 
 enum class DepthTestMode : GLenum {
 	Disabled = GL_ALWAYS, // values in depth buffer are ignored for rendering purposes.
@@ -70,25 +72,17 @@ public:
 	std::shared_ptr<BufferedBuffer> buffer;
 };
 
-struct TextureUsageDescriptor {
-public:
+class TextureHandle {
 
 };
 
+struct TextureUsageDescriptor {
+public:
+	std::shared_ptr<TextureHandle> texture;
+	std::string textureUsageLocation; // name of the shader's sample uniform variable where this shader should be bound.
+};
 
-class RenderPass {
-	std::string name;
-	std::vector<std::string> dependencies; // names of RenderPasses that this RenderPass uses the output of
-	std::vector<std::shared_ptr<Framebuffer>> framebufferDependencies; // this RenderPass won't run until all (other) RenderPasses that write to this framebuffer occur
-
-	// Everything with these materials will get drawn (in no particular order, if any order at all).
-	std::vector<std::shared_ptr<Material>> materials;
-
-	std::vector<RenderTargetDescriptor> renderTargets;
-	std::vector<BufferUsageDescriptor> buffersUsed;
-	std::shared_ptr<TextureCollection> texturesUsed
-	std::vector<TextureUsageDescriptor> auxillaryTexturesUsed
-
+struct RenderingParameters {
 	std::shared_ptr<ShaderProgram> shader;
 	BlendingEquation blendFunc = BlendingEquation::Disabled;
 
@@ -99,6 +93,21 @@ class RenderPass {
 	bool scissoringEnabled = false;
 	glm::ivec2 scissorCorner1;
 	glm::ivec2 scissorCorner2;
+};
 
-	
+class RenderPass {
+public:
+	std::string name;
+	std::vector<std::string> dependencies; // names of RenderPasses that this RenderPass uses the output of
+	std::vector<std::shared_ptr<Framebuffer>> framebufferDependencies; // this RenderPass won't run until all (other) RenderPasses that write to this framebuffer occur
+
+	// TODO: some means of associating RenderPasses to the objects that use them. 
+	//std::vector<std::shared_ptr<Material>> materials;
+
+	RenderTargetDescriptor renderTarget;
+	std::vector<BufferUsageDescriptor> buffersUsed;
+	std::shared_ptr<TextureUsageDescriptor> texturesUsed;
+	std::vector<std::shared_ptr<RenderGroup>> drawnObjects;
+
+	RenderingParameters params;
 };

@@ -1,5 +1,5 @@
 #include "mesh.hpp"
-#include "debug/assert.hpp"
+#include "assert.hpp"
 
 
 

@@ -4,113 +4,57 @@
 #include <functional>
 #include <vector>
 #include <optional>
-#include <debug/log.hpp>
+#include "log.hpp"
 #include <glm/vec3.hpp>
 #include "texture_atlas.hpp"
 #include <GL/glew.h>
+
+enum class VertexScalarType {
+    f32,
+    i32,
+    u32
+};
+
+union VertexScalar {
+    float f;
+    unsigned u;
+    int i;
+};
 
 class Material;
 
 // Something a vertex has; color, position, normal, etc.
 struct VertexAttribute {
+    std::string name = "unnamed";
+
+    // nComponents must == 16 and instanced must == true if this == true. All meshvertexformats should have exactly 1 attribute for which this value is true.
+    bool writeModelMatrix = false;
+
     // the offset, in bytes, of the vertex attribute.
-    // Calculated automatically, don't worry about it.
-    unsigned short offset;
+    // Calculated automatically; user modifications to this value are pointless and will be overwritten.
+    unsigned offset;
 
     // the number of floats in each vertex attribute. (position would be 3 in a 3D situation, for example).
-    // Must be greater than 0 and <= 4, or == 9 (for a 3x3 matrix) or == 12 or 16 (for 4x3 and 4x4 matrices).
-    unsigned short nFloats;
+    // Must be greater than 0 and <= 4, or == 9 (for a 3x3 matrix) or == 16 (for 4x4 matrices). TODO support other matrices
+    unsigned nComponents;
 
     // whether this vertex attribute is for every vertex, or for every renderComponent. (so you could either give each vertex a different color, or just store one color for each object)
     bool instanced;
 
-    // if true, vertex attribute is integers insteadd of float
-    bool integer = false;
+    VertexScalarType type = VertexScalarType::f32;
 
     bool operator==(const VertexAttribute& other) const = default;
 };
 
 // Describes which vertex attributes a mesh has, which of them are instanced, and in what order they are in.
 struct MeshVertexFormat {
-    // IMPLEMENTATION DETAIL: COPY CONSTRUCTOR AND OPERATOR== NEED TO BE UPDATED IF YOU ADD NEW MEMBERS
+    
+    MeshVertexFormat(std::vector<VertexAttribute> attribs);
+    MeshVertexFormat(const MeshVertexFormat&) = default;
 
-    // should pretty much always be triangles unless ur tryna debug
-    GLenum primitiveType = GL_TRIANGLES;
+    const std::vector<VertexAttribute>& GetAttributes() const;
 
-    // true if the mesh format supports animation.
-    const unsigned int supportsAnimation;
-
-    const unsigned int maxBones; // 0 if no animations; rounded up to nearest multiple of 4, meshes can have less than this.
-
-    struct FormatVertexAttributes {
-        std::optional<VertexAttribute> position;
-        std::optional<VertexAttribute> textureUV; // TODO: when using colormap with fontmap, ability to use different uvs for each texture is needed? actually nvm i think just modifying shader and having 4-var uv is enough
-        std::optional<VertexAttribute> textureZ; // texture z is seperate from the uvs because texture z is often instanced, but texture uv should never be instanced
-        std::optional<VertexAttribute> color;
-        std::optional<VertexAttribute> modelMatrix; // (will be all zeroes if not instanced, you must give it a value yourself which is TODO impossible) one 4x4 model matrix per thing being drawn, multiplying vertex positions by this puts them in the right position via rotating, scaling, and translating
-        std::optional<VertexAttribute> normalMatrix; // (will be all zeroes if not instanced, you must give it a value yourself which is TODO impossible) normal matrix is like model matrix, but is 3x3 and for normals since it would be bad if a normal got scaled/translated  
-        std::optional<VertexAttribute> normal; // lighting needs to know normals
-        std::optional<VertexAttribute> tangent; // atangent vector is perpendicular to the normal and lies along the face of a triangle, used for normal/parallax mapping
-        std::optional<VertexAttribute> arbitrary1;
-        std::optional<VertexAttribute> arbitrary2;
-    };
-
-
-    // if animation support is requested, nBones must be a power of 4 greater than 1.
-    MeshVertexFormat(const FormatVertexAttributes&, bool anims = false, unsigned int nBones = 0);
-    MeshVertexFormat(const MeshVertexFormat&); // copy constructor has to recalculate offsets
-
-    const static inline unsigned int N_ATTRIBUTES = 10;
-
-    union { // this cursed union lets us either refer to vertex attributes by name, or iterate through them using the member vertexAttributes[]
-        FormatVertexAttributes attributes; // BRUH I HAD TO NAME THE STRUCT MID C++ IS MID
-
-        std::optional<VertexAttribute> vertexAttributes[N_ATTRIBUTES];
-    };
-
-    // TODO: might be slow
-    static unsigned int AttributeIndexFromAttributeName(unsigned int name) {
-        switch (name) {
-        case POS_ATTRIBUTE_NAME:
-            return 0;
-        case TEXTURE_UV_ATTRIBUTE_NAME:
-            return 1;
-        case TEXTURE_Z_ATTRIBUTE_NAME:
-            return 2;
-        case COLOR_ATTRIBUTE_NAME:
-            return 3;
-        case MODEL_MATRIX_ATTRIBUTE_NAME:
-            return 4;
-        case NORMAL_MATRIX_ATTRIBUTE_NAME:
-            return 5;
-        case NORMAL_ATTRIBUTE_NAME:
-            return 6;
-        case TANGENT_ATTRIBUTE_NAME:
-            return 7;
-        case ARBITRARY_ATTRIBUTE_1_NAME:
-            return 8;
-        case ARBITRARY_ATTRIBUTE_2_NAME:
-            return 9;
-        default:
-            DebugLogError("YOU FOOL, ", name, " IS NO VALID ATTRIBUTE NAME");
-            abort();
-        }
-    }
-
-    // TODO: AUTOMATICALLY ASSIGN THESE NAMES BOTH IN SHADER AND OUTSIDE
-
-    static inline const unsigned int POS_ATTRIBUTE_NAME = 0;
-    static inline const unsigned int COLOR_ATTRIBUTE_NAME = 1;
-    static inline const unsigned int TEXTURE_UV_ATTRIBUTE_NAME = 2;
-    static inline const unsigned int TEXTURE_Z_ATTRIBUTE_NAME = 3;
-    static inline const unsigned int NORMAL_ATTRIBUTE_NAME = 4;
-    static inline const unsigned int TANGENT_ATTRIBUTE_NAME = 5;
-    static inline const unsigned int MODEL_MATRIX_ATTRIBUTE_NAME = 6;
-    /// model matrix takes up slots 7, 8, and 9 too because only one vec4 per attribute
-    static inline const unsigned int NORMAL_MATRIX_ATTRIBUTE_NAME = 10;
-    // normal matrix takes up slots 11 and 12 too for the same reason
-    static inline const unsigned int ARBITRARY_ATTRIBUTE_1_NAME = 13;
-    static inline const unsigned int ARBITRARY_ATTRIBUTE_2_NAME = 14;
+    
 
     // returns combined size in bytes of each non-instanced vertex attribute for one vertex
     unsigned int GetNonInstancedVertexSize() const;
@@ -133,21 +77,14 @@ struct MeshVertexFormat {
     // instanced:  model matrix, normal matrix, rgba if instanced
     static MeshVertexFormat DefaultTriplanarMapping(bool instancedColor = true);
 
-    // Takes a VAO and sets its noninstanced vertex attributes using VertexAttribPointer().
-    // The VAO must ALREADY BE BOUND.s
-    void SetNonInstancedVaoVertexAttributes(unsigned int& vaoId, unsigned int instancedSize, unsigned int nonInstancedSize) const;
-
-    // Takes a VAO and sets its instanced vertex attributes using VertexAttribPointer().
-    // The VAO must ALREADY BE BOUND.
-    void SetInstancedVaoVertexAttributes(unsigned int& vaoId, unsigned int instancedSize, unsigned int nonInstancedSize) const;
-    void HandleAttribute(unsigned int& vaoId, const std::optional<VertexAttribute>& attribute, const unsigned int attributeName, bool justInstanced, unsigned int instancedSize, unsigned int nonInstancedSize) const;
-
-    bool operator==(const MeshVertexFormat& other) const;
+private:
+    std::vector<VertexAttribute> attributes;
+    unsigned noninstancedVertexSize;
+    unsigned instancedVertexSize;
 };
 
 struct MeshCreateParams {
-	// if nullopt, vertex format will be determined automatically
-	std::optional<MeshVertexFormat> meshVertexFormat = std::nullopt; // todo: unconst?
+	MeshVertexFormat meshVertexFormat = MeshVertexFormat::Default();
 
 	// default value of textureZ for the mesh's vertices, if that is a noninstanced vertex attribute
 	float textureZ = -1.0;
@@ -155,7 +92,7 @@ struct MeshCreateParams {
 	// default value of transaprency/alpha for the mesh's vertices, if color is a noninstanced 4-component vertex attribute
 	float opacity = 1.0;
 
-	// meshpool will make room for this many objects to use this mesh (if you go over it's fine, but performance may be affected)
+	// meshpool will make room for this many instances/gameobjects using this mesh (if you go over it's fine, but performance may be affected)
 	// the memory cost of this is ~64 * expectedCount bytes if you ask for space you don't nee
 	// default of 1024 should be fine in almost all cases
 	// NOTE: if you're constantly adding and removing unique meshes, they better all have same expectedCount or TODO memory issues i should probably address at somepoint
@@ -179,7 +116,7 @@ public:
 	MeshCreateParams meshParams = MeshCreateParams::Default();
 
 	// returns the vertices and indices.
-	virtual std::pair < std::vector < float > , std::vector< unsigned int> > GetMesh() const = 0;
+	virtual std::pair < std::vector < VertexScalarType > , std::vector< unsigned int> > GetMesh() const = 0;
 
 	virtual ~MeshProvider() = default;
 };
@@ -188,11 +125,11 @@ public:
 // verts must be organized in accordance with the given meshVertexFormat.
 class RawMeshProvider: public MeshProvider {
 public:
-	RawMeshProvider(const std::vector<float>& vertices = {}, const std::vector<unsigned int>& indices = {}, const MeshCreateParams& params = MeshCreateParams::Default());
+	RawMeshProvider(const std::vector<VertexScalarType>& vertices = {}, const std::vector<unsigned int>& indices = {}, const MeshCreateParams& params = MeshCreateParams::Default());
 
-    std::pair < std::vector < float >, std::vector< unsigned int> > GetMesh() const override;
+    std::pair < std::vector < VertexScalarType >, std::vector< unsigned int> > GetMesh() const override;
 
-	std::vector<float> vertices;
+	std::vector<VertexScalarType> vertices;
 	std::vector<unsigned int> indices;
 };
 
@@ -221,7 +158,7 @@ class TextMeshProvider: public MeshProvider {
 public:
     TextMeshProvider(const MeshCreateParams& = MeshCreateParams::Default(), const std::shared_ptr<Material>& font = nullptr);
 
-    std::pair < std::vector < float >, std::vector< unsigned int> > GetMesh() const override;
+    std::pair < std::vector < VertexScalarType >, std::vector< unsigned int> > GetMesh() const override;
 
     std::string text = "Placeholder text.";
 
@@ -243,7 +180,7 @@ public:
     DualContouringMeshProvider(const MeshCreateParams& = MeshCreateParams::Default());
 
     // defined in mesh_voxels.cpp
-    std::pair < std::vector < float >, std::vector< unsigned int> > GetMesh() const override;
+    std::pair < std::vector < VertexScalarType >, std::vector< unsigned int> > GetMesh() const override;
 
     glm::vec3 point1;
     glm::vec3 point2;

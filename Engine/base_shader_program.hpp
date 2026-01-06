@@ -38,14 +38,15 @@ class BaseShaderProgram {
     bool HasUniform(std::string name);
 
     // sets the uniform variable in this shader program with the given name to the given value
-    void Uniform(std::string uniformName, glm::mat4x4 matrix, bool transposeMatrix = false);
-    void Uniform(std::string uniformName, glm::vec4 vec);
-    void Uniform(std::string uniformName, glm::vec3 vec);
-    void Uniform(std::string uniformName, glm::vec2 vec);
-    void Uniform(std::string uniformName, float fval);
-    void Uniform(std::string uniformName, bool bval);
-    void Uniform(std::string uniformName, unsigned int uval);
-    void Uniform(std::string uniformName, int ival);
+    // if require == true, then Uniform() will throw when the variable doesn't exist.
+    void Uniform(std::string uniformName, glm::mat4x4 matrix, bool transposeMatrix = false, bool require = false);
+    void Uniform(std::string uniformName, glm::vec4 vec, bool require = false);
+    void Uniform(std::string uniformName, glm::vec3 vec, bool require = false);
+    void Uniform(std::string uniformName, glm::vec2 vec, bool require = false);
+    void Uniform(std::string uniformName, float fval, bool require = false);
+    void Uniform(std::string uniformName, bool bval, bool require = false);
+    void Uniform(std::string uniformName, unsigned int uval, bool require = false);
+    void Uniform(std::string uniformName, int ival, bool require = false);
 
     virtual ~BaseShaderProgram();
 

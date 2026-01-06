@@ -1,7 +1,7 @@
 #include "camera.hpp"
-#include "debug/assert.hpp"
+#include "assert.hpp"
 #include <iostream>
-#include "../debug/log.hpp"
+#include "log.hpp"
 #include "glm/gtx/string_cast.hpp"
 
 Camera::Camera() {

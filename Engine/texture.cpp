@@ -1,18 +1,16 @@
-#include "gengine.hpp"
+#include "graphics_engine.hpp"
 #include "GL/glew.h"
 #include "glm/ext.hpp"
 #include <cstring>
 #include <ft2build.h>
 #include <new>
 #include FT_FREETYPE_H
-// #include "../../external_headers/freetype/freetype/freetype.h"
-#include "debug/assert.hpp"
+#include "assert.hpp"
 #include <memory>
 #include <string>
 #include <unordered_map>
 #include <vector>
 #include "stb_image.h" 
-#include "debug/debug.hpp"
 #include "texture.hpp"
 #include "framebuffer.hpp"
 #include <tuple>

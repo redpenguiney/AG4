@@ -2,7 +2,7 @@
 // this struct's format is specifically required by OpenGL to be exactly ilke this
 #pragma once
 #include "GL/glew.h"
-#include <utility/uint.hpp>
+#include "checked_uint.hpp"
 
 struct IndirectDrawCommand {
     CheckedUint count; // how many vertices to draw from index buffer
