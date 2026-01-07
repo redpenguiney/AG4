@@ -11,6 +11,18 @@ class BufferedBuffer;
 class ShaderProgram;
 class RenderGroup;
 
+enum class ImageFormat : GLenum {
+	RGBA_16_DECIMAL = GL_RGBA16, // google opengl "normalized integer".
+	RGBA_16_INT = GL_RGBA16I,
+	RGBA_16_UINT = GL_RGBA16UI,
+	RGBA_32_FLOAT = GL_RGBA32F,
+
+	DEPTH_16_DECIMAL = GL_DEPTH_COMPONENT16,
+	DEPTH_24_DECIMAL = GL_DEPTH_COMPONENT24,
+	DEPTH_32_DECIMAL = GL_DEPTH_COMPONENT32,
+	DEPTH_32_FLOAT = GL_DEPTH_COMPONENT32F
+};
+
 enum class DepthTestMode : GLenum {
 	Disabled = GL_ALWAYS, // values in depth buffer are ignored for rendering purposes.
 	Less = GL_LESS,
@@ -41,27 +53,37 @@ enum class BlendingEquation : GLenum {
 };
 
 // Describes what the contents of a render target should be for a render pass before we draw/write to it.
-enum class RenderTargetAttachmentLoadPolicy {
+enum class AttachmentLoadPolicy {
 	Load, // use the previous contents of the render target
 	Clear, // 
 	DontCare, // all contents of the render target will be overwritten by this pass so it doesn't matter
 };
 
-struct AttachmentLoadPolicy {
-	RenderTargetAttachmentLoadPolicy loadPolicy = RenderTargetAttachmentLoadPolicy::Load;
+struct Attachment {
+	std::string name;
+	AttachmentLoadPolicy loadPolicy = AttachmentLoadPolicy::Load;
 	glm::vec4 clearColor = { 0, 0, 0, 0 }; // used if loadPolicy == Clear
-	GLenum attachmentLocation;
+	ImageFormat format;
 
 	BlendFactorMode blendingSrcFactor = BlendFactorMode::SrcAlpha;
 	BlendFactorMode blendingDstFactor = BlendFactorMode::OneMinusSrcAlpha;
 };
 
-struct RenderTargetDescriptor {
+struct FramebufferRenderTargetDescriptor {
 public:
-	std::vector<AttachmentLoadPolicy> loadPolicies; // used if loadPolicy == Clear
-
-	std::shared_ptr<Framebuffer> framebuffer; // nullptr if writing directly to window contents
+	glm::uvec2 size;
+	std::vector<Attachment> attachments; // used if loadPolicy == Clear
 };
+
+struct WindowRenderTargetDescriptor {
+	AttachmentLoadPolicy loadPolicy = AttachmentLoadPolicy::Load;
+	glm::vec4 clearColor = { 0, 0, 0, 0 }; // used if loadPolicy == Clear
+
+	BlendFactorMode blendingSrcFactor = BlendFactorMode::SrcAlpha;
+	BlendFactorMode blendingDstFactor = BlendFactorMode::OneMinusSrcAlpha;
+};
+
+using RenderTargetDescriptor = std::variant<FramebufferRenderTargetDescriptor, WindowRenderTargetDescriptor>;
 
 struct BufferUsageDescriptor {
 public:
@@ -101,10 +123,8 @@ public:
 	std::vector<std::string> dependencies; // names of RenderPasses that this RenderPass uses the output of
 	std::vector<std::shared_ptr<Framebuffer>> framebufferDependencies; // this RenderPass won't run until all (other) RenderPasses that write to this framebuffer occur
 
-	// TODO: some means of associating RenderPasses to the objects that use them. 
-	//std::vector<std::shared_ptr<Material>> materials;
-
 	RenderTargetDescriptor renderTarget;
+
 	std::vector<BufferUsageDescriptor> buffersUsed;
 	std::shared_ptr<TextureUsageDescriptor> texturesUsed;
 	std::vector<RenderGroup*> drawnObjects; // managed by RenderGroups, non-owning

@@ -45,6 +45,7 @@ public:
 	~RenderGraph() = default;
 	RenderGraph(const RenderGraph&) = delete;
 private:
+
 	//BufferedBuffer indirectDrawingCommandBuffer;
 
 	// Already sorted.
