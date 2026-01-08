@@ -44,7 +44,6 @@ enum class BlendFactorMode : GLenum {
 };
 
 enum class BlendingEquation : GLenum {
-	Disabled = 0,
 	Addition = GL_FUNC_ADD,
 	SourceMinusDest = GL_FUNC_SUBTRACT,
 	DestMinusSource = GL_FUNC_REVERSE_SUBTRACT,
@@ -81,6 +80,7 @@ struct WindowRenderTargetDescriptor {
 
 	BlendFactorMode blendingSrcFactor = BlendFactorMode::SrcAlpha;
 	BlendFactorMode blendingDstFactor = BlendFactorMode::OneMinusSrcAlpha;
+	BlendingEquation blendFunc = BlendingEquation::Addition;
 };
 
 using RenderTargetDescriptor = std::variant<FramebufferRenderTargetDescriptor, WindowRenderTargetDescriptor>;
@@ -106,7 +106,8 @@ public:
 
 struct RenderingParameters {
 	std::shared_ptr<ShaderProgram> shader;
-	BlendingEquation blendFunc = BlendingEquation::Disabled;
+
+	bool blending;
 
 	DepthTestMode depthTestMode = DepthTestMode::LEqual;
 	bool writeDepthBuffer = true; // (depth mask)

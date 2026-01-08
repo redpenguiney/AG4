@@ -16,12 +16,6 @@ struct CommandSet {
 	unsigned nCommands;
 };
 
-struct DrawingSet {
-	GLenum primitiveType;
-	std::vector<CommandSet> commands;
-	std::shared_ptr<Meshpool> meshpool;
-};
-
 // The conceptual difference between this and RenderPass is:
 // - RenderPass only describes what the user WANTS to happen on that drawing step (what textures they want to use).
 // - ProcessedRenderPass contains the information needed to actually make that occur (how those textures are actually stored in texture arrays, the actual framebuffer object being used).

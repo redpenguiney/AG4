@@ -13,11 +13,17 @@ void GraphicsEngine::RenderScene(double dt) {
 
     WriteModelMatrices();
 
+    Meshpool::PrepareDraw();
 
+    if (activeRenderGraph)
+        activeRenderGraph->Render();
+
+    glFlush();
+    Meshpool::PrepareWrite();
 }
 
 void GraphicsEngine::UpdateRenderGraph(std::vector<std::shared_ptr<RenderPass>> nodes) {
-    activeRenderGraph = std::make_shared<RenderGraph>(nodes)
+    activeRenderGraph = std::make_shared<RenderGraph>(nodes);
 }
 
 void GraphicsEngine::WriteModelMatrices() {

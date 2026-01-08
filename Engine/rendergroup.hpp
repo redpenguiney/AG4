@@ -11,6 +11,8 @@ class GameobjectCreateParams;
 
 class RenderGroup: std::enable_shared_from_this<RenderGroup> {
 public:
+	const GLenum primitiveType = GL_TRIANGLES;
+
 	static void FindRendergroupForGameobject(Gameobject& obj, GameobjectCreateParams& params);
 
 	const std::vector<std::shared_ptr<RenderPass>> renderPasses;
@@ -30,4 +32,6 @@ private:
 	void AddDrawCommand(IndirectDrawCommand cmd);
 
 	std::vector<IndirectDrawCommand> commands;
+
+	friend class RenderGraph;
 };

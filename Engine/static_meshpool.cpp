@@ -1,5 +1,5 @@
 #include "static_meshpool.hpp"
-
+#include "mesh.hpp"
 
 void Meshpool::StreamModelMatrix(unsigned instance, glm::mat4x4 modelMatrix) {
 	memcpy(instances.Data() + instance * format.GetInstancedVertexSize() + modelMatrixOffset, &modelMatrix, sizeof(modelMatrix));
@@ -141,7 +141,26 @@ StaticMeshpool::~StaticMeshpool() {
 }
 
 MeshpoolMeshStorageLocation StaticMeshpool::AddMesh(std::shared_ptr<Mesh> m) {
-	
+	unsigned firstVertex = nextMeshFirstVertexLocation;
+	nextMeshFirstVertexLocation += m->numVertices;
+	if (firstVertex >= currentVertexCapacity) {
+		while (firstVertex >= currentVertexCapacity)
+			currentVertexCapacity *= 2;
+		UpdateVertexCapacity();
+	}
+	unsigned firstIndex = nextMeshFirstIndexLocation;
+	if (firstIndex >= currentIndicesCapacity) {
+		while (firstIndex >= currentIndicesCapacity)
+			currentIndicesCapacity *= 2;
+		UpdateIndicesCapacity();
+	}
+	nextMeshFirstIndexLocation += m->numIndices;
+
+	return MeshpoolMeshStorageLocation{
+		.baseVertex = firstVertex,
+		.firstIndex = firstIndex * (unsigned)sizeof(unsigned int),
+		.nIndices = m->numIndices
+	};
 }
 
 void StaticMeshpool::RemoveMesh(Mesh*) {

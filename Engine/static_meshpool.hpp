@@ -9,7 +9,7 @@ class Mesh;
 // Describes where a Mesh's data has been stored within a Meshpool.
 struct MeshpoolMeshStorageLocation {
 	unsigned baseVertex;
-	unsigned firstIndex;
+	unsigned firstIndex; // offset IN BYTES
 	unsigned nIndices;
 };
 
@@ -61,9 +61,12 @@ protected:
 	// Might yield if GPU isn't ready for us to write the data, so call at the last possible second.
 	void FlipBuffers();
 
+
 private:
 	static IdProvider idProvider;
 	static std::vector<Meshpool*> pools;
+
+	friend class RenderGraph;
 };
 
 struct SlotSpace {
