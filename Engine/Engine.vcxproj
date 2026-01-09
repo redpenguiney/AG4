@@ -155,6 +155,7 @@
     <ClCompile Include="mesh.cpp" />
     <ClCompile Include="meshold.cpp" />
     <ClCompile Include="meshpoolold.cpp" />
+    <ClCompile Include="mesh_format.cpp" />
     <ClCompile Include="mesh_multifromfile.cpp" />
     <ClCompile Include="mesh_provider.cpp" />
     <ClCompile Include="mesh_voxels.cpp" />
@@ -193,6 +194,7 @@
     <ClInclude Include="log.hpp" />
     <ClInclude Include="mesh.hpp" />
     <ClInclude Include="meshold.hpp" />
+    <ClInclude Include="mesh_format.hpp" />
     <ClInclude Include="rendergroup.hpp" />
     <ClInclude Include="static_meshpool.hpp" />
     <ClInclude Include="meshpoolold.hpp" />

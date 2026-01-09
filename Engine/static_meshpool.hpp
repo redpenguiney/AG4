@@ -26,7 +26,12 @@ public:
 
 	void StreamModelMatrix(unsigned instance, glm::mat4x4);
 
-	
+	// attribute must be an f32 type, must be part of this meshpool's format, and value must refer to an array with the correct number of scalar values.
+	virtual void SetInstancedVertexAttribute(unsigned instance, VertexAttribute& attribute, float* value) = 0;
+	// attribute must be an u32 type, must be part of this meshpool's format, and value must refer to an array with the correct number of scalar values.
+	virtual void SetInstancedVertexAttribute(unsigned instance, VertexAttribute& attribute, unsigned* value) = 0;
+	// attribute must be an i32 type, must be part of this meshpool's format, and value must refer to an array with the correct number of scalar values.
+	virtual void SetInstancedVertexAttribute(unsigned instance, VertexAttribute& attribute, int* value) = 0;
 
 	virtual ~Meshpool();
 	Meshpool(const Meshpool&) = delete;

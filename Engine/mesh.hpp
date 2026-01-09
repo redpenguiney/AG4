@@ -7,15 +7,14 @@ class Meshpool;
 
 class Mesh {
 public:
-	static std::shared_ptr<Mesh> New(const MeshProvider& provider);
+	static std::shared_ptr<Mesh> New(MeshProvider&& provider);
 
 	const MeshVertexFormat format;
 	const std::vector<VertexScalar> vertices;
 	const std::vector<unsigned> indices;
 
 private:
-	Mesh(std::pair<std::vector<VertexScalar>, std::vector<unsigned>>);
-	Mesh(const MeshProvider& provider);
+	Mesh(MeshProvider&& provider);
 	~Mesh();
 
 	unsigned baseVertex;

@@ -1,7 +1,7 @@
 #include "mesh.hpp"
 #include "static_meshpool.hpp"
 
-std::shared_ptr<Mesh> Mesh::New(const MeshProvider& provider)
+std::shared_ptr<Mesh> Mesh::New(MeshProvider&& provider)
 {
 	std::shared_ptr<Mesh> ptr(new Mesh(provider));
 	auto loc = ptr->pool->AddMesh(ptr);
@@ -11,7 +11,7 @@ std::shared_ptr<Mesh> Mesh::New(const MeshProvider& provider)
 	return ptr;
 }
 
-Mesh::Mesh(const MeshProvider& provider):
+Mesh::Mesh(MeshProvider&& provider):
 Mesh(provider.GetMesh()),
 format(provider.meshParams.meshVertexFormat) {
 
