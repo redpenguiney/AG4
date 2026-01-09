@@ -5,6 +5,10 @@ void Meshpool::StreamModelMatrix(unsigned instance, glm::mat4x4 modelMatrix) {
 	memcpy(instances.Data() + instance * format.GetInstancedVertexSize() + modelMatrixOffset, &modelMatrix, sizeof(modelMatrix));
 }
 
+void Meshpool::StreamNormalMatrix(unsigned instance, glm::mat3x3 normalMatrix) {
+	memcpy(instances.Data() + instance * format.GetInstancedVertexSize() + normalMatrixOffset, &normalMatrix, sizeof(normalMatrix));
+}
+
 void Meshpool::CommitWrites() {
 	vertices.Commit();
 	instances.Commit();
@@ -45,7 +49,6 @@ void Meshpool::PrepareWrite() {
 Meshpool::Meshpool(MeshVertexFormat f):
 format(f),
 id(idProvider.GetId()),
-
 vertices(GL_ARRAY_BUFFER, 1, (1<<20) * f.GetNonInstancedVertexSize()),
 indices(GL_ELEMENT_ARRAY_BUFFER, 1, (1 << 20) * sizeof(GLuint)),
 instances(GL_ARRAY_BUFFER, 3, (1<<20) * f.GetInstancedVertexSize())
@@ -64,7 +67,12 @@ instances(GL_ARRAY_BUFFER, 3, (1<<20) * f.GetInstancedVertexSize())
 			modelMatrixOffset = a.offset;
 			break;
 		}
+		else if (a.writeNormalMatrix) {
+			normalMatrixOffset = a.offset;
+			break;
+		}
 	}
+
 }
 
 void Meshpool::UpdateVertexCapacity() {

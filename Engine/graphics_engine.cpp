@@ -39,6 +39,7 @@ void GraphicsEngine::WriteModelMatrices() {
             modelMatrix[3].z = relPos.z;
             modelMatrix[3].w = 1; // TODO is this one neccesary?
             obj.render.pool->StreamModelMatrix(obj.render.instanceIndex, modelMatrix);
+            obj.render.pool->StreamNormalMatrix(obj.render.instanceIndex, obj.GetNormalMatrix());
         }
     }
 

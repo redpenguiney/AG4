@@ -10,7 +10,8 @@
 #include <GL/glew.h>
 #include "mesh_format.hpp"
 
-struct MeshCreateParams {
+class MeshCreateParams {
+public:
 	MeshVertexFormat meshVertexFormat = MeshVertexFormat::Default();
 
 	// size should always be normalized for collisions/physics to work. Only set to false if you're making a weird mesh like the skybox or gui or something.
@@ -19,42 +20,14 @@ struct MeshCreateParams {
 
 	static MeshCreateParams Default();
 	static MeshCreateParams DefaultGui();
-};
 
-// When you create a Mesh, it needs to get its vertices and indices from somewhere.
-// For other stuff, you use Mesh::New() and provide a object that inherits from MeshProvider.
-class MeshProvider {
-public:
-    MeshProvider(const MeshCreateParams&);
-	MeshCreateParams meshParams = MeshCreateParams::Default();
+    MeshCreateParams() = default;
+    MeshCreateParams(TextMeshCreateParams&&) noexcept;
+    MeshCreateParams& operator=(TextMeshCreateParams&& other) noexcept;
 
-	// returns the vertices and indices.
-	virtual std::vector<VertexScalarType> GetMesh() const = 0;
-
-	virtual ~MeshProvider() = default;
-
-protected:
-    std::vector<VertexScalarType> vertices;
-
-};
-
-// Loads only the vertices and indices.
-// File is loaded on creation of the provider object.
-// Note: to load a scene containing multiple objects, embedded textures, or anything fancy, use TODO instead.
-class FileMeshProvider {
-    FileMeshProvider();
-};
-
-// Mesh provider that takes user-specified vertices and indices.
-// verts must be organized in accordance with the given meshVertexFormat.
-class RawMeshProvider: public MeshProvider {
-public:
-	RawMeshProvider(const std::vector<VertexScalarType>& vertices = {}, const std::vector<unsigned int>& indices = {}, const MeshCreateParams& params = MeshCreateParams::Default());
-
-    std::pair < std::vector < VertexScalarType >, std::vector< unsigned int> > GetMesh() const override;
-
-	std::vector<VertexScalarType> vertices;
-	std::vector<unsigned int> indices;
+private:
+    MeshCreateParams(const MeshCreateParams&) = delete;
+    
 };
 
 enum class HorizontalAlignMode {

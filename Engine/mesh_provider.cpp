@@ -6,23 +6,13 @@ MeshCreateParams MeshCreateParams::Default() {
 }
 
 MeshCreateParams MeshCreateParams::DefaultGui() {
-    return MeshCreateParams({ .meshVertexFormat = MeshVertexFormat::DefaultGui() });
+    MeshCreateParams p;
+    p.meshVertexFormat = MeshVertexFormat::DefaultGui();
+    return p;
 }
 
-RawMeshProvider::RawMeshProvider(const std::vector<float>& vertices, const std::vector<unsigned int>& indices, const MeshCreateParams& params):
-    vertices(vertices),
-    indices(indices),
-    MeshProvider(params)
-{
-}
-
-std::pair<std::vector<VertexScalarType>, std::vector<unsigned int>> RawMeshProvider::GetMesh() const
-{
-    return std::make_pair(vertices, indices);
-}
-
-TextMeshProvider::TextMeshProvider(const MeshCreateParams& params, const std::shared_ptr<Material>& f) : MeshProvider(params), font(f)
-{
+MeshCreateParams& MeshCreateParams::operator=(TextMeshCreateParams&& other) noexcept {
+    return *this;
 }
 
 unsigned int MeshVertexFormat::GetInstancedVertexSize() const {
@@ -36,6 +26,7 @@ unsigned int MeshVertexFormat::GetNonInstancedVertexSize() const {
 MeshVertexFormat::MeshVertexFormat(std::vector<VertexAttribute> attribs) : attributes(attribs) {
 
     unsigned numModelMatrices = 0;
+    unsigned numNormalMatrices = 0;
 
     // calculate attribute offsets and sizes
     unsigned int noninstancedOffset = 0, instancedOffset = 0;
@@ -45,6 +36,10 @@ MeshVertexFormat::MeshVertexFormat(std::vector<VertexAttribute> attribs) : attri
             if (attrib.writeModelMatrix) {
                 numModelMatrices++;
                 Assert(attrib.nComponents == 16);
+            }
+            if (attrib.writeNormalMatrix) {
+                numNormalMatrices++;
+                Assert(!attrib.writeModelMatrix && attrib.nComponents == 9);
             }
             attrib.offset = instancedOffset;
             instancedOffset += attrib.nComponents * sizeof(GLfloat);
@@ -58,7 +53,7 @@ MeshVertexFormat::MeshVertexFormat(std::vector<VertexAttribute> attribs) : attri
     noninstancedVertexSize = noninstancedOffset;
     instancedVertexSize = instancedOffset;
 
-    Assert(numModelMatrices == 1);
+    Assert(numModelMatrices == 1 && numNormalMatrices == 1);
 }
 
 const std::vector<VertexAttribute>& MeshVertexFormat::GetAttributes() const {
@@ -66,21 +61,20 @@ const std::vector<VertexAttribute>& MeshVertexFormat::GetAttributes() const {
 }
 
 
-MeshVertexFormat MeshVertexFormat::Default(unsigned int nBones, bool instancedColor, bool instancedTextureZ) {
-    bool animations = nBones != 0;
-    auto format = MeshVertexFormat({
-        .position = VertexAttribute {.nFloats = 3, .instanced = false},
-        .textureUV = VertexAttribute {.nFloats = 2, .instanced = false},
-        .textureZ = VertexAttribute {.nFloats = 1, .instanced = instancedTextureZ},
-        .color = VertexAttribute {.nFloats = 4, .instanced = instancedColor},
-        .modelMatrix = VertexAttribute {.nFloats = 16, .instanced = true},
-        .normalMatrix = VertexAttribute {.nFloats = 9, .instanced = true},
-        .normal = VertexAttribute {.nFloats = 3, .instanced = false},
-        .tangent = VertexAttribute {.nFloats = 3, .instanced = false},
-        .arbitrary1 = animations ? std::optional(VertexAttribute {.nFloats = 4, .instanced = false, .integer = true}) : std::nullopt, // bone ids
-        .arbitrary2 = animations ? std::optional(VertexAttribute {.nFloats = 4, .instanced = false}) : std::nullopt, // bone weights
-        }, animations, nBones);
-    //format.primitiveType = GL_POINTS;
+MeshVertexFormat MeshVertexFormat::Default() {
+    std::vector<VertexAttribute> attributes;
+    attributes.push_back(VertexAttribute{ .name = "vertexPos", .nComponents = 3, .instanced = false });
+    attributes.push_back(VertexAttribute{ .name = "textureXY", .nComponents = 3, .instanced = false });
+    attributes.push_back(VertexAttribute{ .name = "vertexNormal", .nComponents = 3, .instanced = false });
+    attributes.push_back(VertexAttribute{ .name = "vertexPos", .nComponents = 3, .instanced = false });
+    attributes.push_back(VertexAttribute{ .name = "vertexPos", .nComponents = 3, .instanced = false });
+    attributes.push_back(VertexAttribute{ .name = "vertexPos", .nComponents = 3, .instanced = false });
+    attributes.push_back(VertexAttribute{ .name = "vertexPos", .nComponents = 3, .instanced = false });
+
+    attributes.push_back(VertexAttribute{ .name = "modelMatrix", .writeModelMatrix = true, .nComponents = 16, .instanced = true });
+    attributes.push_back(VertexAttribute{ .name = "normalMatrix", .writeNormalMatrix = true, .nComponents = 9, .instanced = true });
+    attributes.push_back(VertexAttribute{ .name = "vertexColor", .nComponents = 4, .instanced = true });
+
     return format;
 }
 

@@ -25,6 +25,7 @@ public:
 	const unsigned id;
 
 	void StreamModelMatrix(unsigned instance, glm::mat4x4);
+	void StreamNormalMatrix(unsigned instance, glm::mat3x3);
 
 	// attribute must be an f32 type, must be part of this meshpool's format, and value must refer to an array with the correct number of scalar values.
 	virtual void SetInstancedVertexAttribute(unsigned instance, VertexAttribute& attribute, float* value) = 0;
@@ -43,6 +44,7 @@ public:
 
 protected:
 	unsigned modelMatrixOffset;
+	unsigned normalMatrixOffset;
 	unsigned vao;
 
 	Meshpool(MeshVertexFormat f);

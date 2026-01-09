@@ -22,6 +22,8 @@ struct VertexAttribute {
 
     // nComponents must == 16 and instanced must == true if this == true. All meshvertexformats should have exactly 1 attribute for which this value is true.
     bool writeModelMatrix = false;
+    // nComponents must == 9 and instanced must == true if this == true. All meshvertexformats should have exactly 1 attribute for which this value is true.
+    bool writeNormalMatrix = false;
 
     // the offset, in bytes, of the vertex attribute.
     // Calculated automatically; user modifications to this value are pointless and will be overwritten.
@@ -56,12 +58,13 @@ struct MeshVertexFormat {
     unsigned int GetInstancedVertexSize() const;
 
     // Returns a simple mesh vertex format that should work for normal people doing normal things in 3D.
-    // nBones should equal 0 if you don't want animations, otherwise MUST be multiple of 4.
-    // noninstanced (XYZ, TextureXY, NormalXYZ, TangentXYZ, RGBA if !instanceColor, TextureZ if !instanceTextureZ). TODO make actually accurate
-    // instanced: model matrix, normal matrix, rgba if instanced, textureZ if instanced
-    static MeshVertexFormat Default(unsigned int nBones = 0, bool instancedColor = true, bool instancedTextureZ = true);
+    // noninstanced: XYZ, TextureXY, NormalXYZ, TangentXYZ. 
+    // instanced: model matrix, normal matrix, rgba, textureZ 
+    static MeshVertexFormat Default();
 
-    // Returns a simple mesh vertex format that should work for normal people doing normal things with GUI. Just XYZ UV (plus instanced stuff).
+    // Returns a simple mesh vertex format that should work for normal people doing normal things with GUI. 
+    // noninstanced XYZ UV 
+    // instanced model matrix, normal matrix, rgba, textureZ
     static MeshVertexFormat DefaultGui();
 
     // triplanar mapping is a shader technique that allows for texturing meshes that don't have UVs, which is useful for things like procedural terrain.

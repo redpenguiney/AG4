@@ -7,19 +7,21 @@ class Meshpool;
 
 class Mesh {
 public:
-	static std::shared_ptr<Mesh> New(MeshProvider&& provider);
+	static std::shared_ptr<Mesh> New(MeshCreateParams params);
+
+	const unsigned numVertices;
+	const unsigned numIndices;
 
 	const MeshVertexFormat format;
 	const std::vector<VertexScalar> vertices;
 	const std::vector<unsigned> indices;
 
 private:
-	Mesh(MeshProvider&& provider);
+	Mesh(MeshCreateParams params);
 	~Mesh();
 
 	unsigned baseVertex;
 	unsigned firstIndex;
-	unsigned numIndices;
 	Meshpool* pool;
 
 	friend class RenderGroup;
