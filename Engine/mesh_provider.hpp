@@ -14,12 +14,17 @@ class MeshCreateParams {
 public:
 	MeshVertexFormat meshVertexFormat = MeshVertexFormat::Default();
 
+    std::vector<VertexScalarType> vertices = {};
+    std::vector<unsigned> indices = {};
+
+    // Scales all vertices named vertexPos into the 
 	// size should always be normalized for collisions/physics to work. Only set to false if you're making a weird mesh like the skybox or gui or something.
 	// to actually change a rendercomponent's mesh's size, scale its transform component, using Mesh::originalSize if you want the mesh at its correct size.
 	bool normalizeSize = true;
 
 	static MeshCreateParams Default();
 	static MeshCreateParams DefaultGui();
+
 
     MeshCreateParams() = default;
     MeshCreateParams(TextMeshCreateParams&&) noexcept;

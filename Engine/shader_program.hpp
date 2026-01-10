@@ -12,9 +12,16 @@
 
 class ShaderProgram;
 
+struct ShaderActiveVertexAttribute {
+    unsigned index;
+    std::string name;
+    GLenum type;
+};
+
 // Shader program used for rendering, contains (at minimum) a vertex shader and a fragment (basically per pixel) shader.
 class ShaderProgram: public BaseShaderProgram {
     public:
+
     
     //const bool usePerspective; // if true, the uniform mat4 "perspective" in this program's vertex shader will be automatically set to a perspective projection + view matrix.
     //const bool useOrthro; // if true, the uniform mat4 "orthro" in this program's vertex shader will automatically be set to an orthrographic projection matrix.

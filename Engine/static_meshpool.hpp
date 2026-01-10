@@ -5,6 +5,7 @@
 #include <unordered_map>
 
 class Mesh;
+class ShaderProgram;
 
 // Describes where a Mesh's data has been stored within a Meshpool.
 struct MeshpoolMeshStorageLocation {
@@ -42,10 +43,14 @@ public:
 	// call every frame BEFORE writing vertex/instance data and AFTER dispatching GPU draws/commands
 	static void PrepareWrite();
 
+	// Binds the VAO for the shader program, lazily creating it if needed. 
+	void BindVAO(const std::shared_ptr<ShaderProgram>& shader);
+
 protected:
 	unsigned modelMatrixOffset;
 	unsigned normalMatrixOffset;
-	unsigned vao;
+	// We store a different vao for every shader program to accomodate different shaders not using every vertex attributes or specifying them in a different order.
+	std::unordered_map<ShaderProgram*, unsigned> vaos;
 
 	Meshpool(MeshVertexFormat f);
 
@@ -74,6 +79,7 @@ private:
 	static std::vector<Meshpool*> pools;
 
 	friend class RenderGraph;
+
 };
 
 struct SlotSpace {

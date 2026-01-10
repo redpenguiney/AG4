@@ -18,12 +18,11 @@ class Material;
 
 // Something a vertex has; color, position, normal, etc.
 struct VertexAttribute {
+    // The name used to identify this vertex attribute in shaders. TODO: actually use seperate vao for each shader to facillitate this
+    // Certain names (enumerated in the namespace SpecialVertexAttributeNames) have special behaviour and should be used when possible.
+    // MODEL_MATRIX and NORMAL_MATRIX are required and must be instanced with 16 and 9 floats respectively.
+    // A format cannot have two attributes with the same name.
     std::string name = "unnamed";
-
-    // nComponents must == 16 and instanced must == true if this == true. All meshvertexformats should have exactly 1 attribute for which this value is true.
-    bool writeModelMatrix = false;
-    // nComponents must == 9 and instanced must == true if this == true. All meshvertexformats should have exactly 1 attribute for which this value is true.
-    bool writeNormalMatrix = false;
 
     // the offset, in bytes, of the vertex attribute.
     // Calculated automatically; user modifications to this value are pointless and will be overwritten.
@@ -39,6 +38,16 @@ struct VertexAttribute {
     VertexScalarType type = VertexScalarType::f32;
 
     bool operator==(const VertexAttribute& other) const = default;
+};
+
+namespace SpecialVertexAttributeNames {
+    constexpr inline std::string VERTEX_POSITION = "vertexPos";
+    constexpr inline std::string MODEL_MATRIX = "modelMatrix";
+    constexpr inline std::string NORMAL_MATRIX = "normalMatrix";
+    constexpr inline std::string VERTEX_NORMAL = "vertexNormal";
+    constexpr inline std::string VERTEX_TANGENT = "vertexTangent";
+
+
 };
 
 // Describes which vertex attributes a mesh has, which of them are instanced, and in what order they are in.

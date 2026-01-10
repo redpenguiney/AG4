@@ -46,6 +46,21 @@ void Meshpool::PrepareWrite() {
 	}
 }
 
+void Meshpool::BindVAO(const std::shared_ptr<ShaderProgram>& shader) {
+	if (!vaos.contains(shader.get())) {
+		unsigned vao;
+		glGenVertexArrays(1, &vao);
+		glBindVertexArray(vao);
+		
+		
+
+
+		delete[] nameBuffer;
+	}
+
+	glBindVertexArray(vaos[shader.get()]);
+}
+
 Meshpool::Meshpool(MeshVertexFormat f):
 format(f),
 id(idProvider.GetId()),
@@ -63,11 +78,11 @@ instances(GL_ARRAY_BUFFER, 3, (1<<20) * f.GetInstancedVertexSize())
 	}
 
 	for (auto& a : format.GetAttributes()) {
-		if (a.writeModelMatrix) {
+		if (a.name == SpecialVertexAttributeNames::MODEL_MATRIX) {
 			modelMatrixOffset = a.offset;
 			break;
 		}
-		else if (a.writeNormalMatrix) {
+		else if (a.name == SpecialVertexAttributeNames::NORMAL_MATRIX) {
 			normalMatrixOffset = a.offset;
 			break;
 		}

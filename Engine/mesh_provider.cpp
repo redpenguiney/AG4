@@ -63,17 +63,17 @@ const std::vector<VertexAttribute>& MeshVertexFormat::GetAttributes() const {
 
 MeshVertexFormat MeshVertexFormat::Default() {
     std::vector<VertexAttribute> attributes;
-    attributes.push_back(VertexAttribute{ .name = "vertexPos", .nComponents = 3, .instanced = false });
-    attributes.push_back(VertexAttribute{ .name = "textureXY", .nComponents = 3, .instanced = false });
-    attributes.push_back(VertexAttribute{ .name = "vertexNormal", .nComponents = 3, .instanced = false });
-    attributes.push_back(VertexAttribute{ .name = "vertexPos", .nComponents = 3, .instanced = false });
+    attributes.push_back(VertexAttribute{ .name = SpecialVertexAttributeNames::VERTEX_POSITION, .nComponents = 3, .instanced = false });
+    attributes.push_back(VertexAttribute{ .name = "textureXY", .nComponents = 2, .instanced = false });
+    attributes.push_back(VertexAttribute{ .name = SpecialVertexAttributeNames::VERTEX_NORMAL, .nComponents = 3, .instanced = false });
+    attributes.push_back(VertexAttribute{ .name = SpecialVertexAttributeNames::VERTEX_TANGENT, .nComponents = 3, .instanced = false });
     attributes.push_back(VertexAttribute{ .name = "vertexPos", .nComponents = 3, .instanced = false });
     attributes.push_back(VertexAttribute{ .name = "vertexPos", .nComponents = 3, .instanced = false });
     attributes.push_back(VertexAttribute{ .name = "vertexPos", .nComponents = 3, .instanced = false });
 
-    attributes.push_back(VertexAttribute{ .name = "modelMatrix", .writeModelMatrix = true, .nComponents = 16, .instanced = true });
-    attributes.push_back(VertexAttribute{ .name = "normalMatrix", .writeNormalMatrix = true, .nComponents = 9, .instanced = true });
-    attributes.push_back(VertexAttribute{ .name = "vertexColor", .nComponents = 4, .instanced = true });
+    attributes.push_back(VertexAttribute{ .name = SpecialVertexAttributeNames::MODEL_MATRIX, .nComponents = 16, .instanced = true });
+    attributes.push_back(VertexAttribute{ .name = SpecialVertexAttributeNames::NORMAL_MATRIX, .nComponents = 9, .instanced = true });
+    attributes.push_back(VertexAttribute{ .name = "color", .nComponents = 4, .instanced = true });
 
     return format;
 }
