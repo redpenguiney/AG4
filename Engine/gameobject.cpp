@@ -9,6 +9,7 @@ Gameobject* Gameobject::New(GameobjectCreateParams params)
 
 Gameobject::Gameobject(GameobjectCreateParams params) {
     live = true;
+    normalMatDirty = true;
 
     position = { 0, 0, 0 };
     rotation = glm::identity<glm::quat>();
@@ -46,11 +47,13 @@ void Gameobject::SetPosition(const glm::dvec3& p) {
 void Gameobject::SetScale(const glm::vec3& s) {
     scale = s;
     rotSclDirty = true;
+    normalMatDirty = true;
 }
 
 void Gameobject::SetRotation(const glm::quat& r) {
     rotation = r;
     rotSclDirty = true;
+    normalMatDirty = true;
 }
 
 const glm::mat3x3& Gameobject::GetRotSclMatrix() {

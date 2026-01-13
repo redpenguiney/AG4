@@ -27,8 +27,8 @@ public:
 
 
     MeshCreateParams() = default;
-    MeshCreateParams(TextMeshCreateParams&&) noexcept;
-    MeshCreateParams& operator=(TextMeshCreateParams&& other) noexcept;
+    MeshCreateParams(MeshCreateParams&&) noexcept = default;
+    MeshCreateParams& operator=(MeshCreateParams&& other) noexcept = default;
 
 private:
     MeshCreateParams(const MeshCreateParams&) = delete;
@@ -53,57 +53,4 @@ struct TextMeshCreateParams {
 	HorizontalAlignMode horizontalAlignMode = HorizontalAlignMode::Center;
 	VerticalAlignMode verticalAlignMode = VerticalAlignMode::Center;
 	bool wrapText = true;
-};
-
-// Mesh provider that creates a mesh for text.
-class TextMeshProvider: public MeshProvider {
-public:
-    TextMeshProvider(const MeshCreateParams& = MeshCreateParams::Default(), const std::shared_ptr<Material>& font = nullptr);
-
-    std::pair < std::vector < VertexScalarType >, std::vector< unsigned int> > GetMesh() const override;
-
-    std::string text = "Placeholder text.";
-
-    // must be valid ptr to material with fontmap
-    const std::shared_ptr<Material> font = nullptr;
-	TextMeshCreateParams textParams;
-};
-
-// Mesh provider that uses dual contouring to generate a mesh based from a signed distance function representing a terrain surface.
-// Created mesh samples points between p1 and p2 with the given resolution. 
-// The distance function must be continuous, and return distance values between -1 and 1 (TODO CONFIRM)
-// If a texture atlas is provided, it will use it for UVs and/or vertex colors if the format supports them.
-// Will also generate normals, tangents, etc. if requested by the format.
-// Mesh will be designed to be of dimensions size.
-// Note that this provider may return an empty mesh (if the terrain area sampled is completely solid or completely hollow). TODO is that okay?
-// TODO currently basically broken
-class DualContouringMeshProvider: public MeshProvider {
-public:
-    DualContouringMeshProvider(const MeshCreateParams& = MeshCreateParams::Default());
-
-    // defined in mesh_voxels.cpp
-    std::pair < std::vector < VertexScalarType >, std::vector< unsigned int> > GetMesh() const override;
-
-    glm::vec3 point1;
-    glm::vec3 point2;
-    float resolution;
-    std::function<float(glm::vec3)> distanceFunction;
-    std::optional<const TextureAtlas*> atlas = std::nullopt; // sorry its a pointer, should be a reference but it doesn't like optionals with references.
-    bool fixVertexCenters = false; // if true will create minecraft-style blocky terrain
-};
-
-// Mesh provider that uses marching cubes based on a signed distance function.
-class MarchingCubesMeshProvider : public MeshProvider {
-public:
-    MarchingCubesMeshProvider(const MeshCreateParams & = MeshCreateParams::Default());
-
-    // defined in mesh_voxels.cpp
-    std::pair < std::vector < float >, std::vector< unsigned int> > GetMesh() const override;
-
-    glm::vec3 point1;
-    glm::vec3 point2;
-    float resolution;
-    std::function<float(glm::vec3)> distanceFunction;
-    std::optional<const TextureAtlas*> atlas = std::nullopt; // sorry its a pointer, should be a reference but it doesn't like optionals with references.
-    bool fixVertexCenters = false; // if true will create minecraft-style blocky terrain
 };

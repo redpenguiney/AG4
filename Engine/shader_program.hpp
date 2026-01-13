@@ -20,13 +20,9 @@ struct ShaderActiveVertexAttribute {
 
 // Shader program used for rendering, contains (at minimum) a vertex shader and a fragment (basically per pixel) shader.
 class ShaderProgram: public BaseShaderProgram {
-    public:
-
+public:
+    const std::vector<ShaderActiveVertexAttribute>& GetInputVertexAttributes();
     
-    //const bool usePerspective; // if true, the uniform mat4 "perspective" in this program's vertex shader will be automatically set to a perspective projection + view matrix.
-    //const bool useOrthro; // if true, the uniform mat4 "orthro" in this program's vertex shader will automatically be set to an orthrographic projection matrix.
-    const bool useFloatingOrigin; // if true, camera translation will be done in the shader instead of with doubles on the gpu
-    const bool useClusteredLighting; // if true, the ssbo "clusters" in this program's vertex & fragment shaders will be automatically bound
     // const std::optional<Framebuffer> RenderTo; TODO: for stuff like viewport frames. things rendered with this shader will be rendered onto the framebuffer contained in the optional, or onto the main framebuffer if it's nullopt.
 
     // TODO: the graphics engine should really just do this itself. 
@@ -56,7 +52,9 @@ class ShaderProgram: public BaseShaderProgram {
 
     std::string GetVertexSourcePath();
 
-    private:
+private:
+
+    std::vector<ShaderActiveVertexAttribute> inputVertexAttributes; // TODO: offering default values
 
     static inline std::unordered_map<unsigned int, std::shared_ptr<ShaderProgram>> LOADED_SHADER_PROGRAMS;
     

@@ -41,11 +41,12 @@ struct VertexAttribute {
 };
 
 namespace SpecialVertexAttributeNames {
-    constexpr inline std::string VERTEX_POSITION = "vertexPos";
-    constexpr inline std::string MODEL_MATRIX = "modelMatrix";
-    constexpr inline std::string NORMAL_MATRIX = "normalMatrix";
-    constexpr inline std::string VERTEX_NORMAL = "vertexNormal";
-    constexpr inline std::string VERTEX_TANGENT = "vertexTangent";
+    const inline std::string VERTEX_POSITION = "vertexPos";
+    const inline std::string MODEL_MATRIX = "modelMatrix";
+    const inline std::string NORMAL_MATRIX = "normalMatrix";
+    const inline std::string VERTEX_NORMAL = "vertexNormal";
+    const inline std::string VERTEX_TANGENT = "vertexTangent";
+    const inline std::string VERTEX_UV = "textureXY"
 
 
 };
@@ -58,7 +59,7 @@ struct MeshVertexFormat {
 
     const std::vector<VertexAttribute>& GetAttributes() const;
 
-
+    unsigned ScalarsPerVertex() const;
 
     // returns combined size in bytes of each non-instanced vertex attribute for one vertex
     unsigned int GetNonInstancedVertexSize() const;

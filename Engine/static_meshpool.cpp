@@ -1,5 +1,6 @@
 #include "static_meshpool.hpp"
 #include "mesh.hpp"
+#include "shader_program.hpp"
 
 void Meshpool::StreamModelMatrix(unsigned instance, glm::mat4x4 modelMatrix) {
 	memcpy(instances.Data() + instance * format.GetInstancedVertexSize() + modelMatrixOffset, &modelMatrix, sizeof(modelMatrix));
@@ -52,10 +53,39 @@ void Meshpool::BindVAO(const std::shared_ptr<ShaderProgram>& shader) {
 		glGenVertexArrays(1, &vao);
 		glBindVertexArray(vao);
 		
+		vertices.Bind();
+		for (const auto& attributeRequested : shader->GetInputVertexAttributes()) {
+			for (auto& attribute : format.GetAttributes())	 {
+				Assert(false); // TODO
+				/*if (!attribute.instanced && attribute.name == attributeRequested.name) {
+					unsigned numArraysRequired = 0;
+					attributeRequested.t;
+					for (unsigned j = attributeRequested.index; j < attributeRequested.index + numArraysRequired; j++) {
+						glEnableVertexAttribArray(attributeRequested.index+j);
+
+						if (attribute.type == VertexScalarType::f32) {
+							glVertexAttribPointer(attributeRequested.index + j, attribute.nComponents, GL_FLOAT, GL_FALSE, format.GetNonInstancedVertexSize(), (void*)(attribute.offset));
+						}
+						else {
+							GLenum itype;
+							switch (attribute.type) {
+							case VertexScalarType::i32:
+								itype = GL_INT;
+								break;
+							case VertexScalarType::u32:
+								itype = GL_UNSIGNED_INT;
+								break;
+							default:
+								Assert(false);
+							}
+							glVertexAttribIPointer(attributeRequested.index + j, attribute.nComponents, itype, format.GetNonInstancedVertexSize(), (void*)(attribute.offset));
+						}
+					}
+				}*/
+			}
+		}
 		
-
-
-		delete[] nameBuffer;
+		instances.Bind();
 	}
 
 	glBindVertexArray(vaos[shader.get()]);
@@ -97,23 +127,7 @@ void Meshpool::UpdateVertexCapacity() {
 	unsigned i = 0;
 	for (auto& attribute : format.GetAttributes()) {
 		if (!attribute.instanced) {
-			if (attribute.type == VertexScalarType::f32) {
-				glVertexAttribPointer(i, attribute.nComponents, GL_FLOAT, GL_FALSE, format.GetNonInstancedVertexSize(), (void*)(attribute.offset));
-			}
-			else {
-				GLenum itype;
-				switch (attribute.type) {
-				case VertexScalarType::i32:
-					itype = GL_INT;
-					break;
-				case VertexScalarType::u32:
-					itype = GL_UNSIGNED_INT;
-					break;
-				default:
-					Assert(false);
-				}
-				glVertexAttribIPointer(i, attribute.nComponents, itype, format.GetNonInstancedVertexSize(), (void*)(attribute.offset));
-			}
+			
 		}
 		if (attribute.nComponents <= 4) i++;
 		else if (attribute.nComponents == 9) i += 3;

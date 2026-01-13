@@ -16,7 +16,11 @@
 
 
 
-void ShaderProgram::SetCameraUniforms(glm::mat4x4 cameraProjMatrix, glm::mat4x4 cameraProjMatrixNoFloatingOrigin, glm::mat4x4 orthrographicMatrix) {  
+const std::vector<ShaderActiveVertexAttribute>& ShaderProgram::GetInputVertexAttributes() {
+    return inputVertexAttributes;
+}
+
+void ShaderProgram::SetCameraUniforms(glm::mat4x4 cameraProjMatrix, glm::mat4x4 cameraProjMatrixNoFloatingOrigin, glm::mat4x4 orthrographicMatrix) {
     for (auto & [shaderId, shaderProgram] : LOADED_SHADER_PROGRAMS) {
         (void)shaderId;
         if (shaderProgram->HasUniform("orthro")) { // make sure the shader program actually wants our camera/projection matrix
@@ -79,4 +83,25 @@ ShaderProgram::ShaderProgram(const char* vertexPath, const char* fragmentPath, c
     glBindFragDataLocation(shaderProgramId, 0, "color"); // tell opengl that the variable we're putting the final pixel color in is called "color"
 
     Link();
+
+    int nAttribs, longestAttribName;
+    glGetProgramiv(shaderProgramId, GL_ACTIVE_ATTRIBUTES, &nAttribs);
+    glGetProgramiv(shaderProgramId, GL_ACTIVE_ATTRIBUTE_MAX_LENGTH, &longestAttribName);
+    Assert(nAttribs > 0);
+    auto nameBuffer = new char[longestAttribName+1];
+    for (unsigned i = 0; i < nAttribs; i++) {
+        GLsizei nameLength = -1;
+        GLint attribSize;
+        GLenum attribType;
+        glGetActiveAttrib(shaderProgramId, i, longestAttribName, &nameLength, &attribSize, &attribType, nameBuffer);
+
+        if (nameLength != -1) {
+            inputVertexAttributes.push_back(ShaderActiveVertexAttribute{
+                .index = i,
+                .name = std::string(nameBuffer, nameLength),
+                .type = attribType
+            });
+        }
+    }
+    delete[] nameBuffer;
 }

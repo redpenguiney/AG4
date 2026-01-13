@@ -18,6 +18,7 @@ public:
 
 private:
 	Mesh(MeshCreateParams params);
+	Mesh(const Mesh&) = delete;
 	~Mesh();
 
 	unsigned baseVertex;

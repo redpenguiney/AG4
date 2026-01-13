@@ -4,17 +4,19 @@
 
 std::shared_ptr<Mesh> Mesh::New(MeshCreateParams params)
 {
-	std::shared_ptr<Mesh> ptr(new Mesh(provider));
+	auto ptr = std::shared_ptr<Mesh>(new Mesh(std::move(params)));
 	auto loc = ptr->pool->AddMesh(ptr);
 	ptr->baseVertex = loc.baseVertex;
 	ptr->firstIndex = loc.firstIndex;
-	ptr->numIndices = loc.nIndices;
 	return ptr;
 }
 
 Mesh::Mesh(MeshCreateParams params):
-vertices(provider.GetVertices()),
-format(provider.meshParams.meshVertexFormat) {
+vertices(std::move(params.vertices)),
+indices(std::move(params.indices)),
+format(params.meshVertexFormat),
+numVertices(vertices.size() / format.ScalarsPerVertex()),
+numIndices(indices.size()) {
 
 }
 

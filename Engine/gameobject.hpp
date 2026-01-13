@@ -56,7 +56,8 @@ protected:
 	glm::vec3 scale;
 	glm::quat rotation;
 	glm::mat3x3 rotSclMatrix;
-	bool rotSclDirty;
+	bool rotSclDirty; // indicates that the variable rotSclMatrix must be recalculated before being used
+	bool normalMatDirty; // indicates that the normal matrix must be uploaded to the graphics engine again. TODO could hold false for gameobjects with meshes that don't use normal matrix 
 	// Used by MemoryPool. Not the first member in order to A. exploit otherwise wasted padding bytes and B. avoid interfering with free list
 	bool live;
 

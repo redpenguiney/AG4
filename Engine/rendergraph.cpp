@@ -69,7 +69,7 @@ void RenderGraph::Render() {
 		glDepthFunc(static_cast<GLenum>(p.params.depthTestMode));
 
 		for (auto& renderGroup : p.thingsToDraw) {
-			glBindVertexArray(renderGroup->meshpool->vao);
+			renderGroup->meshpool->BindVAO(p.params.shader);
 			renderGroup->meshpool->indices.Bind();
 			for (auto& c : renderGroup->commands) {
 				unsigned baseVertexOffset = renderGroup->meshpool->vertices.GetOffset() / renderGroup->meshpool->format.GetNonInstancedVertexSize();

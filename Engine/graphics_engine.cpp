@@ -2,6 +2,8 @@
 #include "memory_pool.hpp"
 #include "gameobject.hpp"
 #include "static_meshpool.hpp"
+#include <glm/gtc/matrix_inverse.hpp>
+#include "rendergraph_node.hpp"
 
 GraphicsEngine& GraphicsEngine::Get() {
     static GraphicsEngine GE;
@@ -39,7 +41,10 @@ void GraphicsEngine::WriteModelMatrices() {
             modelMatrix[3].z = relPos.z;
             modelMatrix[3].w = 1; // TODO is this one neccesary?
             obj.render.pool->StreamModelMatrix(obj.render.instanceIndex, modelMatrix);
-            obj.render.pool->StreamNormalMatrix(obj.render.instanceIndex, obj.GetNormalMatrix());
+            if (obj.normalMatDirty) {
+                obj.normalMatDirty = false;
+                obj.render.pool->StreamNormalMatrix(obj.render.instanceIndex, glm::inverseTranspose(obj.GetRotSclMatrix())); // TODO: many things won't be nonuniformly scaled and this will be an unneccesary performance cost for them
+            }
         }
     }
 
@@ -47,7 +52,9 @@ void GraphicsEngine::WriteModelMatrices() {
 }
 
 GraphicsEngine::GraphicsEngine() {
-
+    mainDrawingPass = std::make_shared<RenderPass>();
+    mainDrawingPass->name = "default";
+    mainDrawingPass->renderTarget = WindowRenderTargetDescriptor();
 }
 
 GraphicsEngine::~GraphicsEngine() {

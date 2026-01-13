@@ -1,9 +1,10 @@
 #pragma once
 #include <vector>
-#include "rendergraph_node.hpp"
 #include "rendergraph.hpp"
 #include <memory>
 #include "camera.hpp"
+
+class RenderPass;
 
 class StaticMeshpool;
 
@@ -16,6 +17,9 @@ public:
 	void RenderScene(double dt);
 
 	void UpdateRenderGraph(std::vector<std::shared_ptr<RenderPass>> nodes);
+
+	// A solid default for gameobjects. 
+	std::shared_ptr<RenderPass> mainDrawingPass;
 
 private:
 	void WriteModelMatrices();
