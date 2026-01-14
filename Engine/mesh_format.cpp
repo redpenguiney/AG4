@@ -32,6 +32,7 @@ MeshVertexFormat::MeshVertexFormat(std::vector<VertexAttribute> attribs) : attri
             }
             if (attrib.name == SpecialVertexAttributeNames::NORMAL_MATRIX) {
                 numNormalMatrices++;
+                Assert(attrib.nComponents == 9);
             }
             attrib.offset = instancedOffset;
             instancedOffset += attrib.nComponents * sizeof(GLfloat);
@@ -45,6 +46,7 @@ MeshVertexFormat::MeshVertexFormat(std::vector<VertexAttribute> attribs) : attri
     noninstancedVertexSize = noninstancedOffset;
     instancedVertexSize = instancedOffset;
 
+    Assert(noninstancedVertexSize > 0 && instancedVertexSize > 0);
     Assert(numModelMatrices == 1 && numNormalMatrices == 1);
 }
 
@@ -57,6 +59,7 @@ unsigned MeshVertexFormat::ScalarsPerVertex() const {
     for (auto& attr : attributes) {
         if (!attr.instanced) n += attr.nComponents;
     }
+    return n;
 }
 
 
@@ -100,6 +103,9 @@ MeshVertexFormat MeshVertexFormat::DefaultTriplanarMapping(bool instancedColor)
     attributes.push_back(VertexAttribute{ .name = SpecialVertexAttributeNames::MODEL_MATRIX, .nComponents = 16, .instanced = true });
     attributes.push_back(VertexAttribute{ .name = SpecialVertexAttributeNames::NORMAL_MATRIX, .nComponents = 9, .instanced = true });
     attributes.push_back(VertexAttribute{ .name = "color", .nComponents = 4, .instanced = true });
+
+    return MeshVertexFormat(attributes);
+
 }
 
 VertexAttribute* MeshVertexFormat::GetAttribute(std::string name) {

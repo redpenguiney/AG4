@@ -13,13 +13,16 @@
 template <typename ... eventArgs>
 class Event : public BaseEvent {
 public:
+	using Ref = std::shared_ptr<Event>;
+	using WeakRef = std::weak_ptr<Event>;
+
 	friend class Connection;
 
 	// Represents a function's connection to a specific event. 
 	// When this goes out of scope, it disconnects the function from the event.
 	class Connection {
 	public:
-		Connection(unsigned int id, std::weak_ptr<Event> even) :
+		Connection(unsigned int id, WeakRef even) :
 			connectedFunctionId(id), event(even)
 		{
 
@@ -42,7 +45,7 @@ public:
 		Connection(Connection&&) = delete;
 	private:
 		unsigned int connectedFunctionId;
-		std::weak_ptr<Event> event;
+		WeakRef event;
 	};
 
 	using ConnectableFunctionArgs = std::tuple<eventArgs...>;
@@ -52,7 +55,7 @@ private:
 	class EventInvocation : public BaseEventInvocation {
 	public:
 		ConnectableFunctionArgs invocationArgs;
-		std::weak_ptr<Event> event;
+		WeakRef event;
 
 		EventInvocation(ConnectableFunctionArgs args, decltype(event) e) : invocationArgs(args), event(e) {}
 		virtual ~EventInvocation() = default;
@@ -74,7 +77,7 @@ public:
 
 	// sadly, we have to use shared_ptr for events to handle the situation where firing an event results in the destruction of that fired event.
 	// this means no default constructing event either :(
-	static std::shared_ptr<Event> New() {
+	static Ref New() {
 		auto ptr = std::shared_ptr< Event>(new Event());
 		return ptr;
 	}
@@ -89,7 +92,7 @@ public:
 	}
 
 	void Fire(ConnectableFunctionArgs tupledArgs) {
-		std::weak_ptr<Event> e = dynamic_pointer_cast<Event>(weak_from_this().lock());
+		WeakRef e = dynamic_pointer_cast<Event>(weak_from_this().lock());
 		std::unique_ptr<BaseEventInvocation> p = std::unique_ptr<BaseEventInvocation>((BaseEventInvocation*)(new EventInvocation(tupledArgs, e)));
 		auto& q = EventInvocationQueue();
 		q.push_back(std::move(p));
@@ -107,7 +110,7 @@ public:
 	std::unique_ptr<Connection> ConnectTemporary(ConnectableFunction function) {
 		unsigned int id = LAST_CONNECTION_ID++;
 		connectedFunctions->push_back(std::make_pair(id, function));
-		std::weak_ptr<Event> wthis = std::dynamic_pointer_cast<Event>(shared_from_this()); // sadly we have to use shared_ptr, cast it, then turn it to a weak_ptr because no dynamic pointer cast for weak_ptr. stupid.
+		WeakRef wthis = std::dynamic_pointer_cast<Event>(shared_from_this()); // sadly we have to use shared_ptr, cast it, then turn it to a weak_ptr because no dynamic pointer cast for weak_ptr. stupid.
 		return std::move(std::unique_ptr<Connection>(new Connection(id, wthis)));
 	}
 
@@ -129,7 +132,7 @@ private:
 	}
 
 	//template <typename T>
-	friend class std::shared_ptr<Event>;
+	friend class EventRef;
 
 	// shared_ptrs needed so that Flush() can keep working without segfaults, even if the event is destroyed by calling a connected function.
 	//std::shared_ptr<std::vector<ConnectableFunctionArgs>> eventInvocations;

@@ -69,7 +69,80 @@ std::string ShaderProgram::GetVertexSourcePath() {
 
 
 
+unsigned NumArraysFromGLAttributeType(GLenum type) {
+    switch (type) {
+    case GL_FLOAT:
+    case GL_INT:
+    case GL_UNSIGNED_INT:
+    case GL_FLOAT_VEC2:
+    case GL_INT_VEC2:
+    case GL_UNSIGNED_INT_VEC2:
+    case GL_FLOAT_VEC3:
+    case GL_INT_VEC3:
+    case GL_UNSIGNED_INT_VEC3:
+    case GL_FLOAT_VEC4:
+    case GL_INT_VEC4:
+    case GL_UNSIGNED_INT_VEC4:
+        return 1;
+    case GL_FLOAT_MAT3:
+        return 3;
+    case GL_FLOAT_MAT4:
+        return 4;
+    default:
+        Assert(false);
+    }
+}
 
+unsigned NumComponentsPerArrayFromGLAttributeType(GLenum type) {
+    switch (type) {
+    case GL_FLOAT:
+    case GL_INT:
+    case GL_UNSIGNED_INT:
+        return 1;
+    case GL_FLOAT_VEC2:
+    case GL_INT_VEC2:
+    case GL_UNSIGNED_INT_VEC2:
+        return 2;
+    case GL_FLOAT_VEC3:
+    case GL_INT_VEC3:
+    case GL_UNSIGNED_INT_VEC3:
+        return 3;
+    case GL_FLOAT_VEC4:
+    case GL_INT_VEC4:
+    case GL_UNSIGNED_INT_VEC4:
+        return 4;
+    case GL_FLOAT_MAT3:
+        return 3;
+    case GL_FLOAT_MAT4:
+        return 4;
+    default:
+        Assert(false);
+    }
+}
+
+VertexScalarType ScalarTypeFromGLAttributeType(GLenum type) {
+    switch (type) {
+    case GL_FLOAT:
+    case GL_FLOAT_VEC2:
+    case GL_FLOAT_VEC3:
+    case GL_FLOAT_VEC4:
+    case GL_FLOAT_MAT3:
+    case GL_FLOAT_MAT4:
+        return VertexScalarType::f32;
+    case GL_INT:
+    case GL_INT_VEC2:
+    case GL_INT_VEC3:
+    case GL_INT_VEC4:
+        return VertexScalarType::i32;
+    case GL_UNSIGNED_INT:
+    case GL_UNSIGNED_INT_VEC2:
+    case GL_UNSIGNED_INT_VEC3:
+    case GL_UNSIGNED_INT_VEC4:
+        return VertexScalarType::u32;
+    default:
+        Assert(false);
+    }
+}
 
 ShaderProgram::ShaderProgram(const char* vertexPath, const char* fragmentPath, const bool floatingOrigin, const bool useLightClusters):
     BaseShaderProgram(),
@@ -90,17 +163,23 @@ ShaderProgram::ShaderProgram(const char* vertexPath, const char* fragmentPath, c
     glGetProgramiv(shaderProgramId, GL_ACTIVE_ATTRIBUTE_MAX_LENGTH, &longestAttribName);
     Assert(nAttribs > 0);
     auto nameBuffer = new char[longestAttribName+1];
-    for (unsigned i = 0; i < nAttribs; i++) {
+    for (int i = 0; i < nAttribs; i++) {
         GLsizei nameLength = -1;
         GLint attribSize;
         GLenum attribType;
         glGetActiveAttrib(shaderProgramId, i, longestAttribName, &nameLength, &attribSize, &attribType, nameBuffer);
+        Assert(attribSize == 1); // we don't support array type attributes
 
         if (nameLength != -1) {
+            int bindingLocation = glGetAttribLocation(shaderProgramId, nameBuffer);
+            Assert(bindingLocation != -1);
             inputVertexAttributes.push_back(ShaderActiveVertexAttribute{
-                .index = i,
+                .index = unsigned(bindingLocation),
                 .name = std::string(nameBuffer, nameLength),
-                .type = attribType
+                .type = attribType,
+                .scalarType = ScalarTypeFromGLAttributeType(attribType),
+                .nArrays = NumArraysFromGLAttributeType(attribType),
+                .nComponentsPerArray = NumComponentsPerArrayFromGLAttributeType(attribType)
             });
         }
     }

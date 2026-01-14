@@ -23,6 +23,9 @@ public:
 	bool normalizeSize = true;
 	bool generateNormals = false;
 	bool generateTangents = false;
+	// if true, the mesh cannot be changed dynamically, and will be stored in StaticMeshpool, which is not optimized for mesh removal.
+	// Set to false for meshes you will repeatedly change and destroy like for procedural terrain.
+	bool isStatic = true;
 
 	// Equivalent to default constructor.
 	static MeshCreateParams Default();

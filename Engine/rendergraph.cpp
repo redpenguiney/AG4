@@ -12,7 +12,7 @@ RenderGraph::RenderGraph(std::vector<std::shared_ptr<RenderPass>> passes) {
 		pass.renderTarget = p->renderTarget;
 		pass.thingsToDraw = p->drawnObjects;
 
-
+		renderPasses.push_back(pass);
 	}
 }
 
@@ -72,10 +72,11 @@ void RenderGraph::Render() {
 			renderGroup->meshpool->BindVAO(p.params.shader);
 			renderGroup->meshpool->indices.Bind();
 			for (auto& c : renderGroup->commands) {
+				glPointSize(5);
 				unsigned baseVertexOffset = renderGroup->meshpool->vertices.GetOffset() / renderGroup->meshpool->format.GetNonInstancedVertexSize();
 				unsigned firstIndexOffset = renderGroup->meshpool->indices.GetOffset();
 				unsigned instanceOffset = renderGroup->meshpool->instances.GetOffset() / renderGroup->meshpool->format.GetInstancedVertexSize();
-				glDrawElementsInstancedBaseVertexBaseInstance(renderGroup->primitiveType, c.count, GL_UNSIGNED_INT, (void*)(unsigned int)((c.firstIndex + firstIndexOffset) * sizeof(unsigned int)), c.instanceCount, c.baseVertex + baseVertexOffset, c.baseInstance + instanceOffset);
+				glDrawElementsInstancedBaseVertexBaseInstance(GL_POINTS /*renderGroup->primitiveType*/, c.count, GL_UNSIGNED_INT, (void*)(unsigned int)((c.firstIndex + firstIndexOffset) * sizeof(unsigned int)), c.instanceCount, c.baseVertex + baseVertexOffset, c.baseInstance + instanceOffset);
 			}
 			
 		}

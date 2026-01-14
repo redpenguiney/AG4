@@ -33,6 +33,17 @@ void RenderGroup::RemoveGameobject(Gameobject& obj) {
 			break;
 		}
 	}
+
+	if (commands.empty()) {
+		for (unsigned i = 0; i < renderGroupsByMeshpool[meshpool.get()].size(); i++) {
+			if (renderGroupsByMeshpool[meshpool.get()][i].get() == this) {
+				renderGroupsByMeshpool[meshpool.get()][i] = renderGroupsByMeshpool[meshpool.get()].back();
+				renderGroupsByMeshpool[meshpool.get()].pop_back();
+				return; // OBJECT IS DESTRUCTED AFTER THIS POINT
+			}
+		}
+	}
+
 }
 
 void RenderGroup::AddGameobject(Gameobject& obj, GameobjectCreateParams& params) {
@@ -49,11 +60,10 @@ void RenderGroup::AddGameobject(Gameobject& obj, GameobjectCreateParams& params)
 	AddDrawCommand(command);
 }
 
-RenderGroup::RenderGroup(std::vector<std::shared_ptr<RenderPass>> renderpasses, std::shared_ptr<Meshpool> meshpool) : enable_shared_from_this(), renderPasses(renderpasses), meshpool(meshpool) {
+RenderGroup::RenderGroup(std::vector<std::shared_ptr<RenderPass>> renderpasses, std::shared_ptr<Meshpool> meshpool): renderPasses(renderpasses), meshpool(meshpool) {
 	for (auto& pass : renderpasses) {
 		pass->drawnObjects.push_back(this);
 	}
-	renderGroupsByMeshpool[meshpool.get()].push_back(shared_from_this());
 }
 
 void RenderGroup::AddDrawCommand(IndirectDrawCommand cmd) {
@@ -69,12 +79,13 @@ void RenderGroup::AddDrawCommand(IndirectDrawCommand cmd) {
 			return;
 		}
 	}
+	commands.push_back(cmd);
 }
 
 void RenderGroup::FindRendergroupForGameobject(Gameobject& obj, GameobjectCreateParams& params) {
-	RenderGroup* group;
+	RenderGroup* group = nullptr;
 
-	if (renderGroupsByMeshpool.contains(params.mesh->pool)) {
+	if (renderGroupsByMeshpool.contains(params.mesh->pool.get())) {
 		for (auto& [_, vec] : renderGroupsByMeshpool) {
 			for (auto& g : vec) {
 				if (g->renderPasses == params.renderPasses) {
@@ -86,7 +97,8 @@ void RenderGroup::FindRendergroupForGameobject(Gameobject& obj, GameobjectCreate
 	}
 
 	if (!group) {
-		group = std::shared_ptr<RenderGroup>(new RenderGroup(params.renderPasses, params.mesh->pool)).get();
+		group = new RenderGroup(params.renderPasses, params.mesh->pool);
+		renderGroupsByMeshpool[params.mesh->pool.get()].push_back(std::shared_ptr<RenderGroup>(group));
 	}
 
 	group->AddGameobject(obj, params);

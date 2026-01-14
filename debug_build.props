@@ -4,8 +4,8 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup />
   <PropertyGroup Label="Configuration">
-    <EnableFuzzer>true</EnableFuzzer>
-    <EnableASAN>true</EnableASAN>
+    <EnableFuzzer>false</EnableFuzzer>
+    <EnableASAN>false</EnableASAN>
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
@@ -42,6 +42,7 @@
     <ClCompile>
       <BuildStlModules />
       <ShowIncludes>true</ShowIncludes>
+      <SupportJustMyCode>false</SupportJustMyCode>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup />

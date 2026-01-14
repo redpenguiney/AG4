@@ -1,4 +1,5 @@
 #pragma once
+#include "event.hpp"
 
 // Singleton in charge of running the game loop. It decides when rendering/simulation/etc. occur.
 // TODO: max framerate option in leiu of vsync
@@ -11,7 +12,16 @@ public:
 	// TODO: find a way to move pausing out of main.cpp
 	bool physicsPaused = false;
 
+	// sets quit = true if Window::Get().ShouldClose() returns true.
+	bool quitIfTryingToCloseWidnow = true;
+
 	float simulationTimestep = 1.0f / 60.0f; // number of seconds physics simulation is stepped by every frame
+
+	Event<float>::Ref preRender = Event<float>::New();
+	Event<float>::Ref postRender = Event<float>::New();
+
+	Event<float>::Ref prePhysics = Event<float>::New();
+	Event<float>::Ref postPhysics = Event<float>::New();
 
 private:
 	Mainloop() = default;

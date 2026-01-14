@@ -9,7 +9,7 @@ class Meshpool;
 class Gameobject;
 class GameobjectCreateParams;
 
-class RenderGroup: std::enable_shared_from_this<RenderGroup> {
+class RenderGroup {
 public:
 	const GLenum primitiveType = GL_TRIANGLES;
 
@@ -17,18 +17,19 @@ public:
 
 	const std::vector<std::shared_ptr<RenderPass>> renderPasses;
 
+	// May remove the RenderGroup from renderGroupsByMeshpool if removing last gameobject, potentially causing group destruction if no other shared_ptr references exist.
 	void RemoveGameobject(Gameobject& obj);
 
-	~RenderGroup();
+	~RenderGroup() = default;
 
 private:
 	void AddGameobject(Gameobject& obj, GameobjectCreateParams& params);
 
 	RenderGroup(std::vector<std::shared_ptr<RenderPass>> renderPasses, std::shared_ptr<Meshpool> meshpool);
 
-	std::shared_ptr<Meshpool> meshpool;
+	std::shared_ptr<Meshpool> meshpool = nullptr;
 
-	static std::unordered_map<Meshpool*, std::vector<std::shared_ptr<RenderGroup>>> renderGroupsByMeshpool;
+	static inline std::unordered_map<Meshpool*, std::vector<std::shared_ptr<RenderGroup>>> renderGroupsByMeshpool;
 
 	void AddDrawCommand(IndirectDrawCommand cmd);
 

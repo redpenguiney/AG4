@@ -88,6 +88,8 @@ struct MeshVertexFormat {
     // Pointer is obviously invalidated if anything happens to the format object or its attributes.
     VertexAttribute* GetAttribute(std::string name);
 
+    bool operator==(const MeshVertexFormat& other) const = default;
+
 private:
     std::vector<VertexAttribute> attributes;
     unsigned noninstancedVertexSize;

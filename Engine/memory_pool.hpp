@@ -10,6 +10,7 @@ template <typename T, typename...ConstructorArgs>
 	//requires CanGoInPool<T>
 class MemoryPool {
 public:
+	static_assert(sizeof...(ConstructorArgs) > 0, "you forgot ConstructorArgs");
 	static_assert(offsetof(T, live) >= sizeof(T*));
 
 	union StorageType {
@@ -43,6 +44,7 @@ public:
 				newPage[i].obj.live = false;
 			}
 			newPage[objectsPerPage - 1].nextFree = nullptr;
+			newPage[objectsPerPage - 1].obj.live = false;
 			foundObj = &newPage->obj;
 			firstFree.push_back(newPage->nextFree);
 			pages.push_back(newPage);

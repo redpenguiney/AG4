@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include "glm/vec3.hpp"
 
 // returns current time in seconds
 double Time();
@@ -15,3 +16,5 @@ private:
 	std::vector<unsigned int> freeIds;
 	unsigned int largestId;
 };
+
+glm::dvec3 LookVector(double pitch, double yaw);

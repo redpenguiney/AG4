@@ -25,7 +25,7 @@ Gameobject::~Gameobject() {
 }
 
 void Gameobject::operator delete(void* obj) {
-    return MemoryPool<Gameobject>::Get().Destroy(reinterpret_cast<Gameobject*>(obj));
+    MemoryPool<Gameobject, GameobjectCreateParams>::Get().Destroy(reinterpret_cast<Gameobject*>(obj));
 }
 
 const glm::dvec3& Gameobject::Position() const {

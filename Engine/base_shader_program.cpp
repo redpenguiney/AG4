@@ -77,6 +77,7 @@ std::string Shader::GetInfoLog() {
     };
 
     Assert(false);
+    std::unreachable();
 }
 
 Shader::Shader(const char* path, GLenum shaderType):

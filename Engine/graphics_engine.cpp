@@ -24,6 +24,7 @@ void GraphicsEngine::RenderScene(double dt) {
 
     Meshpool::PrepareDraw();
 
+    UpdateRenderGraph(defaultDrawingPasses);
     if (activeRenderGraph)
         activeRenderGraph->Render();
 
@@ -36,8 +37,8 @@ void GraphicsEngine::UpdateRenderGraph(std::vector<std::shared_ptr<RenderPass>> 
 }
 
 void GraphicsEngine::WriteModelMatrices() {
-    for (auto& page : MemoryPool<Gameobject>::Get().GetIterable()) {
-        for (unsigned i = 0; i < MemoryPool<Gameobject>::objectsPerPage; i++) {
+    for (auto& page : MemoryPool<Gameobject, GameobjectCreateParams>::Get().GetIterable()) {
+        for (unsigned i = 0; i < MemoryPool<Gameobject, GameobjectCreateParams>::objectsPerPage; i++) {
             Gameobject& obj = page[i].obj;
             if (!obj.Live()) continue;
 
@@ -59,9 +60,13 @@ void GraphicsEngine::WriteModelMatrices() {
 }
 
 GraphicsEngine::GraphicsEngine() {
-    mainDrawingPass = std::make_shared<RenderPass>();
-    mainDrawingPass->name = "default";
-    mainDrawingPass->renderTarget = WindowRenderTargetDescriptor();
+    auto newPass = std::make_shared<RenderPass>();
+    newPass->name = "default";
+    newPass->renderTarget = WindowRenderTargetDescriptor();
+    newPass->params.shader = ShaderProgram::New("../shaders/world_vertex.glsl", "../shaders/world_fragment.glsl");
+    defaultDrawingPasses.push_back(newPass);
+    
+    
 }
 
 GraphicsEngine::~GraphicsEngine() {

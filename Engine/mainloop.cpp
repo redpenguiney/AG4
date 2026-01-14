@@ -20,14 +20,18 @@ void Mainloop::Run() {
 
 		unsigned tries = 0;
 		while (physicsLag > simulationTimestep && tries++ < 2) {
+			prePhysics->Fire(simulationTimestep);
 			// TODO PHYSICS
+			postPhysics->Fire(simulationTimestep);
 			physicsLag -= simulationTimestep;
 		}
 		if (physicsLag > simulationTimestep) {
 			DebugLogInfo("Simulation is ", physicsLag, " seconds behind (", elapsedTime, "s since last frame).");
 		}
 
+		preRender->Fire(elapsedTime);
 		GraphicsEngine::Get().RenderScene(elapsedTime);
+		postRender->Fire(elapsedTime);
 		// TODO: unsure about placement of flip buffers? 
 		// i think this yields until GPU done drawing and image on screen
 		// could/should we do something to try and do physics or something while GPU working? or are we already? 
@@ -36,5 +40,8 @@ void Mainloop::Run() {
 		if (!Window::Get().vsync || !Window::Get().doubleBuf) {
 			while (Time() - currentTime < 1.0 / 60.0) {}
 		}
+
+		Window::Get().Update();
+		if (quitIfTryingToCloseWidnow && Window::Get().ShouldClose()) quit = true;
 	}
 }

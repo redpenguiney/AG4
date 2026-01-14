@@ -8,7 +8,7 @@ layout(location=1) in vec4 vertexColor;
 layout(location=2) in vec2 textureXY;
 layout(location=3) in float textureZ;
 layout(location=4) in vec3 vertexNormal;
-layout(location=5) in vec3 aTangent;
+layout(location=5) in vec3 vertexTangent;
 
 layout(location=6) in mat4 modelMatrix;
 // locations 6-9 are part of model
@@ -40,7 +40,7 @@ void main()
     fragmentTexCoords = vec3(textureXY, textureZ);
     //lightSpaceCoords = modelToLightSpace * model * vec4(vertexPos, 1.0);
 
-    vec3 T = normalize(vec3(modelMatrix * vec4(aTangent,   0.0)));
+    vec3 T = normalize(vec3(modelMatrix * vec4(vertexTangent,   0.0)));
     vec3 B = cross(fragmentNormal, T);
     TBNmatrix = mat3(T, B, fragmentNormal);
     cameraToFragmentInTangentSpace = TBNmatrix * (cameraToFragmentPosition);

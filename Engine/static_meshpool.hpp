@@ -28,12 +28,8 @@ public:
 	void StreamModelMatrix(unsigned instance, glm::mat4x4);
 	void StreamNormalMatrix(unsigned instance, glm::mat3x3);
 
-	// attribute must be an f32 type, must be part of this meshpool's format, and value must refer to an array with the correct number of scalar values.
-	virtual void SetInstancedVertexAttribute(unsigned instance, VertexAttribute& attribute, float* value) = 0;
-	// attribute must be an u32 type, must be part of this meshpool's format, and value must refer to an array with the correct number of scalar values.
-	virtual void SetInstancedVertexAttribute(unsigned instance, VertexAttribute& attribute, unsigned* value) = 0;
-	// attribute must be an i32 type, must be part of this meshpool's format, and value must refer to an array with the correct number of scalar values.
-	virtual void SetInstancedVertexAttribute(unsigned instance, VertexAttribute& attribute, int* value) = 0;
+	// attribute must be part of this meshpool's format, and value must refer to an array with the correct number of scalar values.
+	virtual void SetInstancedVertexAttribute(unsigned instance, VertexAttribute& attribute, VertexScalar* value) = 0;
 
 	virtual ~Meshpool();
 	Meshpool(const Meshpool&) = delete;
@@ -54,13 +50,13 @@ protected:
 
 	Meshpool(MeshVertexFormat f);
 
+	unsigned currentVertexCapacity = 0;
+	unsigned currentIndicesCapacity = 0;
+	unsigned currentInstanceCapacity = 0; // how many instances it can currently hold.
+
 	BufferedBuffer vertices; // stores noninstanced vertex attributes of meshes (the per-mesh data)
 	BufferedBuffer indices; // stores mesh vertex indices (triangle definitions)
 	BufferedBuffer instances; // stores instanced vertex attributes (the per-object data)
-
-	unsigned currentVertexCapacity; 
-	unsigned currentIndicesCapacity;
-	unsigned currentInstanceCapacity; // how many instances it can currently hold.
 
 	void UpdateVertexCapacity(); // after changing currentVertexCapacity, call to update vertices to the correct size.
 	void UpdateIndicesCapacity(); // after changing currentIndicesCapacity, call to update indices to the correct size.
@@ -73,10 +69,15 @@ protected:
 	// Might yield if GPU isn't ready for us to write the data, so call at the last possible second.
 	void FlipBuffers();
 
+	// Used by destructor and when a buffer is resized.
+	void DestroyVAOs();
 
 private:
-	static IdProvider idProvider;
-	static std::vector<Meshpool*> pools;
+	// helper function for BindVAO
+	void SetupVAOAttributes(const std::shared_ptr<ShaderProgram>& shader, bool instanced);
+
+	static inline IdProvider idProvider;
+	static inline std::vector<Meshpool*> pools;
 
 	friend class RenderGraph;
 
@@ -98,6 +99,8 @@ public:
 
 	MeshpoolMeshStorageLocation AddMesh(std::shared_ptr<Mesh> m) override;
 	void RemoveMesh(Mesh*) override;
+
+	void SetInstancedVertexAttribute(unsigned instance, VertexAttribute& attribute, VertexScalar* value) override;
 
 private:
 	std::vector<unsigned> availableInstanceSlots;

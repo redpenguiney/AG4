@@ -10,6 +10,7 @@ class StaticMeshpool;
 
 class GraphicsEngine {
 public:
+	// Change at your discretion.
 	Camera currentCamera;
 
 	static GraphicsEngine& Get();
@@ -18,8 +19,8 @@ public:
 
 	void UpdateRenderGraph(std::vector<std::shared_ptr<RenderPass>> nodes);
 
-	// A solid default for gameobjects. 
-	std::shared_ptr<RenderPass> mainDrawingPass;
+	// Default renderpasses for newly created GameobjectCreateParams. Will have a reasonable default, but change at your discretion. 
+	std::vector<std::shared_ptr<RenderPass>> defaultDrawingPasses;
 
 private:
 	void WriteModelMatrices();

@@ -6,6 +6,7 @@
 #include <vector>
 #include "glm/glm.hpp"
 #include "base_shader_program.hpp"
+#include "mesh_format.hpp"
 
 // TODO: custom procedural textures
 // TODO: potentially big optimizations to be made with program pipeline objects
@@ -13,9 +14,12 @@
 class ShaderProgram;
 
 struct ShaderActiveVertexAttribute {
-    unsigned index;
+    unsigned index; // the index of the (first if nArrays>0) vertex attribute array you should activate in the vao to use with this attribute
     std::string name;
     GLenum type;
+    VertexScalarType scalarType;
+    unsigned nArrays;
+    unsigned nComponentsPerArray;
 };
 
 // Shader program used for rendering, contains (at minimum) a vertex shader and a fragment (basically per pixel) shader.

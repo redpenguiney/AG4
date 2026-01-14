@@ -112,6 +112,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <ShowIncludes>false</ShowIncludes>
+      <SupportJustMyCode>false</SupportJustMyCode>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -206,6 +207,7 @@
     <ClInclude Include="texture.hpp" />
     <ClInclude Include="texture_atlas.hpp" />
     <ClInclude Include="texture_collection.hpp" />
+    <ClInclude Include="tiny_obj_loader.h" />
     <ClInclude Include="utility.hpp" />
     <ClInclude Include="window.hpp" />
   </ItemGroup>

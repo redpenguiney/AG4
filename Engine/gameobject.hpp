@@ -4,7 +4,7 @@
 #include "glm/vec3.hpp"
 #include "glm/mat4x4.hpp"
 #include "glm/ext/quaternion_float.hpp"
-
+#include "graphics_engine.hpp"
 #include "memory_pool.hpp"
 
 class Collider;
@@ -20,7 +20,7 @@ struct DrawHandle {
 };
 
 struct GameobjectCreateParams {
-	std::vector<std::shared_ptr<RenderPass>> renderPasses;
+	std::vector<std::shared_ptr<RenderPass>> renderPasses = GraphicsEngine::Get().defaultDrawingPasses;
 	std::shared_ptr<Mesh> mesh;
 };
 
@@ -64,13 +64,15 @@ protected:
 	Collider* collider;
 	DrawHandle render;
 
-	friend class MemoryPool<Gameobject>;
+	friend class MemoryPool<Gameobject, GameobjectCreateParams>;
 	friend class RenderGroup;
 	friend class GraphicsEngine;
 
 private:
 
 };
+
+using PhysobjectCreateParams = GameobjectCreateParams;
 
 class Physobject : public Gameobject {
 public:
@@ -93,6 +95,6 @@ protected:
 	float elasticity;
 	float friction;
 
-	friend class MemoryPool<Physobject>;
+	friend class MemoryPool<Physobject, PhysobjectCreateParams>;
 
 };

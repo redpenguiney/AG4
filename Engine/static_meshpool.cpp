@@ -22,6 +22,12 @@ void Meshpool::FlipBuffers() {
 	indices.Flip();
 }
 
+void Meshpool::DestroyVAOs() {
+	for (auto& [s, vao] : vaos) {
+		glDeleteVertexArrays(1, &vao);
+	}
+}
+
 Meshpool::~Meshpool() {
 	for (unsigned i = 0; i < pools.size(); i++) {
 		if (pools[i] == this) {
@@ -31,9 +37,8 @@ Meshpool::~Meshpool() {
 		}
 	}
 
-	for (auto& [s, vao] : vaos) {
-		glDeleteVertexArrays(1, &vao);
-	}
+	DestroyVAOs();
+	
 	idProvider.ReturnId(id);
 }
 
@@ -49,45 +54,74 @@ void Meshpool::PrepareWrite() {
 	}
 }
 
+void Meshpool::SetupVAOAttributes(const std::shared_ptr<ShaderProgram>& shader, bool instanced) {
+	if (instanced) instances.Bind(); else vertices.Bind();
+	
+	for (const auto& attributeRequested : shader->GetInputVertexAttributes()) {
+		for (auto& attribute : format.GetAttributes()) {
+			if (attribute.name == attributeRequested.name) {
+				if (attribute.instanced != instanced) {
+					goto attributeFound; // the other pass will or already did take care of it
+				}
+
+				unsigned totalNComponents = attributeRequested.nComponentsPerArray * attributeRequested.nArrays;
+				// check format
+				if (attribute.type != attributeRequested.scalarType || attribute.nComponents != totalNComponents) {
+					DebugLogError("While binding VAO for vertex shader ", shader->GetVertexSourcePath(), " we found an inconsistency in formats for the vertex attribute ", attribute.name,
+						". requested format was ", totalNComponents, " scalars of type ", (unsigned)attributeRequested.scalarType, " got ", attribute.nComponents, " of type ", (unsigned)attribute.type);
+				}
+				for (unsigned j = 0; j < attributeRequested.nArrays; j++) {
+					unsigned attribIdx = attributeRequested.index + j;
+					unsigned stride = attribute.instanced ? format.GetInstancedVertexSize() : format.GetNonInstancedVertexSize();
+					glEnableVertexAttribArray(attribIdx);
+					glVertexAttribDivisor(attribIdx, attribute.instanced ? 1 : 0);
+					if (attribute.type == VertexScalarType::f32) {
+						glVertexAttribPointer(attribIdx, attributeRequested.nComponentsPerArray, GL_FLOAT, GL_FALSE, stride, (void*)(attribute.offset + j * attributeRequested.nComponentsPerArray * sizeof(VertexScalar)));
+					}
+					else {
+						GLenum itype;
+						switch (attribute.type) {
+						case VertexScalarType::i32:
+							itype = GL_INT;
+							break;
+						case VertexScalarType::u32:
+							itype = GL_UNSIGNED_INT;
+							break;
+						default:
+							Assert(false);
+						}
+						glVertexAttribIPointer(attribIdx, attributeRequested.nComponentsPerArray, itype, stride, (void*)(attribute.offset + j * attributeRequested.nComponentsPerArray * sizeof(VertexScalar)));
+					}
+				}
+
+			}
+		}
+
+	attributeFound:;
+	}
+}
+
 void Meshpool::BindVAO(const std::shared_ptr<ShaderProgram>& shader) {
 	if (!vaos.contains(shader.get())) {
 		unsigned vao;
 		glGenVertexArrays(1, &vao);
 		glBindVertexArray(vao);
-		
-		vertices.Bind();
-		for (const auto& attributeRequested : shader->GetInputVertexAttributes()) {
-			for (auto& attribute : format.GetAttributes())	 {
-				Assert(false); // TODO
-				/*if (!attribute.instanced && attribute.name == attributeRequested.name) {
-					unsigned numArraysRequired = 0;
-					attributeRequested.t;
-					for (unsigned j = attributeRequested.index; j < attributeRequested.index + numArraysRequired; j++) {
-						glEnableVertexAttribArray(attributeRequested.index+j);
 
-						if (attribute.type == VertexScalarType::f32) {
-							glVertexAttribPointer(attributeRequested.index + j, attribute.nComponents, GL_FLOAT, GL_FALSE, format.GetNonInstancedVertexSize(), (void*)(attribute.offset));
-						}
-						else {
-							GLenum itype;
-							switch (attribute.type) {
-							case VertexScalarType::i32:
-								itype = GL_INT;
-								break;
-							case VertexScalarType::u32:
-								itype = GL_UNSIGNED_INT;
-								break;
-							default:
-								Assert(false);
-							}
-							glVertexAttribIPointer(attributeRequested.index + j, attribute.nComponents, itype, format.GetNonInstancedVertexSize(), (void*)(attribute.offset));
-						}
-					}
-				}*/
+		SetupVAOAttributes(shader, false);
+		SetupVAOAttributes(shader, true);
+
+		for (const auto& attributeRequested : shader->GetInputVertexAttributes()) {
+			for (auto& attribute : format.GetAttributes()) {
+				if (attribute.name == attributeRequested.name) {
+					goto attributeFound;
+				}
 			}
+			DebugLogError("While binding VAO for vertex shader ", shader->GetVertexSourcePath(), " the mesh format did not contain an attribute named ", attributeRequested.name, ".");
+
+		attributeFound:;
 		}
-		
-		instances.Bind();
+
+		vaos[shader.get()] = vao;
 	}
 
 	glBindVertexArray(vaos[shader.get()]);
@@ -96,27 +130,21 @@ void Meshpool::BindVAO(const std::shared_ptr<ShaderProgram>& shader) {
 Meshpool::Meshpool(MeshVertexFormat f):
 format(f),
 id(idProvider.GetId()),
-vertices(GL_ARRAY_BUFFER, 1, (1<<20) * f.GetNonInstancedVertexSize()),
-indices(GL_ELEMENT_ARRAY_BUFFER, 1, (1 << 20) * sizeof(GLuint)),
-instances(GL_ARRAY_BUFFER, 3, (1<<20) * f.GetInstancedVertexSize())
+currentVertexCapacity(1 << 20),
+currentIndicesCapacity(1 << 20),
+currentInstanceCapacity(1 << 20),
+vertices(GL_ARRAY_BUFFER, 1, currentVertexCapacity * f.GetNonInstancedVertexSize()),
+indices(GL_ELEMENT_ARRAY_BUFFER, 1, currentIndicesCapacity * sizeof(GLuint)),
+instances(GL_ARRAY_BUFFER, 3, currentInstanceCapacity* f.GetInstancedVertexSize())
 {
 	pools.push_back(this);
-
-	glGenVertexArrays(1, &vao);
-	glBindVertexArray(vao);
-	for (unsigned i = 0; i < format.GetAttributes().size(); i++) {
-		glEnableVertexAttribArray(i);
-		glVertexAttribDivisor(0, format.GetAttributes()[i].instanced ? 1 : 0);
-	}
 
 	for (auto& a : format.GetAttributes()) {
 		if (a.name == SpecialVertexAttributeNames::MODEL_MATRIX) {
 			modelMatrixOffset = a.offset;
-			break;
 		}
 		else if (a.name == SpecialVertexAttributeNames::NORMAL_MATRIX) {
 			normalMatrixOffset = a.offset;
-			break;
 		}
 	}
 
@@ -124,18 +152,8 @@ instances(GL_ARRAY_BUFFER, 3, (1<<20) * f.GetInstancedVertexSize())
 
 void Meshpool::UpdateVertexCapacity() {
 	vertices.Reallocate(currentVertexCapacity * format.GetNonInstancedVertexSize());
-	glBindVertexArray(vao);
+	DestroyVAOs();
 	vertices.Bind();
-	unsigned i = 0;
-	for (auto& attribute : format.GetAttributes()) {
-		if (!attribute.instanced) {
-			
-		}
-		if (attribute.nComponents <= 4) i++;
-		else if (attribute.nComponents == 9) i += 3;
-		else if (attribute.nComponents == 16) i += 4;
-		else Assert(false);
-	}
 }
 
 void Meshpool::UpdateIndicesCapacity() {
@@ -144,32 +162,8 @@ void Meshpool::UpdateIndicesCapacity() {
 
 void Meshpool::UpdateInstanceCapacity() {
 	instances.Reallocate(currentInstanceCapacity * format.GetInstancedVertexSize());
+	DestroyVAOs();
 	instances.Bind();
-	glBindVertexArray(vao);
-	unsigned i = 0;
-	for (auto& attribute : format.GetAttributes()) {
-		if (!attribute.instanced) {
-			if (attribute.type == VertexScalarType::f32) {
-				glVertexAttribPointer(i, attribute.nComponents, GL_FLOAT, GL_FALSE, format.GetInstancedVertexSize(), (void*)(attribute.offset));
-			}
-			else {
-				GLenum itype;
-				switch (attribute.type) {
-				case VertexScalarType::i32:
-					itype = GL_INT;
-					break;
-				case VertexScalarType::u32:
-					itype = GL_UNSIGNED_INT;
-					break;
-				default:
-					Assert(false);
-				}
-				glVertexAttribIPointer(i, attribute.nComponents, itype, format.GetInstancedVertexSize(), (void*)(attribute.offset));
-
-			}
-		}
-		i++;
-	}
 }
 
 StaticMeshpool::StaticMeshpool(MeshVertexFormat f): Meshpool(f) {
@@ -177,6 +171,7 @@ StaticMeshpool::StaticMeshpool(MeshVertexFormat f): Meshpool(f) {
 }
 
 StaticMeshpool::~StaticMeshpool() {
+
 }
 
 MeshpoolMeshStorageLocation StaticMeshpool::AddMesh(std::shared_ptr<Mesh> m) {
@@ -204,6 +199,10 @@ MeshpoolMeshStorageLocation StaticMeshpool::AddMesh(std::shared_ptr<Mesh> m) {
 
 void StaticMeshpool::RemoveMesh(Mesh*) {
 
+}
+
+void StaticMeshpool::SetInstancedVertexAttribute(unsigned instance, VertexAttribute& attribute, VertexScalar* value) {
+	Assert(false);
 }
 
 unsigned StaticMeshpool::AddInstance() {
