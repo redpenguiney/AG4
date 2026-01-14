@@ -27,7 +27,10 @@ void ShaderProgram::SetCameraUniforms(glm::mat4x4 cameraProjMatrix, glm::mat4x4 
             shaderProgram->Uniform("orthro", orthrographicMatrix, false);
         }
         if (shaderProgram->HasUniform("perspective")) {
-            shaderProgram->Uniform("perspective", (shaderProgram->useFloatingOrigin) ? cameraProjMatrix : cameraProjMatrixNoFloatingOrigin, false);
+            shaderProgram->Uniform("perspective",  cameraProjMatrix, false);
+        }
+        if (shaderProgram->HasUniform("persectiveNoFloatingOrigin")) {
+            shaderProgram->Uniform("perspectiveNoFloatingOrigin", cameraProjMatrixNoFloatingOrigin, false);
         }
     }
 }
@@ -70,8 +73,6 @@ std::string ShaderProgram::GetVertexSourcePath() {
 
 ShaderProgram::ShaderProgram(const char* vertexPath, const char* fragmentPath, const bool floatingOrigin, const bool useLightClusters):
     BaseShaderProgram(),
-    useFloatingOrigin(floatingOrigin),
-    useClusteredLighting(useLightClusters),
     vertex(vertexPath, GL_VERTEX_SHADER),
     fragment(fragmentPath, GL_FRAGMENT_SHADER)
 {

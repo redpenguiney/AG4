@@ -4,6 +4,8 @@
 #include "static_meshpool.hpp"
 #include <glm/gtc/matrix_inverse.hpp>
 #include "rendergraph_node.hpp"
+#include "shader_program.hpp"
+#include "window.hpp"
 
 GraphicsEngine& GraphicsEngine::Get() {
     static GraphicsEngine GE;
@@ -14,6 +16,11 @@ void GraphicsEngine::RenderScene(double dt) {
 
 
     WriteModelMatrices();
+    auto camera = currentCamera.GetCamera();
+    auto cameraNoFloatingOrigin = camera;
+    cameraNoFloatingOrigin[3] = glm::vec4(-currentCamera.position, 1);
+    auto proj = currentCamera.GetProj(Window::Get().Aspect());
+    ShaderProgram::SetCameraUniforms(proj * camera, proj * cameraNoFloatingOrigin, glm::identity<glm::mat4x4>()); // TODO: orthro???
 
     Meshpool::PrepareDraw();
 

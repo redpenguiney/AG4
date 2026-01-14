@@ -86,7 +86,7 @@ void RenderGroup::FindRendergroupForGameobject(Gameobject& obj, GameobjectCreate
 	}
 
 	if (!group) {
-		group = std::make_shared<RenderGroup>(params.renderPasses, params.mesh->pool).get();
+		group = std::shared_ptr<RenderGroup>(new RenderGroup(params.renderPasses, params.mesh->pool)).get();
 	}
 
 	group->AddGameobject(obj, params);

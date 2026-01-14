@@ -1,4 +1,5 @@
 #pragma once
+#include <vector>
 
 // returns current time in seconds
 double Time();

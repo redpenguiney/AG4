@@ -19,11 +19,12 @@ public:
 
 	void RemoveGameobject(Gameobject& obj);
 
+	~RenderGroup();
+
 private:
 	void AddGameobject(Gameobject& obj, GameobjectCreateParams& params);
 
 	RenderGroup(std::vector<std::shared_ptr<RenderPass>> renderPasses, std::shared_ptr<Meshpool> meshpool);
-	~RenderGroup();
 
 	std::shared_ptr<Meshpool> meshpool;
 

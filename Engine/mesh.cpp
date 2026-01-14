@@ -4,7 +4,8 @@
 
 std::shared_ptr<Mesh> Mesh::New(MeshCreateParams params)
 {
-	auto ptr = std::shared_ptr<Mesh>(new Mesh(std::move(params)));
+	Mesh* m = new Mesh(std::move(params));
+	std::shared_ptr<Mesh> ptr(m);
 	auto loc = ptr->pool->AddMesh(ptr);
 	ptr->baseVertex = loc.baseVertex;
 	ptr->firstIndex = loc.firstIndex;

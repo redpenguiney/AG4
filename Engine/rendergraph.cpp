@@ -38,7 +38,7 @@ static void BindRenderTarget(FramebufferRenderTargetDescriptor target) {
 
 void RenderGraph::Render() {
 	for (auto& p : renderPasses) {
-		std::visit(&BindRenderTarget, p.renderTarget);
+		std::visit([](auto&& x) {BindRenderTarget(x); }, p.renderTarget);
 
 		p.params.shader->Use();
 

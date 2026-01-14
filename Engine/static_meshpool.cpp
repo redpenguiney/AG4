@@ -31,7 +31,9 @@ Meshpool::~Meshpool() {
 		}
 	}
 
-	glDeleteVertexArrays(1, &vao);
+	for (auto& [s, vao] : vaos) {
+		glDeleteVertexArrays(1, &vao);
+	}
 	idProvider.ReturnId(id);
 }
 

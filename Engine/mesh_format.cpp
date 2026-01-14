@@ -55,7 +55,7 @@ const std::vector<VertexAttribute>& MeshVertexFormat::GetAttributes() const {
 unsigned MeshVertexFormat::ScalarsPerVertex() const {
     unsigned n = 0;
     for (auto& attr : attributes) {
-        if (!attr.instanced) n += attr.nComponents
+        if (!attr.instanced) n += attr.nComponents;
     }
 }
 
@@ -100,4 +100,9 @@ MeshVertexFormat MeshVertexFormat::DefaultTriplanarMapping(bool instancedColor)
     attributes.push_back(VertexAttribute{ .name = SpecialVertexAttributeNames::MODEL_MATRIX, .nComponents = 16, .instanced = true });
     attributes.push_back(VertexAttribute{ .name = SpecialVertexAttributeNames::NORMAL_MATRIX, .nComponents = 9, .instanced = true });
     attributes.push_back(VertexAttribute{ .name = "color", .nComponents = 4, .instanced = true });
+}
+
+VertexAttribute* MeshVertexFormat::GetAttribute(std::string name) {
+    for (auto& a : attributes) if (a.name == name) return &a;
+    return nullptr;
 }

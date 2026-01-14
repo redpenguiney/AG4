@@ -46,12 +46,13 @@ namespace SpecialVertexAttributeNames {
     const inline std::string NORMAL_MATRIX = "normalMatrix";
     const inline std::string VERTEX_NORMAL = "vertexNormal";
     const inline std::string VERTEX_TANGENT = "vertexTangent";
-    const inline std::string VERTEX_UV = "textureXY"
+    const inline std::string VERTEX_UV = "textureXY";
 
 
 };
 
 // Describes which vertex attributes a mesh has, which of them are instanced, and in what order they are in.
+// Attribute offsets are always correct.
 struct MeshVertexFormat {
 
     MeshVertexFormat(std::vector<VertexAttribute> attribs);
@@ -82,6 +83,10 @@ struct MeshVertexFormat {
     // noninstanced: XYZ, NormalXYZ, RGBA if !instanceColor.
     // instanced:  model matrix, normal matrix, rgba if instanced
     static MeshVertexFormat DefaultTriplanarMapping(bool instancedColor = true);
+
+    // Returns pointer to attribute with given name if it exists, or nullptr if it does not.
+    // Pointer is obviously invalidated if anything happens to the format object or its attributes.
+    VertexAttribute* GetAttribute(std::string name);
 
 private:
     std::vector<VertexAttribute> attributes;
