@@ -131,9 +131,9 @@ void Meshpool::BindVAO(const std::shared_ptr<ShaderProgram>& shader) {
 Meshpool::Meshpool(MeshVertexFormat f):
 format(f),
 id(idProvider.GetId()),
-currentVertexCapacity(1 << 20),
-currentIndicesCapacity(1 << 20),
-currentInstanceCapacity(1 << 20),
+currentVertexCapacity(1 << 16),
+currentIndicesCapacity(1 << 16),
+currentInstanceCapacity(1 << 16),
 vertices(GL_ARRAY_BUFFER, 1, currentVertexCapacity * f.GetNonInstancedVertexSize()),
 indices(GL_ELEMENT_ARRAY_BUFFER, 1, currentIndicesCapacity * sizeof(GLuint)),
 instances(GL_ARRAY_BUFFER, 3, currentInstanceCapacity* f.GetInstancedVertexSize())
