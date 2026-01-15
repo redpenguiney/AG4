@@ -36,7 +36,7 @@ public:
     static void SetCameraUniforms(glm::mat4x4 cameraProjMatrix, glm::mat4x4 cameraProjMatrixNoFloatingOrigin, glm::mat4x4 orthrographicMatrix);
 
     // Returns generated program.
-    static std::shared_ptr<ShaderProgram> New(const char* vertexPath, const char* fragmentPath, const bool floatingOrigin = true, const bool useLightClusters = true);
+    static std::shared_ptr<ShaderProgram> New(const char* vertexPath, const char* fragmentPath);
 
     // Creates a compute shader for performing arbitrary GPU calculations.
     // Returns id of generated program.
@@ -44,13 +44,6 @@ public:
 
     // Get a pointer to a shader program by its id.
     static std::shared_ptr<ShaderProgram> Get(unsigned int shaderProgramId);
-
-    // unloads the program with the given shaderProgramId, freeing its memory.
-    // Calling this function while objects still use the shader will surely crash.
-    // All this does is remove a shared_ptr in the LOADED_PROGRAMS map, so if you have other stored references then the ShaderProgram will stubbornly persist.
-    // You only need to call this if for whatever reason you are repeatedly swapping out shader programs (like bc ur joining different servers with different resources)
-    // TODO very untested
-    static void Unload(unsigned int shaderProgramId);
 
     ~ShaderProgram();
 
@@ -60,13 +53,12 @@ private:
 
     std::vector<ShaderActiveVertexAttribute> inputVertexAttributes; // TODO: offering default values
 
-    static inline std::unordered_map<unsigned int, std::shared_ptr<ShaderProgram>> LOADED_SHADER_PROGRAMS;
     
     Shader vertex; // processes each vertex 
     Shader fragment; // processes each fragment/pixel
     // TODO: tesselation, geometry shaders
 
-    ShaderProgram(const char* vertexPath, const char* fragmentPath, const bool floatingOrigin, const bool useLightClusters);
+    ShaderProgram(const char* vertexPath, const char* fragmentPath);
     //ShaderProgram(const char* computePath);
 
 };

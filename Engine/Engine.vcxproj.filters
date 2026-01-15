@@ -236,5 +236,8 @@
     <ClInclude Include="collider.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="clustered_lighting.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

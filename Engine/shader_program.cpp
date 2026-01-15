@@ -21,7 +21,7 @@ const std::vector<ShaderActiveVertexAttribute>& ShaderProgram::GetInputVertexAtt
 }
 
 void ShaderProgram::SetCameraUniforms(glm::mat4x4 cameraProjMatrix, glm::mat4x4 cameraProjMatrixNoFloatingOrigin, glm::mat4x4 orthrographicMatrix) {
-    for (auto & [shaderId, shaderProgram] : LOADED_SHADER_PROGRAMS) {
+    for (auto & [shaderId, shaderProgram] : LOADED_PROGRAMS) {
         (void)shaderId;
         if (shaderProgram->HasUniform("orthro")) { // make sure the shader program actually wants our camera/projection matrix
             shaderProgram->Uniform("orthro", orthrographicMatrix, false);
@@ -35,28 +35,16 @@ void ShaderProgram::SetCameraUniforms(glm::mat4x4 cameraProjMatrix, glm::mat4x4 
     }
 }
 
-std::shared_ptr<ShaderProgram> ShaderProgram::New(const char* vertexPath, const char* fragmentPath, const bool floatingOrigin, const bool useLightClusters) {
-    auto ptr = std::shared_ptr<ShaderProgram>(new ShaderProgram(vertexPath, fragmentPath, floatingOrigin, useLightClusters));
+std::shared_ptr<ShaderProgram> ShaderProgram::New(const char* vertexPath, const char* fragmentPath) {
+    auto ptr = std::shared_ptr<ShaderProgram>(new ShaderProgram(vertexPath, fragmentPath));
     LOADED_PROGRAMS.emplace(ptr->shaderProgramId, ptr);
-    LOADED_SHADER_PROGRAMS.emplace(ptr->shaderProgramId, ptr);
     return ptr;
 }
 
 std::shared_ptr<ShaderProgram> ShaderProgram::Get(unsigned int shaderProgramId) {
-    Assert(LOADED_SHADER_PROGRAMS.count(shaderProgramId) != 0 && "ShaderProgram::Get() was given an invalid shaderProgramId.");
-    //auto ptr = std::dynamic_pointer_cast<ShaderProgram>(LOADED_PROGRAMS[shaderProgramId]); // mwahahaha
-    //Assert(ptr != nullptr); // make sure this is a pointer to a ShaderProgram, not a ComputeShaderProgram/etc.
-    return LOADED_SHADER_PROGRAMS[shaderProgramId];
-}
-
-
-
-void ShaderProgram::Unload(unsigned int id)
-{
-    //Assert(!GraphicsEngine::Get().IsShaderProgramInUse(id)); // don't let them unload a shader program if it's being used
-    Assert(LOADED_PROGRAMS.count(id) != 0 && "ShaderProgram::Unload() was given an invalid shaderProgramId.");
-    LOADED_PROGRAMS.erase(id);
-    BaseShaderProgram::Unload(id);
+    Assert(LOADED_PROGRAMS.count(shaderProgramId) != 0 && "ShaderProgram::Get() was given an invalid shaderProgramId.");
+    Assert(dynamic_pointer_cast<ShaderProgram>(LOADED_PROGRAMS[shaderProgramId]) != nullptr);
+    return dynamic_pointer_cast<ShaderProgram>(LOADED_PROGRAMS[shaderProgramId]);
 }
 
 ShaderProgram::~ShaderProgram() {
@@ -144,7 +132,7 @@ VertexScalarType ScalarTypeFromGLAttributeType(GLenum type) {
     }
 }
 
-ShaderProgram::ShaderProgram(const char* vertexPath, const char* fragmentPath, const bool floatingOrigin, const bool useLightClusters):
+ShaderProgram::ShaderProgram(const char* vertexPath, const char* fragmentPath):
     BaseShaderProgram(),
     vertex(vertexPath, GL_VERTEX_SHADER),
     fragment(fragmentPath, GL_FRAGMENT_SHADER)

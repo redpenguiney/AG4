@@ -4,10 +4,13 @@
 
 class ComputeShaderProgram: public BaseShaderProgram {
 public:
-    // Returns id of generated program.
-    // additionalIncludedFiles is an optional vector of filepaths to files included by the compute shaer.
-    static std::shared_ptr<ComputeShaderProgram> New(const char* computePath, const std::vector<const char*>& additionalIncludedFiles = {});
+    static std::shared_ptr<ComputeShaderProgram> New(const char* computePath);
+
+    // WARNING: does no memory barriers! you must use some form  of synchronization after calling Dispatch()!
+    void Dispatch(glm::uvec3 workgroupSize);
 
 private:
-    ComputeShaderProgram();
+    Shader shader;
+
+    ComputeShaderProgram(const char* computePath);
 };
