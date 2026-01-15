@@ -12,6 +12,8 @@ class Mesh;
 class RenderPass;
 class RenderGroup;
 class Meshpool;
+class VertexAttribute;
+union VertexScalar;
 
 struct DrawHandle {
 	Meshpool* pool; // nullptr for null draw handle
@@ -43,6 +45,12 @@ public:
 	void SetScale(const glm::vec3&);
 	void SetRotation(const glm::quat&);
 
+	// attrib and value better match up, or you'll be lucky to get a segfault
+	void SetInstanceAttribute(const VertexAttribute& attrib, VertexScalar* value);
+
+	void SetInstanceAttribute(const VertexAttribute& attrib, glm::vec4 value);
+
+
 	const glm::mat3x3& GetRotSclMatrix();
 
 	bool Live();
@@ -61,7 +69,7 @@ protected:
 	// Used by MemoryPool. Not the first member in order to A. exploit otherwise wasted padding bytes and B. avoid interfering with free list
 	bool live;
 
-	Collider* collider;
+	std::unique_ptr<Collider> collider;
 	DrawHandle render;
 
 	friend class MemoryPool<Gameobject, GameobjectCreateParams>;

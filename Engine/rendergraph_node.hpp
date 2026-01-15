@@ -75,8 +75,9 @@ public:
 };
 
 struct WindowRenderTargetDescriptor {
-	AttachmentLoadPolicy loadPolicy = AttachmentLoadPolicy::Load;
+	AttachmentLoadPolicy loadPolicy = AttachmentLoadPolicy::Clear;
 	glm::vec4 clearColor = { 0, 0, 0, 0 }; // used if loadPolicy == Clear
+	bool clearDepth = true;
 
 	BlendFactorMode blendingSrcFactor = BlendFactorMode::SrcAlpha;
 	BlendFactorMode blendingDstFactor = BlendFactorMode::OneMinusSrcAlpha;
@@ -104,10 +105,18 @@ public:
 	std::string textureUsageLocation; // name of the shader's sample uniform variable where this shader should be bound.
 };
 
+enum class FaceCulling {
+	Backface,
+	Frontface,
+	None
+};
+
 struct RenderingParameters {
 	std::shared_ptr<ShaderProgram> shader;
 
 	bool blending;
+
+	FaceCulling cullMode = FaceCulling::Backface;
 
 	DepthTestMode depthTestMode = DepthTestMode::LEqual;
 	bool writeDepthBuffer = true; // (depth mask)

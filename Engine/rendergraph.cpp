@@ -68,6 +68,15 @@ void RenderGraph::Render() {
 		}
 		glDepthFunc(static_cast<GLenum>(p.params.depthTestMode));
 
+
+		if (p.params.cullMode == FaceCulling::None) {
+			glDisable(GL_CULL_FACE);
+		}
+		else {
+			glEnable(GL_CULL_FACE);
+			glCullFace(p.params.cullMode == FaceCulling::Frontface ? GL_FRONT : GL_BACK);
+		}
+
 		for (auto& renderGroup : p.thingsToDraw) {
 			renderGroup->meshpool->BindVAO(p.params.shader);
 			renderGroup->meshpool->indices.Bind();
@@ -76,7 +85,7 @@ void RenderGraph::Render() {
 				unsigned baseVertexOffset = renderGroup->meshpool->vertices.GetOffset() / renderGroup->meshpool->format.GetNonInstancedVertexSize();
 				unsigned firstIndexOffset = renderGroup->meshpool->indices.GetOffset();
 				unsigned instanceOffset = renderGroup->meshpool->instances.GetOffset() / renderGroup->meshpool->format.GetInstancedVertexSize();
-				glDrawElementsInstancedBaseVertexBaseInstance(GL_POINTS /*renderGroup->primitiveType*/, c.count, GL_UNSIGNED_INT, (void*)(unsigned int)((c.firstIndex + firstIndexOffset) * sizeof(unsigned int)), c.instanceCount, c.baseVertex + baseVertexOffset, c.baseInstance + instanceOffset);
+				glDrawElementsInstancedBaseVertexBaseInstance(renderGroup->primitiveType, c.count, GL_UNSIGNED_INT, (void*)(unsigned int)((c.firstIndex + firstIndexOffset) * sizeof(unsigned int)), c.instanceCount, c.baseVertex + baseVertexOffset, c.baseInstance + instanceOffset);
 			}
 			
 		}

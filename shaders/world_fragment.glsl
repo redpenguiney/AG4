@@ -73,7 +73,7 @@ void main()
     };
 
     //Output = color;
-    Output = vec4(1, 1, 1, 1);
-
+    //Output = vec4(1, 1, 1, 1);
+    Output = fragmentColor;
     //Output = vec4(light, 1);
 };

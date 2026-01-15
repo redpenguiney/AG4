@@ -87,6 +87,7 @@ struct MeshVertexFormat {
     // Returns pointer to attribute with given name if it exists, or nullptr if it does not.
     // Pointer is obviously invalidated if anything happens to the format object or its attributes.
     VertexAttribute* GetAttribute(std::string name);
+    const VertexAttribute* GetAttribute(std::string name) const;
 
     bool operator==(const MeshVertexFormat& other) const = default;
 

@@ -54,6 +54,8 @@ class BufferedBuffer {
     unsigned int GetOffset();
     // returns size in bytes as if there was no multiple buffering
     unsigned int GetSize(); 
+    
+    const unsigned int numBuffers;
 
     private:
     // After we issue OpenGL commands using part of this buffer, we can't write to that part of that buffer until the command has finished.
@@ -61,7 +63,6 @@ class BufferedBuffer {
     // Array of numBuffers in length.
     GLsync* sync;
     
-    const unsigned int numBuffers;
     const static inline unsigned int SYNC_TIMEOUT = 1000000000;
 
     // Size of 1/numBuffers the actual buffer size

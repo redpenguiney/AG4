@@ -1,7 +1,11 @@
 #pragma once
 #include <iostream>
 #include <mutex>
-#include <glm/gtx/string_cast.hpp>
+#include <glm/gtx/io.hpp>
+#include <string.h>
+
+// TODO: / vs \\ will be a problem
+#define __FILENAME__ (strrchr(__FILE__, '\\') ? strrchr(__FILE__, '\\') + 1 : __FILE__)
 
 #if defined(_MSC_VER)
 #include <sstream>
@@ -55,6 +59,6 @@ void _DebugLogError_(const char* file, int lineNumber, Args... args) {
     LOGGING_MUTEX.unlock();
 }
 
-#define DebugLogError(...) {_DebugLogError_(__FILE__, __LINE__, __VA_ARGS__);}
-#define DebugLogInfo(...) {_DebugLogInfo_(__FILE__, __LINE__, __VA_ARGS__);}
+#define DebugLogError(...) {_DebugLogError_(__FILENAME__, __LINE__, __VA_ARGS__);}
+#define DebugLogInfo(...) {_DebugLogInfo_(__FILENAME__, __LINE__, __VA_ARGS__);}
 

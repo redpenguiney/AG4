@@ -1,6 +1,7 @@
 #include "gameobject.hpp"
 #include "rendergroup.hpp"
 #include <glm/gtx/quaternion.hpp>
+#include "static_meshpool.hpp"
 
 Gameobject* Gameobject::New(GameobjectCreateParams params)
 {
@@ -54,6 +55,15 @@ void Gameobject::SetRotation(const glm::quat& r) {
     rotation = r;
     rotSclDirty = true;
     normalMatDirty = true;
+}
+
+void Gameobject::SetInstanceAttribute(const VertexAttribute& attrib, VertexScalar* value) {
+    render.pool->SetInstancedVertexAttribute(render.instanceIndex, attrib, value);
+}
+
+void Gameobject::SetInstanceAttribute(const VertexAttribute& attrib, glm::vec4 value) {
+    Assert(attrib.nComponents == 4 && attrib.type == VertexScalarType::f32);
+    SetInstanceAttribute(attrib, reinterpret_cast<VertexScalar*>(&value));
 }
 
 const glm::mat3x3& Gameobject::GetRotSclMatrix() {

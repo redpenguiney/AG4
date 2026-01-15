@@ -17,7 +17,7 @@ public:
     std::vector<VertexScalar> vertices = {};
     std::vector<unsigned> indices = {};
 
-    // Scales all vertices named vertexPos into the 
+    // Scales all vertices named vertexPos into the range [-0.5, 0.5], and sets Mesh::originalSize.
 	// size should always be normalized for collisions/physics to work. Only set to false if you're making a weird mesh like the skybox or gui or something.
 	// to actually change a rendercomponent's mesh's size, scale its transform component, using Mesh::originalSize if you want the mesh at its correct size.
 	bool normalizeSize = true;
@@ -41,6 +41,7 @@ public:
     MeshCreateParams& operator=(MeshCreateParams&& other) noexcept = default;
 
 private:
+
     MeshCreateParams(const MeshCreateParams&) = delete;
     
 };

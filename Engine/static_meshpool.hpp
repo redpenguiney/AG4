@@ -3,6 +3,7 @@
 #include "utility.hpp"
 #include "buffered_buffer.hpp"
 #include <unordered_map>
+#include <array>
 
 class Mesh;
 class ShaderProgram;
@@ -12,6 +13,24 @@ struct MeshpoolMeshStorageLocation {
 	unsigned baseVertex;
 	unsigned firstIndex; // offset IN BYTES
 	unsigned nIndices;
+};
+
+// We use multiple buffering for instances (TODO: and sometimes vertices).
+// This is totally fine for vertex attributes that are updated every frame like object model matrices.
+// But when a user wants to just set something once and forget about it (like for object color), this is no good.
+// This class handles that issue.
+class PendingWritesManager {
+public:
+	// doesn't take ownership of data, justs read it.
+	void AddWrite(unsigned nComponents, unsigned writeLocation, unsigned nWrites, VertexScalar* data);
+	void ApplyWrites(char* buffer);
+private:
+	struct PendingWrite {
+		void* data;
+		unsigned writesLeft;
+		unsigned writeLocation;
+	};
+	std::array<std::vector<PendingWrite>, 16> writes;
 };
 
 class Meshpool {
@@ -29,7 +48,7 @@ public:
 	void StreamNormalMatrix(unsigned instance, glm::mat3x3);
 
 	// attribute must be part of this meshpool's format, and value must refer to an array with the correct number of scalar values.
-	virtual void SetInstancedVertexAttribute(unsigned instance, VertexAttribute& attribute, VertexScalar* value) = 0;
+	virtual void SetInstancedVertexAttribute(unsigned instance, const VertexAttribute& attribute, VertexScalar* value) = 0;
 
 	virtual ~Meshpool();
 	Meshpool(const Meshpool&) = delete;
@@ -63,11 +82,11 @@ protected:
 	void UpdateInstanceCapacity(); // after changing currentInstanceCapacity, call to update instances to the correct size.
 	
 	// needed for BufferedBuffer's double/triple buffering, call every frame AFTER writing vertex/instance data and BEFORE dispatching GPU draws/commands which use this meshpool.
-	void CommitWrites();
+	virtual void CommitWrites() = 0;
 
 	// needed for BufferedBuffer's double/triple buffering, call every frame BEFORE writing vertex/instance data and AFTER dispatching GPU draws/commands which use this meshpool.
 	// Might yield if GPU isn't ready for us to write the data, so call at the last possible second.
-	void FlipBuffers();
+	virtual void FlipBuffers() = 0;
 
 	// Used by destructor and when a buffer is resized.
 	void DestroyVAOs();
@@ -100,11 +119,16 @@ public:
 	MeshpoolMeshStorageLocation AddMesh(std::shared_ptr<Mesh> m) override;
 	void RemoveMesh(Mesh*) override;
 
-	void SetInstancedVertexAttribute(unsigned instance, VertexAttribute& attribute, VertexScalar* value) override;
+	void SetInstancedVertexAttribute(unsigned instance, const VertexAttribute& attribute, VertexScalar* value) override;
+
+	void CommitWrites() override;
+	void FlipBuffers() override;
 
 private:
 	std::vector<unsigned> availableInstanceSlots;
 	unsigned nextInstanceLocation = 0; // use if availableInstanceSlots is empty.
+
+	PendingWritesManager pendingInstanceWrites;
 
 	//std::vector<SlotSpace> availableVertexSpace; // in terms of vertices
 

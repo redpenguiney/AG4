@@ -10,13 +10,14 @@ void Meshpool::StreamNormalMatrix(unsigned instance, glm::mat3x3 normalMatrix) {
 	memcpy(instances.Data() + instance * format.GetInstancedVertexSize() + normalMatrixOffset, &normalMatrix, sizeof(normalMatrix));
 }
 
-void Meshpool::CommitWrites() {
+void StaticMeshpool::CommitWrites() {
+	pendingInstanceWrites.ApplyWrites(instances.Data());
 	vertices.Commit();
 	instances.Commit();
 	indices.Commit();
 }
 
-void Meshpool::FlipBuffers() {
+void StaticMeshpool::FlipBuffers() {
 	vertices.Flip(); // TODO: for static meshpools we shouldn't always need to do this.
 	instances.Flip();
 	indices.Flip();
@@ -190,6 +191,9 @@ MeshpoolMeshStorageLocation StaticMeshpool::AddMesh(std::shared_ptr<Mesh> m) {
 	}
 	nextMeshFirstIndexLocation += m->numIndices;
 
+	memcpy(vertices.Data() + firstVertex * format.GetNonInstancedVertexSize(), m->GetVertices().data(), m->GetVertices().size() * sizeof(VertexScalar));
+	memcpy(indices.Data() + firstIndex * sizeof(GLuint), m->GetIndices().data(), m->numIndices * sizeof(unsigned int));
+
 	return MeshpoolMeshStorageLocation{
 		.baseVertex = firstVertex,
 		.firstIndex = firstIndex * (unsigned)sizeof(unsigned int),
@@ -198,11 +202,11 @@ MeshpoolMeshStorageLocation StaticMeshpool::AddMesh(std::shared_ptr<Mesh> m) {
 }
 
 void StaticMeshpool::RemoveMesh(Mesh*) {
-
+	// TODO 
 }
 
-void StaticMeshpool::SetInstancedVertexAttribute(unsigned instance, VertexAttribute& attribute, VertexScalar* value) {
-	Assert(false);
+void StaticMeshpool::SetInstancedVertexAttribute(unsigned instance, const VertexAttribute& attribute, VertexScalar* value) {
+	pendingInstanceWrites.AddWrite(attribute.nComponents, attribute.offset + instance * format.GetInstancedVertexSize(), instances.numBuffers, value);
 }
 
 unsigned StaticMeshpool::AddInstance() {
@@ -223,4 +227,42 @@ unsigned StaticMeshpool::AddInstance() {
 
 void StaticMeshpool::RemoveInstance(unsigned instance) {
 	availableInstanceSlots.push_back(instance);
+}
+
+void PendingWritesManager::AddWrite(unsigned nComponents, unsigned writeLocation, unsigned nWrites, VertexScalar* valueToWrite) {
+	
+	// we have to check if we're already writing to the same location and if so replace that PendingWrite.
+	// otherwise, since ApplyWrites() doesn't preserve the order of the writes vector we could end up with the older data written.
+	for (auto& w : writes[nComponents]) {
+		if (w.writeLocation == writeLocation) {
+			w.writesLeft = nWrites;
+			// update data
+			memcpy(w.data, valueToWrite, nComponents * sizeof(VertexScalar));
+		}
+	}
+
+	// if that wasn't the case we just add the write
+	void* data = malloc(nComponents * sizeof(VertexScalar));
+	memcpy(data, valueToWrite, nComponents * sizeof(VertexScalar));
+	writes[nComponents].push_back(PendingWrite{
+		.data = data,
+		.writesLeft = nWrites,
+		.writeLocation = writeLocation,
+	});
+}
+
+void PendingWritesManager::ApplyWrites(char* buffer) {
+	for (unsigned nComponents = 0; nComponents < writes.size(); nComponents++) {
+		auto& vec = writes[nComponents];
+		for (unsigned i = 0; i < vec.size(); i++) {
+			memcpy(buffer + vec[i].writeLocation, vec[i].data, nComponents * sizeof(VertexScalar));
+			vec[i].writesLeft--;
+			if (vec[i].writesLeft == 0) {
+				free(vec[i].data);
+				vec[i] = vec.back();
+				vec.pop_back();
+				i--;
+			}
+		}
+	}
 }

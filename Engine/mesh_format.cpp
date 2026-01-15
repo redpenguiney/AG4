@@ -25,6 +25,7 @@ MeshVertexFormat::MeshVertexFormat(std::vector<VertexAttribute> attribs) : attri
     for (auto& attrib : attributes) {
         Assert(!names.contains(attrib.name));
         names.insert(attrib.name);
+        Assert(attrib.nComponents > 0);
         if (attrib.instanced) {
             if (attrib.name == SpecialVertexAttributeNames::MODEL_MATRIX) {
                 numModelMatrices++;
@@ -110,5 +111,11 @@ MeshVertexFormat MeshVertexFormat::DefaultTriplanarMapping(bool instancedColor)
 
 VertexAttribute* MeshVertexFormat::GetAttribute(std::string name) {
     for (auto& a : attributes) if (a.name == name) return &a;
+    return nullptr;
+}
+
+const VertexAttribute* MeshVertexFormat::GetAttribute(std::string name) const
+{
+    for (const auto& a : attributes) if (a.name == name) return &a;
     return nullptr;
 }

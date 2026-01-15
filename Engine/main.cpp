@@ -21,29 +21,39 @@ int main() {
 	p.mesh = squareMesh;
 
 	std::vector<std::shared_ptr<Gameobject>> objects;
-	for (unsigned i = 0; i < 1; i++) {
+	for (int i = 0; i < 5; i++) {
 		Gameobject* gameObj = Gameobject::New(p);
+		gameObj->SetPosition({ i, 0, -5 - i });
+		gameObj->SetScale({ 0.8, 0.8, 0.8 });
+		glm::vec4 color(1, 0, 1, 1);
+		gameObj->SetInstanceAttribute(*squareMesh->format.GetAttribute("color"), color);
 		//delete gameObj;
 		std::shared_ptr<Gameobject> unique(gameObj);
 		objects.push_back(unique);
+
 	}
 	
 	// Freecam
-	float pitch = 0, yaw = 0;
-	Mainloop::Get().preRender->Connect([&pitch, &yaw](float) {
-		pitch += Window::Get().MOUSE_DELTA.y;
-		yaw += Window::Get().MOUSE_DELTA.x;
-		pitch = std::clamp(pitch, -3.141f / 180 * -89, 3.141f / 180 * 89);
-		if (yaw < 0) yaw += 3.141 * 2;
-		yaw = std::fmod(yaw, 3.141f * 2);
+	float pitch = 0, yaw = 0, speed = 0;
+	Mainloop::Get().preRender->Connect([&pitch, &yaw, &speed](float) {
+		pitch += 0.01 * Window::Get().MOUSE_DELTA.y;
+		yaw += 0.01 * Window::Get().MOUSE_DELTA.x;
+		pitch = std::clamp(pitch, -glm::radians(89.0f), glm::radians(89.0f));
+		if (yaw < 0) yaw += glm::radians(360.0f);
+		yaw = std::fmod(yaw,glm::radians(360.0f));
 
 		auto& cam = GraphicsEngine::Get().currentCamera;
-		double forward = double(Window::Get().PRESSED_KEYS.contains(InputObject::W)) - double(Window::Get().PRESSED_KEYS.contains(InputObject::S));
-		double right = double(Window::Get().PRESSED_KEYS.contains(InputObject::D)) - double(Window::Get().PRESSED_KEYS.contains(InputObject::A));
-		double up = double(Window::Get().PRESSED_KEYS.contains(InputObject::Q)) - double(Window::Get().PRESSED_KEYS.contains(InputObject::E));
+		float forward = (Window::Get().PRESSED_KEYS.contains(InputObject::W) ? 1 : 0) - (Window::Get().PRESSED_KEYS.contains(InputObject::S) ? 1 : 0);
+		float right = (Window::Get().PRESSED_KEYS.contains(InputObject::D) ? 1 : 0) - (Window::Get().PRESSED_KEYS.contains(InputObject::A) ? 1 : 0);
+		float up = (Window::Get().PRESSED_KEYS.contains(InputObject::Q) ? 1 : 0) - (Window::Get().PRESSED_KEYS.contains(InputObject::E) ? 1 : 0);
 
-		cam.position += LookVector(pitch, yaw) * glm::dvec3(right, up, forward);
-		cam.rotation = glm::quatLookAt(LookVector(pitch, yaw), glm::dvec3(0, 1, 0));
+		if (forward == 0 && right == 0 && up == 0) speed = 0;
+		speed += 0.1;
+		cam.rotation = glm::rotate(glm::rotate(glm::identity<glm::mat4x4>(), pitch, glm::vec3(1, 0, 0)), yaw, glm::vec3(0, 1, 0));
+		glm::vec3 fDir = LookVector(pitch, yaw);
+		glm::vec3 rDir= LookVector(0, yaw + glm::radians(90.0f));
+		glm::vec3 upDir = glm::cross(fDir, rDir);
+		cam.position += (fDir * forward + rDir * right + upDir * up) * speed;
 		});
 
 	Mainloop::Get().Run();
