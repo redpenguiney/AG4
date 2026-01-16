@@ -6,7 +6,7 @@
 layout(location=0) in vec3 vertexPos;
 layout(location=1) in vec4 color;
 layout(location=2) in vec2 textureXY;
-layout(location=3) in float textureZ;
+layout(location=3) in float autoTextureZ;
 layout(location=4) in vec3 vertexNormal;
 layout(location=5) in vec3 vertexTangent;
 
@@ -37,7 +37,7 @@ void main()
     gl_Position = perspective * gl_Position;
     fragmentColor = color;
     fragmentNormal = normalize(normalMatrix * vertexNormal);
-    fragmentTexCoords = vec3(textureXY, textureZ);
+    fragmentTexCoords = vec3(textureXY, autoTextureZ);
     //lightSpaceCoords = modelToLightSpace * model * vec4(vertexPos, 1.0);
 
     vec3 T = normalize(vec3(modelMatrix * vec4(vertexTangent,   0.0)));

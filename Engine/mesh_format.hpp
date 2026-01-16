@@ -47,8 +47,7 @@ namespace SpecialVertexAttributeNames {
     const inline std::string VERTEX_NORMAL = "vertexNormal";
     const inline std::string VERTEX_TANGENT = "vertexTangent";
     const inline std::string VERTEX_UV = "textureXY";
-
-
+    const inline std::string AUTOMATIC_TEXTURE_ARRAY_SELECTION = "autoTextureZ";
 };
 
 // Describes which vertex attributes a mesh has, which of them are instanced, and in what order they are in.

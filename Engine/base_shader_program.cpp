@@ -33,7 +33,7 @@ std::string Shader::PreprocessFile(std::string filepath)
         for (std::string line; std::getline(iss, line); lineNum++)
         {
             std::string::size_type lineCommentIndex = line.find("//");
-            std::string::size_type includeFileIndex = line.find("#$INCLUDE$");
+            std::string::size_type includeFileIndex = line.find("#include");
 
             if (includeFileIndex == std::string::npos || lineCommentIndex < includeFileIndex) {
                 preprocessedSource += line + "\n";

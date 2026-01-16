@@ -172,4 +172,8 @@ ShaderProgram::ShaderProgram(const char* vertexPath, const char* fragmentPath):
         }
     }
     delete[] nameBuffer;
+
+    for (auto& [name, uniform] : shaderUniforms) {
+        if (name.length() > name.substr())
+    }
 }

@@ -8,14 +8,14 @@ in vec3 cameraToFragmentInTangentSpace;
 in mat3 TBNmatrix;
 // in vec4 lightSpaceCoords;
 
-#$INCLUDE$ "../shaders/phong_lighting.glsl"
+#include "../shaders/phong_lighting.glsl"
 
 layout(location = 0) out vec4 Output;
 
-layout(binding=0) uniform sampler2DArray colorMap; // note: this syntax not ok until opengl 4.2
-layout(binding=1) uniform sampler2DArray normalMap; // note: this syntax not ok until opengl 4.2
-layout(binding=2) uniform sampler2DArray specularMap; // note: this syntax not ok until opengl 4.2
-layout(binding=3) uniform sampler2DArray displacementMap; // note: this syntax not ok until opengl 4.2
+layout(binding=0) uniform sampler2DArray colorMapAUTO_ARRAY; // note: this syntax not ok until opengl 4.2
+layout(binding=1) uniform sampler2DArray normalMapAUTO_ARRAY; // note: this syntax not ok until opengl 4.2
+layout(binding=2) uniform sampler2DArray specularMapAUTO_ARRAY; // note: this syntax not ok until opengl 4.2
+layout(binding=3) uniform sampler2DArray displacementMapAUTO_ARRAY; // note: this syntax not ok until opengl 4.2
 
 uniform bool normalMappingEnabled;
 uniform bool parallaxMappingEnabled;
@@ -23,7 +23,7 @@ uniform bool specularMappingEnabled;
 uniform bool colorMappingEnabled;
 uniform bool vertexColorEnabled; // could actually refer to vertex or instance color
 
-#$INCLUDE$ "../shaders/parallax_mapping.glsl"
+#include "../shaders/parallax_mapping.glsl"
 
 
 
@@ -42,11 +42,11 @@ void main()
     }
     
     vec3 normal = normalize(fragmentNormal);
-    if (normalMappingEnabled) {normal = normalize(TBNmatrix * (texture(normalMap, realTexCoords).rgb * 2.0 - 1.0));} // todo: matrix multiplication in fragment shader is really bad, maybe?
+    if (normalMappingEnabled) {normal = normalize(TBNmatrix * (texture(normalMapAUTO_ARRAY, realTexCoords).rgb * 2.0 - 1.0));} // todo: matrix multiplication in fragment shader is really bad, maybe?
 
     float specularStrength = 0.5;
     if (specularMappingEnabled) {
-        specularStrength = texture(specularMap, realTexCoords).x;
+        specularStrength = texture(specularMapAUTO_ARRAY, realTexCoords).x;
     }
 
     vec3 light = CalculateLighting(specularStrength, normal);
@@ -56,7 +56,7 @@ void main()
         tx = vec4(1.0, 1.0, 1.0, 1.0);
     }
     else {
-        tx = texture(colorMap, realTexCoords);
+        tx = texture(colorMapAUTO_ARRAY, realTexCoords);
     }
     
 
@@ -72,8 +72,8 @@ void main()
         //discard;
     };
 
-    //Output = color;
+    Output = color;
     //Output = vec4(1, 1, 1, 1);
-    Output = fragmentColor;
+    //Output = fragmentColor;
     //Output = vec4(light, 1);
 };

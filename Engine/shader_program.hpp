@@ -11,6 +11,8 @@
 // TODO: custom procedural textures
 // TODO: potentially big optimizations to be made with program pipeline objects
 
+constexpr inline std::string AUTO_TEXTURE_ARRAY_UNIFORM_SUFFIX
+
 class ShaderProgram;
 
 struct ShaderActiveVertexAttribute {

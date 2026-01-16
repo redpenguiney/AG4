@@ -7,6 +7,8 @@
 #include <glm/mat4x4.hpp>
 #include <string>
 
+
+
 class Shader {
 private:
     friend class BaseShaderProgram;
@@ -78,13 +80,14 @@ protected:
     // You only need to call this if for whatever reason you are repeatedly swapping out shader programs (like bc ur joining different servers with different resources)
     // TODO very untested
     static void Unload(unsigned int shaderProgramId);
-    
+   
+    std::unordered_map<std::string, ShaderUniformInfo> shaderUniforms;
+
 private:
 
     static inline GLuint CURRENTLY_BOUND_PROGRAM_ID = 0; // id of the currently loaded shader program
     
 
-    std::unordered_map<std::string, ShaderUniformInfo> shaderUniforms;
 
     GLuint programId;
 };

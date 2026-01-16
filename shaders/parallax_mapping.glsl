@@ -25,7 +25,7 @@ vec2 CalculateTexCoords(vec3 texCoords) {
     // get initial values
     vec2  currentTexCoords = texCoords.xy;
     float texZ = texCoords.z;
-    float currentDepthMapValue = texture(displacementMap, vec3(currentTexCoords, texZ)).r;
+    float currentDepthMapValue = texture(displacementMapAUTO_ARRAY, vec3(currentTexCoords, texZ)).r;
       
     while(currentLayerDepth < currentDepthMapValue)
     {
