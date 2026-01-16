@@ -6,8 +6,8 @@
 #include "glm/ext/quaternion_float.hpp"
 #include "graphics_engine.hpp"
 #include "memory_pool.hpp"
+#include "collider.hpp"
 
-class Collider;
 class Mesh;
 class RenderPass;
 class RenderGroup;

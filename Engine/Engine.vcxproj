@@ -142,6 +142,7 @@
     <ClCompile Include="buffered_buffer.cpp" />
     <ClCompile Include="camera.cpp" />
     <ClCompile Include="checked_uint.cpp" />
+    <ClCompile Include="collider.cpp" />
     <ClCompile Include="compute_shader_program.cpp" />
     <ClCompile Include="cursor.cpp" />
     <ClCompile Include="framebuffer.cpp" />

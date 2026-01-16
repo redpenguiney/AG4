@@ -5,8 +5,10 @@
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
 #include <glm/mat4x4.hpp>
+#include <string>
 
 class Shader {
+private:
     friend class BaseShaderProgram;
     friend class ShaderProgram;
     friend class ComputeShaderProgram;
@@ -27,10 +29,18 @@ class Shader {
     static std::string PreprocessFile(std::string filepath);
 };
 
+// includes textures
+struct ShaderUniformInfo {
+    std::string name;
+    int uniformLocation;
+    GLenum type;
+};
 
 // Base class that both the normal ShaderProgram (for rendering) and ComputeShaderProgram (for gpu computation) classes derive from.
 class BaseShaderProgram {
-    public:
+public:
+    const std::unordered_map<std::string, ShaderUniformInfo>& GetUniforms();
+
     // lets programId be read only without a getter
     const unsigned int& shaderProgramId = programId;
 
@@ -74,7 +84,7 @@ private:
     static inline GLuint CURRENTLY_BOUND_PROGRAM_ID = 0; // id of the currently loaded shader program
     
 
-    std::unordered_map<std::string, int> uniform_locations; // used to set uniform variables
+    std::unordered_map<std::string, ShaderUniformInfo> shaderUniforms;
 
     GLuint programId;
 };

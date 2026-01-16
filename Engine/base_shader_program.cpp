@@ -133,13 +133,13 @@ BaseShaderProgram::BaseShaderProgram()
     programId = glCreateProgram();
 }
 
+const std::unordered_map<std::string, ShaderUniformInfo>& BaseShaderProgram::GetUniforms() {
+    return shaderUniforms;
+}
+
 bool BaseShaderProgram::HasUniform(std::string name)
 {
-    if (uniform_locations.count(name) == 0) {
-        uniform_locations[name] = glGetUniformLocation(programId, name.c_str());
-        //Assert(uniform_locations[uniformName] != -1); // verify that the uniform name exists
-    };
-    return uniform_locations[name] != -1;
+    return shaderUniforms.contains(name);
 }
 
 void BaseShaderProgram::Link()
@@ -154,112 +154,132 @@ void BaseShaderProgram::Link()
         printf("\nFailed to link shader program!\n%s\n", infolog);
         abort();
     }
+
+    GLint numUniforms, longestUniformName;
+    glGetProgramiv(shaderProgramId, GL_ACTIVE_UNIFORMS, &numUniforms);
+    glGetProgramiv(shaderProgramId, GL_ACTIVE_UNIFORM_MAX_LENGTH, &longestUniformName);
+    for (int i = 0; i < numUniforms; i++) {
+        auto nameBuf = new char[longestUniformName+1];
+        GLsizei length;
+        GLint size;
+        GLenum type;
+        glGetActiveUniform(shaderProgramId, i, longestUniformName, &length, &size, &type, nameBuf);
+        std::string name(nameBuf);
+        Assert(size == 1); // TODO: should probably support array uniforms
+        shaderUniforms[name] = ShaderUniformInfo{
+            .name = name,
+            .uniformLocation = glGetUniformLocation(shaderProgramId, nameBuf),
+            .type = type
+        };
+        Assert(shaderUniforms[name].uniformLocation != -1);
+
+        delete[] nameBuf;
+    }
 }
 
 void BaseShaderProgram::Uniform(std::string uniformName, glm::mat4x4 matrix, bool transposeMatrix, bool require) {
-    if (uniform_locations.count(uniformName) == 0) {
-        uniform_locations[uniformName] = glGetUniformLocation(programId, uniformName.c_str());
-        //Assert(uniform_locations[uniformName] != -1); // verify that the uniform name exists
-    };
-    if (uniform_locations[uniformName] == -1) {
+    if (shaderUniforms.count(uniformName) == 0) {
         if (require) throw std::runtime_error("Shader has no uniform " + uniformName);
         else return;
     }
-
+    if (shaderUniforms[uniformName].type != GL_FLOAT_MAT4) {
+        if (require) throw std::runtime_error("Shader expects a different type for this uniform.");
+        else return;
+    }
     Use();
-    glUniformMatrix4fv(uniform_locations.at(uniformName), 1, transposeMatrix, &matrix[0][0]);
+    glUniformMatrix4fv(shaderUniforms.at(uniformName).uniformLocation, 1, transposeMatrix, &matrix[0][0]);
 }
 
 void BaseShaderProgram::Uniform(std::string uniformName, glm::vec4 vec, bool require) {
-    if (uniform_locations.count(uniformName) == 0) {
-        uniform_locations[uniformName] = glGetUniformLocation(programId, uniformName.c_str());
-        //Assert(uniform_locations[uniformName] != -1); // verify that the uniform name exists
-    };
-    if (uniform_locations[uniformName] == -1) {
+    if (shaderUniforms.count(uniformName) == 0) {
         if (require) throw std::runtime_error("Shader has no uniform " + uniformName);
+        else return;
+    };
+    if (shaderUniforms[uniformName].type != GL_FLOAT_VEC4) {
+        if (require) throw std::runtime_error("Shader expects a different type for this uniform.");
         else return;
     }
     Use();
-    glUniform4fv(uniform_locations.at(uniformName), 1, &vec.x);
+    glUniform4fv(shaderUniforms.at(uniformName).uniformLocation, 1, &vec.x);
 }
 
 void BaseShaderProgram::Uniform(std::string uniformName, glm::vec3 vec, bool require) {
-    if (uniform_locations.count(uniformName) == 0) {
-        uniform_locations[uniformName] = glGetUniformLocation(programId, uniformName.c_str());
-        //Assert(uniform_locations[uniformName] != -1); // verify that the uniform name exists
-    };
-    if (uniform_locations[uniformName] == -1) {
+    if (shaderUniforms.count(uniformName) == 0) {
         if (require) throw std::runtime_error("Shader has no uniform " + uniformName);
+        else return;
+    };
+    if (shaderUniforms[uniformName].type != GL_FLOAT_VEC3) {
+        if (require) throw std::runtime_error("Shader expects a different type for this uniform.");
         else return;
     }
     Use();
-    glUniform3fv(uniform_locations.at(uniformName), 1, &vec.x);
+    glUniform3fv(shaderUniforms.at(uniformName).uniformLocation, 1, &vec.x);
 }
 
 void BaseShaderProgram::Uniform(std::string uniformName, glm::vec2 vec, bool require) {
-    if (uniform_locations.count(uniformName) == 0) {
-        uniform_locations[uniformName] = glGetUniformLocation(programId, uniformName.c_str());
-        //Assert(uniform_locations[uniformName] != -1); // verify that the uniform name exists
-    };
-    if (uniform_locations[uniformName] == -1) {
+    if (shaderUniforms.count(uniformName) == 0) {
         if (require) throw std::runtime_error("Shader has no uniform " + uniformName);
+        else return;
+    };
+    if (shaderUniforms[uniformName].type != GL_FLOAT_VEC2) {
+        if (require) throw std::runtime_error("Shader expects a different type for this uniform.");
         else return;
     }
     Use();
-    glUniform2fv(uniform_locations.at(uniformName), 1, &vec.x);
+    glUniform2fv(shaderUniforms.at(uniformName).uniformLocation, 1, &vec.x);
 }
 
 void BaseShaderProgram::Uniform(std::string uniformName, float fval, bool require) {
-    if (uniform_locations.count(uniformName) == 0) {
-        uniform_locations[uniformName] = glGetUniformLocation(programId, uniformName.c_str());
-        //Assert(uniform_locations[uniformName] != -1); // verify that the uniform name exists
-    };
-    if (uniform_locations[uniformName] == -1) {
+    if (shaderUniforms.count(uniformName) == 0) {
         if (require) throw std::runtime_error("Shader has no uniform " + uniformName);
+        else return;
+    };
+    if (shaderUniforms[uniformName].type != GL_FLOAT) {
+        if (require) throw std::runtime_error("Shader expects a different type for this uniform.");
         else return;
     }
     Use();
-    glUniform1f(uniform_locations.at(uniformName), fval);
+    glUniform1f(shaderUniforms.at(uniformName).uniformLocation, fval);
 }
 
 void BaseShaderProgram::Uniform(std::string uniformName, bool bval, bool require) {
-    if (uniform_locations.count(uniformName) == 0) {
-        uniform_locations[uniformName] = glGetUniformLocation(programId, uniformName.c_str());
-        //Assert(uniform_locations[uniformName] != -1); // verify that the uniform name exists
-    };
-    if (uniform_locations[uniformName] == -1) {
+    if (shaderUniforms.count(uniformName) == 0) {
         if (require) throw std::runtime_error("Shader has no uniform " + uniformName);
+        else return;
+    };
+    if (shaderUniforms[uniformName].type != GL_BOOL) {
+        if (require) throw std::runtime_error("Shader expects a different type for this uniform.");
         else return;
     }
     Use();
-    glUniform1i(uniform_locations.at(uniformName), bval);
+    glUniform1i(shaderUniforms.at(uniformName).uniformLocation, bval);
 }
 
 void BaseShaderProgram::Uniform(std::string uniformName, unsigned int uval, bool require)
 {
-    if (uniform_locations.count(uniformName) == 0) {
-        uniform_locations[uniformName] = glGetUniformLocation(programId, uniformName.c_str());
-        //Assert(uniform_locations[uniformName] != -1); // verify that the uniform name exists
-    };
-    if (uniform_locations[uniformName] == -1) {
+    if (shaderUniforms.count(uniformName) == 0) {
         if (require) throw std::runtime_error("Shader has no uniform " + uniformName);
+        else return;
+    };
+    if (shaderUniforms[uniformName].type != GL_UNSIGNED_INT) {
+        if (require) throw std::runtime_error("Shader expects a different type for this uniform.");
         else return;
     }
     Use();
-    glUniform1ui(uniform_locations.at(uniformName), uval);
+    glUniform1ui(shaderUniforms.at(uniformName).uniformLocation, uval);
 }
 
 void BaseShaderProgram::Uniform(std::string uniformName, int ival, bool require) {
-    if (uniform_locations.count(uniformName) == 0) {
-        uniform_locations[uniformName] = glGetUniformLocation(programId, uniformName.c_str());
-        //Assert(uniform_locations[uniformName] != -1); // verify that the uniform name exists
-    };
-    if (uniform_locations[uniformName] == -1) {
+    if (shaderUniforms.count(uniformName) == 0) {
         if (require) throw std::runtime_error("Shader has no uniform " + uniformName);
+        else return;
+    };
+    if (shaderUniforms[uniformName].type != GL_INT) {
+        if (require) throw std::runtime_error("Shader expects a different type for this uniform.");
         else return;
     }
     Use();
-    glUniform1i(uniform_locations.at(uniformName), ival);
+    glUniform1i(shaderUniforms.at(uniformName).uniformLocation, ival);
 }
 
 void BaseShaderProgram::Use() {
