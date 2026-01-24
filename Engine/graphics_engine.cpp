@@ -24,16 +24,19 @@ void GraphicsEngine::RenderScene(double dt) {
 
     Meshpool::PrepareDraw();
 
-    UpdateRenderGraph(defaultDrawingPasses);
-    if (activeRenderGraph)
-        activeRenderGraph->Render();
+    if (renderGraph)
+        renderGraph->Render();
 
     glFlush();
     Meshpool::PrepareWrite();
 }
 
-void GraphicsEngine::UpdateRenderGraph(std::vector<std::shared_ptr<RenderPass>> nodes) {
-    activeRenderGraph = std::make_shared<RenderGraph>(nodes);
+void GraphicsEngine::AddRenderPass(std::shared_ptr<RenderPass> node) {
+    renderGraph->AddPass(node);
+}
+
+void GraphicsEngine::RemoveRenderPass(std::shared_ptr<RenderPass> node) {
+    renderGraph->RemovePass(node);
 }
 
 void GraphicsEngine::WriteModelMatrices() {
@@ -50,7 +53,7 @@ void GraphicsEngine::WriteModelMatrices() {
             modelMatrix[3].w = 1; // TODO is this one neccesary?
             obj.render.pool->StreamModelMatrix(obj.render.instanceIndex, modelMatrix);
             if (obj.normalMatDirty) {
-                obj.normalMatDirty = false;
+                //obj.normalMatDirty = false; TODO: it's always dirty because we're streaming it;
                 obj.render.pool->StreamNormalMatrix(obj.render.instanceIndex, glm::inverseTranspose(obj.GetRotSclMatrix())); // TODO: many things won't be nonuniformly scaled and this will be an unneccesary performance cost for them
             }
         }
@@ -60,7 +63,7 @@ void GraphicsEngine::WriteModelMatrices() {
 }
 
 GraphicsEngine::GraphicsEngine() {
-    auto newPass = std::make_shared<RenderPass>();
+    auto newPass = std::make_shared<DrawPass>();
     newPass->name = "default";
     newPass->renderTarget = WindowRenderTargetDescriptor();
     newPass->params.shader = ShaderProgram::New("../shaders/world_vertex.glsl", "../shaders/world_fragment.glsl");

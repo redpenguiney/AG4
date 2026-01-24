@@ -66,6 +66,11 @@ void Gameobject::SetInstanceAttribute(const VertexAttribute& attrib, glm::vec4 v
     SetInstanceAttribute(attrib, reinterpret_cast<VertexScalar*>(&value));
 }
 
+void Gameobject::SetInstanceAttribute(const VertexAttribute& attrib, float value) {
+    Assert(attrib.nComponents == 1 && attrib.type == VertexScalarType::f32);
+    SetInstanceAttribute(attrib, reinterpret_cast<VertexScalar*>(&value));
+}
+
 const glm::mat3x3& Gameobject::GetRotSclMatrix() {
     if (rotSclDirty) {
         rotSclMatrix = glm::identity<glm::mat3x3>();

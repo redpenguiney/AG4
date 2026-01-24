@@ -31,11 +31,22 @@ private:
     static std::string PreprocessFile(std::string filepath);
 };
 
-// includes textures
+// includes textures.
 struct ShaderUniformInfo {
     std::string name;
     int uniformLocation;
     GLenum type;
+};
+
+// Uniform buffers store a fairly large (16KB guaranteed) amount of readonly data for shader usage.
+struct ShaderUniformBufferInfo {
+
+};
+
+// Shader storage buffers have a very large (16MB guaranteed) amount of read/write data for shader usage.
+// They require OpenGL 4.3 and are a little slower than uniform buffers on some hardware.
+struct ShaderStorageBufferInfo {
+
 };
 
 // Base class that both the normal ShaderProgram (for rendering) and ComputeShaderProgram (for gpu computation) classes derive from.

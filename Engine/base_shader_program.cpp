@@ -175,6 +175,8 @@ void BaseShaderProgram::Link()
 
         delete[] nameBuf;
     }
+
+    
 }
 
 void BaseShaderProgram::Uniform(std::string uniformName, glm::mat4x4 matrix, bool transposeMatrix, bool require) {

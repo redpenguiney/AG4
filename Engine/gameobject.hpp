@@ -49,6 +49,7 @@ public:
 	void SetInstanceAttribute(const VertexAttribute& attrib, VertexScalar* value);
 
 	void SetInstanceAttribute(const VertexAttribute& attrib, glm::vec4 value);
+	void SetInstanceAttribute(const VertexAttribute& attrib, float value);
 
 
 	const glm::mat3x3& GetRotSclMatrix();

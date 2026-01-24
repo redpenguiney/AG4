@@ -17,7 +17,8 @@ public:
 
 	void RenderScene(double dt);
 
-	void UpdateRenderGraph(std::vector<std::shared_ptr<RenderPass>> nodes);
+	void AddRenderPass(std::shared_ptr<RenderPass> node);
+	void RemoveRenderPass(std::shared_ptr<RenderPass> node);
 
 	// Default renderpasses for newly created GameobjectCreateParams. Will have a reasonable default, but change at your discretion. 
 	std::vector<std::shared_ptr<RenderPass>> defaultDrawingPasses;
@@ -25,7 +26,7 @@ public:
 private:
 	void WriteModelMatrices();
 
-	std::shared_ptr<RenderGraph> activeRenderGraph;
+	std::shared_ptr<RenderGraph> renderGraph;
 
 	// Meshpools for static geometry. Exactly one meshpool per unique vertex format.
 	std::vector<std::shared_ptr<StaticMeshpool>> staticMeshpools;

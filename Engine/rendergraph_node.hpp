@@ -9,7 +9,10 @@
 class Framebuffer;
 class BufferedBuffer;
 class ShaderProgram;
+class ComputeShaderProgram;
 class RenderGroup;
+class Texture;
+struct TextureCreateParams;
 
 enum class ImageFormat : GLenum {
 	RGBA_16_DECIMAL = GL_RGBA16, // google opengl "normalized integer".
@@ -88,21 +91,22 @@ using RenderTargetDescriptor = std::variant<FramebufferRenderTargetDescriptor, W
 
 struct BufferUsageDescriptor {
 public:
-	GLenum bufferType;
-	unsigned bufferingBindingIndex;
-	//bool write = false;
-	//bool read = true;
+	std::string bindTo;
 	std::shared_ptr<BufferedBuffer> buffer;
+
+	bool willRead = true;
+	bool willWrite = false;
 };
 
-class TextureHandle {
-
-};
+using TextureHandle = std::variant<std::shared_ptr<Texture>, TextureCreateParams>;
 
 struct TextureUsageDescriptor {
 public:
 	std::shared_ptr<TextureHandle> texture;
 	std::string textureUsageLocation; // name of the shader's sample uniform variable where this shader should be bound.
+
+	bool willRead = true;
+	bool willWrite = false;
 };
 
 enum class FaceCulling {
@@ -129,15 +133,29 @@ struct RenderingParameters {
 
 class RenderPass {
 public:
-	std::string name;
+	std::string name = "UNNAMED";
 	std::vector<std::string> dependencies; // names of RenderPasses that this RenderPass uses the output of
 	std::vector<std::shared_ptr<Framebuffer>> framebufferDependencies; // this RenderPass won't run until all (other) RenderPasses that write to this framebuffer occur
 
+	std::vector<BufferUsageDescriptor> buffersUsed;
+	std::vector<TextureUsageDescriptor> texturesUsed;
+
+	virtual ~RenderPass() = default;
+
+protected:
+	RenderPass() = default;
+};
+
+class DrawPass : public RenderPass {
+public:
 	RenderTargetDescriptor renderTarget;
 
-	std::vector<BufferUsageDescriptor> buffersUsed;
-	std::shared_ptr<TextureUsageDescriptor> texturesUsed;
 	std::vector<RenderGroup*> drawnObjects; // managed by RenderGroups, non-owning
 
 	RenderingParameters params;
+};
+
+class ComputePass : public RenderPass {
+	std::shared_ptr<ComputeShaderProgram> shader;
+	glm::uvec3 workgroupSize;
 };

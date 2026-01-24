@@ -174,6 +174,18 @@ ShaderProgram::ShaderProgram(const char* vertexPath, const char* fragmentPath):
     delete[] nameBuffer;
 
     for (auto& [name, uniform] : shaderUniforms) {
-        if (name.length() > name.substr())
+        if (name.length() > AUTO_TEXTURE_ARRAY_UNIFORM_SUFFIX.size() && name.substr(name.length() - AUTO_TEXTURE_ARRAY_UNIFORM_SUFFIX.size()) == AUTO_TEXTURE_ARRAY_UNIFORM_SUFFIX) {
+            for (auto& attrib : inputVertexAttributes) {
+                if (attrib.name == SpecialVertexAttributeNames::AUTOMATIC_TEXTURE_ARRAY_SELECTION) goto allGood;
+            }
+            throw std::runtime_error("The shader requested an autoarray texture " + name + " but not the corresponding vertex attribute for array texture layer selection.");
+        allGood:;
+        }
+    }
+
+    for (auto& [name, uniform] : shaderUniforms) {
+        if (shaderUniforms.contains(name + AUTO_TEXTURE_ARRAY_UNIFORM_SUFFIX)) {
+            throw std::runtime_error("For texture " + name + " there was also an autoarray version of the texture found. Remove one of them.");
+        }
     }
 }

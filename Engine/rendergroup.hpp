@@ -7,7 +7,7 @@
 class RenderPass;
 class Meshpool;
 class Gameobject;
-class GameobjectCreateParams;
+struct GameobjectCreateParams;
 
 class RenderGroup {
 public:

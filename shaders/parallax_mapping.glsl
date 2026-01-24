@@ -2,7 +2,7 @@
 vec2 CalculateTexCoords(vec3 texCoords) { 
     vec3 viewDir = normalize(cameraToFragmentInTangentSpace);
 
-    // float height = 1- texture(displacementMap, texCoords).r;    
+    // float height = 1- texture(displacementMapAUTO_ARRAY, texCoords).r;    
     // vec2 p = viewDir.xy / viewDir.z * (height * 0.4);
     // return texCoords.xy - p;   
 
@@ -32,7 +32,7 @@ vec2 CalculateTexCoords(vec3 texCoords) {
         // shift texture coordinates along direction of P
         currentTexCoords -= deltaTexCoords;
         // get depthmap value at current texture coordinates
-        currentDepthMapValue = texture(displacementMap, vec3(currentTexCoords, texZ)).r;  
+        currentDepthMapValue = texture(displacementMapAUTO_ARRAY, vec3(currentTexCoords, texZ)).r;  
         // get depth of next layer
         currentLayerDepth += layerDepth;  
     }
@@ -42,7 +42,7 @@ vec2 CalculateTexCoords(vec3 texCoords) {
 
     // get depth after and before collision for linear interpolation
     float afterDepth  = currentDepthMapValue - currentLayerDepth;
-    float beforeDepth = texture(displacementMap, vec3(prevTexCoords, texZ)).r - currentLayerDepth + layerDepth;
+    float beforeDepth = texture(displacementMapAUTO_ARRAY, vec3(prevTexCoords, texZ)).r - currentLayerDepth + layerDepth;
     
     // interpolation of texture coordinates
     float weight = afterDepth / (afterDepth - beforeDepth);

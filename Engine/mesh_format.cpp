@@ -73,6 +73,7 @@ MeshVertexFormat MeshVertexFormat::Default() {
 
     attributes.push_back(VertexAttribute{ .name = SpecialVertexAttributeNames::MODEL_MATRIX, .nComponents = 16, .instanced = true });
     attributes.push_back(VertexAttribute{ .name = SpecialVertexAttributeNames::NORMAL_MATRIX, .nComponents = 9, .instanced = true });
+    attributes.push_back(VertexAttribute{ .name = SpecialVertexAttributeNames::AUTOMATIC_TEXTURE_ARRAY_SELECTION, .nComponents = 1, .instanced = true });
     attributes.push_back(VertexAttribute{ .name = "color", .nComponents = 4, .instanced = true });
 
     return MeshVertexFormat(attributes);

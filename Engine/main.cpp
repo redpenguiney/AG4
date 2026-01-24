@@ -27,6 +27,8 @@ int main() {
 		gameObj->SetScale({ 0.8, 0.8, 0.8 });
 		glm::vec4 color(1, 0, 1, 1);
 		gameObj->SetInstanceAttribute(*squareMesh->format.GetAttribute("color"), color);
+		gameObj->SetInstanceAttribute(*squareMesh->format.GetAttribute(SpecialVertexAttributeNames::AUTOMATIC_TEXTURE_ARRAY_SELECTION), -1.0f);
+
 		//delete gameObj;
 		std::shared_ptr<Gameobject> unique(gameObj);
 		objects.push_back(unique);

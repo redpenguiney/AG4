@@ -5,15 +5,8 @@
 #include "GL/glew.h"
 #include "shader_program.hpp"
 
-RenderGraph::RenderGraph(std::vector<std::shared_ptr<RenderPass>> passes) {
-	for (auto& p : passes) {
-		ProcessedRenderPass pass;
-		pass.params = p->params;
-		pass.renderTarget = p->renderTarget;
-		pass.thingsToDraw = p->drawnObjects;
-
-		renderPasses.push_back(pass);
-	}
+RenderGraph::RenderGraph() {
+	
 }
 
 static void BindRenderTarget(WindowRenderTargetDescriptor target) {
@@ -90,4 +83,61 @@ void RenderGraph::Render() {
 			
 		}
 	}
+}
+
+void RenderGraph::AddPass(std::shared_ptr<RenderPass> pass) {
+	// can't add same pass twice
+	for (auto& p : renderPasses) {
+		for (auto& n: p.sources)
+		Assert(n != pass);
+	}
+
+	// Ensure this render pass runs after all of its dependencies do and before any dependencies that require it
+	size_t minOrder = 0;
+	size_t maxOrder = 1000000000000000000;
+	Assert(pass->framebufferDependencies.empty()); // TODO
+	for (auto& p : renderPasses) {
+		for (auto& src : p.sources) {
+			for (auto& dependencyName : pass->dependencies) {
+				if (src->name == dependencyName) {
+					minOrder = p.order + 1;
+				}
+			}
+
+			for (auto& depenencyName : src->dependencies) {
+
+			}
+		}
+	}
+
+	if (auto drawPass = std::dynamic_pointer_cast<DrawPass>(pass)) renderPasses.emplace_back(drawPass);
+	else if (auto computePass = std::dynamic_pointer_cast<ComputePass>(pass)) renderPasses.emplace_back(computePass);
+	else Assert(false);
+
+	renderPasses.back().order = 0;
+}
+
+void RenderGraph::RemovePass(std::shared_ptr<RenderPass> pass) {
+	for (auto it = renderPasses.begin(); it != renderPasses.end(); it++) {
+		for (unsigned i = 0; i < it->sources.size(); i++) {
+			if (pass->name == it->sources[i]) {
+				it->sources[i] = it->sources.back();
+				it->sources.pop_back();
+				if (it->sources.empty()) {
+					renderPasses.erase(it);
+				}
+			}
+		}
+	}
+}
+
+ProcessedRenderPass::ProcessedRenderPass(std::shared_ptr<DrawPass> drawPass) {
+	params = drawPass->params;
+	renderTarget = drawPass->renderTarget;
+	thingsToDraw = drawPass->drawnObjects;
+	sources.push_back(drawPass->name);
+}
+
+ProcessedRenderPass::ProcessedRenderPass(std::shared_ptr<ComputePass> computePass) {
+	sources.push_back(computePass->name);
 }
