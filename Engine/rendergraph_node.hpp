@@ -92,6 +92,7 @@ using RenderTargetDescriptor = std::variant<FramebufferRenderTargetDescriptor, W
 struct BufferUsageDescriptor {
 public:
 	std::string bindTo;
+
 	std::shared_ptr<BufferedBuffer> buffer;
 
 	bool willRead = true;

@@ -35,5 +35,8 @@ private:
 
 	std::vector<IndirectDrawCommand> commands;
 
+	std::unordered_map<RenderPass*, unsigned> renderPassNumUsers;
+	std::unordered_map<std::string, RenderPass*> renderPassesInUse;
+
 	friend class RenderGraph;
 };
