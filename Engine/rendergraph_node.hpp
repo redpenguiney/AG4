@@ -54,6 +54,14 @@ enum class BlendingEquation : GLenum {
 	Maximum = GL_MAX
 };
 
+// A resource is written to (or has a static value), and then it is read from by other passes.
+struct Resource {
+	std::string name;
+	bool saveForNextFrame = false;
+
+	virtual ~Resource() = default;
+};
+
 // Describes what the contents of a render target should be for a render pass before we draw/write to it.
 enum class AttachmentLoadPolicy {
 	Load, // use the previous contents of the render target
@@ -73,9 +81,12 @@ struct Attachment {
 
 struct FramebufferRenderTargetDescriptor {
 public:
+	std::string name;
 	glm::uvec2 size;
 	std::vector<Attachment> attachments; // used if loadPolicy == Clear
 };
+
+std::string WINDOW_RESOURCE_NAME = "__WINDOW__";
 
 struct WindowRenderTargetDescriptor {
 	AttachmentLoadPolicy loadPolicy = AttachmentLoadPolicy::Clear;
@@ -99,7 +110,7 @@ public:
 	bool willWrite = false;
 };
 
-using TextureHandle = std::variant<std::shared_ptr<Texture>, TextureCreateParams>;
+using TextureHandle = std::variant<std::string, std::shared_ptr<Texture>, TextureCreateParams>;
 
 struct TextureUsageDescriptor {
 public:
@@ -132,14 +143,14 @@ struct RenderingParameters {
 	glm::ivec2 scissorCorner2;
 };
 
+
+
 class RenderPass {
 public:
-	std::string name = "UNNAMED";
-	std::vector<std::string> dependencies; // names of RenderPasses that this RenderPass uses the output of
-	std::vector<std::shared_ptr<Framebuffer>> framebufferDependencies; // this RenderPass won't run until all (other) RenderPasses that write to this framebuffer occur
+	std::string name;
 
-	std::vector<BufferUsageDescriptor> buffersUsed;
-	std::vector<TextureUsageDescriptor> texturesUsed;
+	std::vector<std::string> dependencies; // names of Resources that this RenderPass reads from
+	std::vector<std::string> outputs; // names of Resources that this RenderPass writes to
 
 	virtual ~RenderPass() = default;
 
@@ -149,6 +160,10 @@ protected:
 
 class DrawPass : public RenderPass {
 public:
+	// If FramebufferRenderTargetDescriptor:
+		// Remember to update outputs to contain ALL attachments of this renderTarget (not just the ones it writes to).
+	// If WindowRenderTargetDescriptor:
+		// Remember to update outputs to contain WINDOW_RESOURCE_NAME.
 	RenderTargetDescriptor renderTarget;
 
 	std::vector<RenderGroup*> drawnObjects; // managed by RenderGroups, non-owning

@@ -17,10 +17,10 @@ struct CommandSet {
 };
 
 // The conceptual difference between this and RenderPass is:
-// - RenderPass only describes what the user WANTS to happen on that drawing step (what textures they want to use).
-// - ProcessedRenderPass contains the information needed to actually make that occur (how those textures are actually stored in texture arrays, the actual framebuffer object being used).
+// - RenderPass only describes what the user WANTS to happen on that drawing step (like what textures they want to use).
+// - ProcessedRenderPass contains the information needed to actually make that occur (like how those textures are actually stored in texture arrays, the actual framebuffer object being used).
 struct ProcessedRenderPass {
-	std::vector<std::shared_ptr<RenderPass>> sources;
+	std::vector<std::string> sources;
 	size_t order;
 
 	RenderTargetDescriptor renderTarget;
@@ -31,6 +31,16 @@ struct ProcessedRenderPass {
 
 	ProcessedRenderPass(std::shared_ptr<DrawPass> drawPass);
 	ProcessedRenderPass(std::shared_ptr<ComputePass> computePass);
+};
+
+struct RenderSet {
+	// these passes can be carried out in any order.
+	std::vector<ProcessedRenderPass> passes;
+
+	// TODO: barriers/synchroninzation info
+
+	// sorts passes so that they are in the order which minimizes OpenGL state changes
+	void OptimizePassOrder();
 };
 
 // A compiled render graph. The user should not work with this class directly.
@@ -45,9 +55,14 @@ public:
 	~RenderGraph() = default;
 	RenderGraph(const RenderGraph&) = delete;
 private:
+	bool dirty = true;
+	// updates the contents of renderSets
+	void Compile();
 
 	//BufferedBuffer indirectDrawingCommandBuffer;
+	std::unordered_map<std::string, std::shared_ptr<RenderPass>> passes;
+	std::unordered_map<std::string, std::unique_ptr<Framebuffer>> framebuffers;;
 
-	// Already sorted.
-	std::vector<ProcessedRenderPass> renderPasses;
+	// Ordered based on the dependency graph of the RenderPasses in each RenderSet
+	std::vector<RenderSet> renderSets;
 };

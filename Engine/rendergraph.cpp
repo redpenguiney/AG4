@@ -4,6 +4,7 @@
 #include "static_meshpool.hpp"
 #include "GL/glew.h"
 #include "shader_program.hpp"
+#include <unordered_set>
 
 RenderGraph::RenderGraph() {
 	
@@ -30,104 +31,172 @@ static void BindRenderTarget(FramebufferRenderTargetDescriptor target) {
 
 
 void RenderGraph::Render() {
-	for (auto& p : renderPasses) {
-		std::visit([](auto&& x) {BindRenderTarget(x); }, p.renderTarget);
+	if (dirty) Compile();
 
-		p.params.shader->Use();
+	for (auto& set : renderSets) {
+		for (auto& p : set.passes) {
+			std::visit([](auto&& x) {BindRenderTarget(x); }, p.renderTarget);
 
-		if (p.params.blending) {
-			glEnable(GL_BLEND);
-		}
-		else {
-			glDisable(GL_BLEND);
-		}
-		glDepthMask(p.params.writeDepthBuffer);
-		if (p.params.scissoringEnabled) {
-			glEnable(GL_SCISSOR_TEST);
-			auto c1 = p.params.scissorCorner1, c2 = p.params.scissorCorner2;
-			glm::ivec2 size = c2 - c1;
-			if (size.x < 0) {
-				size.x *= -1;
-				std::swap(c1.x, c2.x);
+			p.params.shader->Use();
+
+			if (p.params.blending) {
+				glEnable(GL_BLEND);
 			}
-			if (size.y < 0) {
-				size.y = -1;
-				std::swap(c1.y, c2.y);
+			else {
+				glDisable(GL_BLEND);
 			}
-			glScissor(c1.x, c1.y, size.x, size.y);
-		}
-		else {
-			glDisable(GL_SCISSOR_TEST);
-		}
-		glDepthFunc(static_cast<GLenum>(p.params.depthTestMode));
-
-
-		if (p.params.cullMode == FaceCulling::None) {
-			glDisable(GL_CULL_FACE);
-		}
-		else {
-			glEnable(GL_CULL_FACE);
-			glCullFace(p.params.cullMode == FaceCulling::Frontface ? GL_FRONT : GL_BACK);
-		}
-
-		for (auto& renderGroup : p.thingsToDraw) {
-			renderGroup->meshpool->BindVAO(p.params.shader);
-			renderGroup->meshpool->indices.Bind();
-			for (auto& c : renderGroup->commands) {
-				glPointSize(5);
-				unsigned baseVertexOffset = renderGroup->meshpool->vertices.GetOffset() / renderGroup->meshpool->format.GetNonInstancedVertexSize();
-				unsigned firstIndexOffset = renderGroup->meshpool->indices.GetOffset();
-				unsigned instanceOffset = renderGroup->meshpool->instances.GetOffset() / renderGroup->meshpool->format.GetInstancedVertexSize();
-				glDrawElementsInstancedBaseVertexBaseInstance(renderGroup->primitiveType, c.count, GL_UNSIGNED_INT, (void*)(unsigned int)((c.firstIndex + firstIndexOffset) * sizeof(unsigned int)), c.instanceCount, c.baseVertex + baseVertexOffset, c.baseInstance + instanceOffset);
+			glDepthMask(p.params.writeDepthBuffer);
+			if (p.params.scissoringEnabled) {
+				glEnable(GL_SCISSOR_TEST);
+				auto c1 = p.params.scissorCorner1, c2 = p.params.scissorCorner2;
+				glm::ivec2 size = c2 - c1;
+				if (size.x < 0) {
+					size.x *= -1;
+					std::swap(c1.x, c2.x);
+				}
+				if (size.y < 0) {
+					size.y = -1;
+					std::swap(c1.y, c2.y);
+				}
+				glScissor(c1.x, c1.y, size.x, size.y);
 			}
-			
+			else {
+				glDisable(GL_SCISSOR_TEST);
+			}
+			glDepthFunc(static_cast<GLenum>(p.params.depthTestMode));
+
+
+			if (p.params.cullMode == FaceCulling::None) {
+				glDisable(GL_CULL_FACE);
+			}
+			else {
+				glEnable(GL_CULL_FACE);
+				glCullFace(p.params.cullMode == FaceCulling::Frontface ? GL_FRONT : GL_BACK);
+			}
+
+			for (auto& renderGroup : p.thingsToDraw) {
+				renderGroup->meshpool->BindVAO(p.params.shader);
+				renderGroup->meshpool->indices.Bind();
+				for (auto& c : renderGroup->commands) {
+					glPointSize(5);
+					unsigned baseVertexOffset = renderGroup->meshpool->vertices.GetOffset() / renderGroup->meshpool->format.GetNonInstancedVertexSize();
+					unsigned firstIndexOffset = renderGroup->meshpool->indices.GetOffset();
+					unsigned instanceOffset = renderGroup->meshpool->instances.GetOffset() / renderGroup->meshpool->format.GetInstancedVertexSize();
+					glDrawElementsInstancedBaseVertexBaseInstance(renderGroup->primitiveType, c.count, GL_UNSIGNED_INT, (void*)(unsigned int)((c.firstIndex + firstIndexOffset) * sizeof(unsigned int)), c.instanceCount, c.baseVertex + baseVertexOffset, c.baseInstance + instanceOffset);
+				}
+
+			}
 		}
 	}
 }
 
 void RenderGraph::AddPass(std::shared_ptr<RenderPass> pass) {
 	// can't add same pass twice
-	for (auto& p : renderPasses) {
-		for (auto& n: p.sources)
-		Assert(n != pass);
-	}
+	Assert(passes.contains(pass->name) == false);
 
-	// Ensure this render pass runs after all of its dependencies do and before any dependencies that require it
-	size_t minOrder = 0;
-	size_t maxOrder = 1000000000000000000;
-	Assert(pass->framebufferDependencies.empty()); // TODO
-	for (auto& p : renderPasses) {
-		for (auto& src : p.sources) {
-			for (auto& dependencyName : pass->dependencies) {
-				if (src->name == dependencyName) {
-					minOrder = p.order + 1;
+	auto drawPass = std::dynamic_pointer_cast<DrawPass>(pass);
+	auto computePass = std::dynamic_pointer_cast<ComputePass>(pass);
+	Assert(drawPass || computePass);
+
+	// Verify that render target attachments are specified in pass outputs
+	if (drawPass) {
+		if (std::holds_alternative<FramebufferRenderTargetDescriptor>(drawPass->renderTarget)) {
+			for (auto& attachment : std::get<FramebufferRenderTargetDescriptor>(drawPass->renderTarget).attachments) {
+				for (auto& name : pass->outputs) {
+					if (name == attachment.name) goto foundOutput;
 				}
+				Assert(false);
+				foundOutput:;
 			}
-
-			for (auto& depenencyName : src->dependencies) {
-
-			}
+		}
+		else {
+			for (auto& name : pass->outputs)
+				if (name == WINDOW_RESOURCE_NAME) goto foundOutput2;
+			Assert(false);
+		foundOutput2:;
 		}
 	}
 
-	if (auto drawPass = std::dynamic_pointer_cast<DrawPass>(pass)) renderPasses.emplace_back(drawPass);
-	else if (auto computePass = std::dynamic_pointer_cast<ComputePass>(pass)) renderPasses.emplace_back(computePass);
-	else Assert(false);
-
-	renderPasses.back().order = 0;
+	passes[pass->name] = pass;
+	dirty = true;
 }
 
 void RenderGraph::RemovePass(std::shared_ptr<RenderPass> pass) {
-	for (auto it = renderPasses.begin(); it != renderPasses.end(); it++) {
-		for (unsigned i = 0; i < it->sources.size(); i++) {
-			if (pass->name == it->sources[i]) {
-				it->sources[i] = it->sources.back();
-				it->sources.pop_back();
-				if (it->sources.empty()) {
-					renderPasses.erase(it);
+	passes.erase(pass->name);
+	dirty = true;
+}
+
+void RenderGraph::Compile() {
+	Assert(dirty);
+	dirty = false;
+
+
+
+	// Use Khan's algorithm to topologically sort our render passes into an order that ensures any node is visited only after its dependencies are.
+	std::vector<std::shared_ptr<RenderPass>> output;
+	std::unordered_set<std::string> orphans;
+	std::unordered_map<std::string, std::vector<std::string>> parentsToChildren;
+	std::unordered_map<std::string, unsigned> numParents;
+	for (auto& [parentName, parent] : passes) {
+		std::unordered_set<std::string> childrenNames;
+		for (auto& outputName : parent->outputs) {
+			// find nodes that require this output; those are the children
+			for (auto& [potentialChildName, child] : passes) {
+
+				bool alreadyDependency = false;
+				for (auto& c : parentsToChildren[parentName]) {
+					if (c == potentialChildName) {
+						alreadyDependency = true;
+						break;
+					}
+				}
+				if (alreadyDependency) continue;
+
+				for (auto& dep : child->dependencies) {
+					if (dep == potentialChildName) {
+						parentsToChildren[parentName].push_back(potentialChildName);
+						if (!numParents.contains(potentialChildName)) numParents[potentialChildName] = 0;
+						numParents[potentialChildName]++;
+						break;
+					}
 				}
 			}
 		}
+		bool isARoot = true;
+		for (auto& d : parent->dependencies) {
+			// TODO: resources available at the beginning of the frame shouldn't trigger this
+			isARoot = false;
+			break;
+		}
+		if (isARoot)
+			orphans.insert(parentName);
+	}
+
+	while (!orphans.empty()) {
+		auto& parentName = *orphans.begin();
+		orphans.erase(orphans.begin());
+		output.push_back(passes[parentName]);
+
+		for (auto& childName : parentsToChildren[parentName]) {
+			numParents[childName]--;
+			if (numParents[childName] == 0) {
+				numParents.erase(childName);
+				orphans.insert(childName);
+			}
+		}
+		parentsToChildren.erase(parentName);
+	}
+
+	Assert(parentsToChildren.empty() && numParents.empty()); // if this fails then a circular dependency exists
+
+	unsigned passI = 0;
+	while (passI < output.size()) {
+		RenderSet set;
+		auto drawPass = std::dynamic_pointer_cast<DrawPass>(output[passI]);
+		auto computePass = std::dynamic_pointer_cast<ComputePass>(output[passI]);
+		ProcessedRenderPass p = drawPass ? ProcessedRenderPass(drawPass) : ProcessedRenderPass(computePass);
+		set.passes.push_back(p);
+		// TODO: combining passes with compatible textures, combining sets with no resource conflicts
 	}
 }
 
