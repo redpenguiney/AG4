@@ -4,7 +4,7 @@
 #include <unordered_map>
 #include "indirect_draw_command.hpp"
 
-class RenderPass;
+class DrawPass;
 class Meshpool;
 class Gameobject;
 struct GameobjectCreateParams;
@@ -15,7 +15,7 @@ public:
 
 	static void FindRendergroupForGameobject(Gameobject& obj, GameobjectCreateParams& params);
 
-	const std::vector<std::shared_ptr<RenderPass>> renderPasses;
+	const std::vector<std::shared_ptr<DrawPass>> drawPasses;
 
 	// May remove the RenderGroup from renderGroupsByMeshpool if removing last gameobject, potentially causing group destruction if no other shared_ptr references exist.
 	void RemoveGameobject(Gameobject& obj);
@@ -25,7 +25,7 @@ public:
 private:
 	void AddGameobject(Gameobject& obj, GameobjectCreateParams& params);
 
-	RenderGroup(std::vector<std::shared_ptr<RenderPass>> renderPasses, std::shared_ptr<Meshpool> meshpool);
+	RenderGroup(std::vector<std::shared_ptr<DrawPass>> drawPasses, std::shared_ptr<Meshpool> meshpool);
 
 	std::shared_ptr<Meshpool> meshpool = nullptr;
 
@@ -35,8 +35,8 @@ private:
 
 	std::vector<IndirectDrawCommand> commands;
 
-	std::unordered_map<RenderPass*, unsigned> renderPassNumUsers;
-	std::unordered_map<std::string, RenderPass*> renderPassesInUse;
+	std::unordered_map<DrawPass*, unsigned> drawPassNumUsers;
+	std::unordered_map<std::string, DrawPass*> drawPassesInUse;
 
 	friend class RenderGraph;
 };

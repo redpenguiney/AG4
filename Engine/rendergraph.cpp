@@ -131,64 +131,66 @@ void RenderGraph::Compile() {
 	dirty = false;
 
 
-
 	// Use Khan's algorithm to topologically sort our render passes into an order that ensures any node is visited only after its dependencies are.
 	std::vector<std::shared_ptr<RenderPass>> output;
-	std::unordered_set<std::string> orphans;
-	std::unordered_map<std::string, std::vector<std::string>> parentsToChildren;
-	std::unordered_map<std::string, unsigned> numParents;
-	for (auto& [parentName, parent] : passes) {
-		std::unordered_set<std::string> childrenNames;
-		for (auto& outputName : parent->outputs) {
-			// find nodes that require this output; those are the children
-			for (auto& [potentialChildName, child] : passes) {
+	{
+		std::unordered_set<std::string> orphans;
+		std::unordered_map<std::string, std::vector<std::string>> parentsToChildren;
+		std::unordered_map<std::string, unsigned> numParents;
+		for (auto& [parentName, parent] : passes) {
+			std::unordered_set<std::string> childrenNames;
+			for (auto& outputName : parent->outputs) {
+				// find nodes that require this output; those are the children
+				for (auto& [potentialChildName, child] : passes) {
 
-				bool alreadyDependency = false;
-				for (auto& c : parentsToChildren[parentName]) {
-					if (c == potentialChildName) {
-						alreadyDependency = true;
-						break;
+					bool alreadyDependency = false;
+					for (auto& c : parentsToChildren[parentName]) {
+						if (c == potentialChildName) {
+							alreadyDependency = true;
+							break;
+						}
 					}
-				}
-				if (alreadyDependency) continue;
+					if (alreadyDependency) continue;
 
-				for (auto& dep : child->dependencies) {
-					if (dep == potentialChildName) {
-						parentsToChildren[parentName].push_back(potentialChildName);
-						if (!numParents.contains(potentialChildName)) numParents[potentialChildName] = 0;
-						numParents[potentialChildName]++;
-						break;
+					for (auto& dep : child->dependencies) {
+						if (dep == potentialChildName) {
+							parentsToChildren[parentName].push_back(potentialChildName);
+							if (!numParents.contains(potentialChildName)) numParents[potentialChildName] = 0;
+							numParents[potentialChildName]++;
+							break;
+						}
 					}
 				}
 			}
-		}
-		bool isARoot = true;
-		for (auto& d : parent->dependencies) {
-			// TODO: resources available at the beginning of the frame shouldn't trigger this
-			isARoot = false;
-			break;
-		}
-		if (isARoot)
-			orphans.insert(parentName);
-	}
-
-	while (!orphans.empty()) {
-		auto& parentName = *orphans.begin();
-		orphans.erase(orphans.begin());
-		output.push_back(passes[parentName]);
-
-		for (auto& childName : parentsToChildren[parentName]) {
-			numParents[childName]--;
-			if (numParents[childName] == 0) {
-				numParents.erase(childName);
-				orphans.insert(childName);
+			bool isARoot = true;
+			for (auto& d : parent->dependencies) {
+				// TODO: resources available at the beginning of the frame shouldn't trigger this
+				isARoot = false;
+				break;
 			}
+			if (isARoot)
+				orphans.insert(parentName);
 		}
-		parentsToChildren.erase(parentName);
+
+		while (!orphans.empty()) {
+			auto& parentName = *orphans.begin();
+			orphans.erase(orphans.begin());
+			output.push_back(passes[parentName]);
+
+			for (auto& childName : parentsToChildren[parentName]) {
+				numParents[childName]--;
+				if (numParents[childName] == 0) {
+					numParents.erase(childName);
+					orphans.insert(childName);
+				}
+			}
+			parentsToChildren.erase(parentName);
+		}
+
+		Assert(parentsToChildren.empty() && numParents.empty()); // if this fails then a circular dependency exists
 	}
-
-	Assert(parentsToChildren.empty() && numParents.empty()); // if this fails then a circular dependency exists
-
+	
+	// Assign render passes into as few RenderSets as possible
 	unsigned passI = 0;
 	while (passI < output.size()) {
 		RenderSet set;
@@ -198,6 +200,27 @@ void RenderGraph::Compile() {
 		set.passes.push_back(p);
 		// TODO: combining passes with compatible textures, combining sets with no resource conflicts
 	}
+
+	// Determine resource lifetimes
+	struct ResourceLifeTime {
+		bool isStatic; // the resource (both its memory and its data) is provided by cpu/engine. we cannot write to it and have no control over its lifetime.
+
+		int firstWritePassIndex; // undefined if isStatic
+		int lastWritePassIndex; // undefined if isStatic
+
+		int firstReadPassIndex; 
+		int lastReadPassIndex;
+
+		void Verify() {
+			if (!isStatic) {
+				Assert(firstWritePassIndex <= lastWritePassIndex);
+				Assert(lastWritePassIndex < firstReadPassIndex);
+			}
+			Assert(firstReadPassIndex <= lastReadPassIndex);
+		}
+	};
+	std::unordered_map<std::string, ResourceLifeTime> resourceLifetimes;
+
 }
 
 ProcessedRenderPass::ProcessedRenderPass(std::shared_ptr<DrawPass> drawPass) {
@@ -209,4 +232,5 @@ ProcessedRenderPass::ProcessedRenderPass(std::shared_ptr<DrawPass> drawPass) {
 
 ProcessedRenderPass::ProcessedRenderPass(std::shared_ptr<ComputePass> computePass) {
 	sources.push_back(computePass->name);
+	Assert(false);
 }

@@ -22,7 +22,7 @@ struct DrawHandle {
 };
 
 struct GameobjectCreateParams {
-	std::vector<std::shared_ptr<RenderPass>> renderPasses = GraphicsEngine::Get().defaultDrawingPasses;
+	std::vector<std::shared_ptr<DrawPass>> renderPasses = GraphicsEngine::Get().defaultDrawingPasses;
 	std::shared_ptr<Mesh> mesh;
 };
 

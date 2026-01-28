@@ -60,7 +60,7 @@ void RenderGroup::AddGameobject(Gameobject& obj, GameobjectCreateParams& params)
 	AddDrawCommand(command);
 }
 
-RenderGroup::RenderGroup(std::vector<std::shared_ptr<RenderPass>> renderpasses, std::shared_ptr<Meshpool> meshpool): renderPasses(renderpasses), meshpool(meshpool) {
+RenderGroup::RenderGroup(std::vector<std::shared_ptr<DrawPass>> renderpasses, std::shared_ptr<Meshpool> meshpool): drawPasses(renderpasses), meshpool(meshpool) {
 	for (auto& pass : renderpasses) {
 		pass->drawnObjects.push_back(this);
 	}
@@ -88,7 +88,7 @@ void RenderGroup::FindRendergroupForGameobject(Gameobject& obj, GameobjectCreate
 	if (renderGroupsByMeshpool.contains(params.mesh->pool.get())) {
 		for (auto& [_, vec] : renderGroupsByMeshpool) {
 			for (auto& g : vec) {
-				if (g->renderPasses == params.renderPasses) {
+				if (g->drawPasses == params.renderPasses) {
 					group = g.get();
 					break;
 				}

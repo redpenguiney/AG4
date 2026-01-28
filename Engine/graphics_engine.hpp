@@ -21,7 +21,7 @@ public:
 	void RemoveRenderPass(std::shared_ptr<RenderPass> node);
 
 	// Default renderpasses for newly created GameobjectCreateParams. Will have a reasonable default, but change at your discretion. 
-	std::vector<std::shared_ptr<RenderPass>> defaultDrawingPasses;
+	std::vector<std::shared_ptr<DrawPass>> defaultDrawingPasses;
 
 private:
 	void WriteModelMatrices();

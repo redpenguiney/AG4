@@ -174,7 +174,7 @@ ShaderProgram::ShaderProgram(const char* vertexPath, const char* fragmentPath):
     delete[] nameBuffer;
 
     for (auto& [name, uniform] : shaderUniforms) {
-        if (name.length() > AUTO_TEXTURE_ARRAY_UNIFORM_SUFFIX.size() && name.substr(name.length() - AUTO_TEXTURE_ARRAY_UNIFORM_SUFFIX.size()) == AUTO_TEXTURE_ARRAY_UNIFORM_SUFFIX) {
+        if (name.length() > strlen(AUTO_TEXTURE_ARRAY_UNIFORM_SUFFIX) && name.substr(name.length() - strlen(AUTO_TEXTURE_ARRAY_UNIFORM_SUFFIX)) == AUTO_TEXTURE_ARRAY_UNIFORM_SUFFIX) {
             for (auto& attrib : inputVertexAttributes) {
                 if (attrib.name == SpecialVertexAttributeNames::AUTOMATIC_TEXTURE_ARRAY_SELECTION) goto allGood;
             }

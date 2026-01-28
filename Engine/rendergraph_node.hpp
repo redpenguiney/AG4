@@ -55,8 +55,12 @@ enum class BlendingEquation : GLenum {
 };
 
 // A resource is written to (or has a static value), and then it is read from by other passes.
+	// No write, then read, then write again or anything. 
 struct Resource {
 	std::string name;
+	// if true, this resource can be written to.
+	bool validOutput = true;
+
 	bool saveForNextFrame = false;
 
 	virtual ~Resource() = default;
@@ -86,7 +90,7 @@ public:
 	std::vector<Attachment> attachments; // used if loadPolicy == Clear
 };
 
-std::string WINDOW_RESOURCE_NAME = "__WINDOW__";
+constexpr inline const char* WINDOW_RESOURCE_NAME = "__WINDOW__";
 
 struct WindowRenderTargetDescriptor {
 	AttachmentLoadPolicy loadPolicy = AttachmentLoadPolicy::Clear;
