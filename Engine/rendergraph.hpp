@@ -52,6 +52,9 @@ public:
 	void AddPass(std::shared_ptr<RenderPass> pass);
 	void RemovePass(std::shared_ptr<RenderPass> pass);
 
+	void AddLogicalResource(std::string name, FramebufferAttachmentDescriptor renderTarget);
+	void RemoveLogicalResource(std::string name);
+
 	~RenderGraph() = default;
 	RenderGraph(const RenderGraph&) = delete;
 private:
@@ -59,9 +62,12 @@ private:
 	// updates the contents of renderSets
 	void Compile();
 
+	std::unordered_map<
+
 	//BufferedBuffer indirectDrawingCommandBuffer;
 	std::unordered_map<std::string, std::shared_ptr<RenderPass>> passes;
-	std::unordered_map<std::string, std::unique_ptr<Framebuffer>> framebuffers;;
+
+	std::unordered_map<std::string, std::shared_ptr<Framebuffer>> framebuffers;
 
 	// Ordered based on the dependency graph of the RenderPasses in each RenderSet
 	std::vector<RenderSet> renderSets;

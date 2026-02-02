@@ -129,7 +129,7 @@ void RenderGraph::RemovePass(std::shared_ptr<RenderPass> pass) {
 void RenderGraph::Compile() {
 	Assert(dirty);
 	dirty = false;
-
+	renderSets.clear();
 
 	// Use Khan's algorithm to topologically sort our render passes into an order that ensures any node is visited only after its dependencies are.
 	std::vector<std::shared_ptr<RenderPass>> output;
@@ -192,35 +192,67 @@ void RenderGraph::Compile() {
 	
 	// Assign render passes into as few RenderSets as possible
 	unsigned passI = 0;
+
 	while (passI < output.size()) {
 		RenderSet set;
 		auto drawPass = std::dynamic_pointer_cast<DrawPass>(output[passI]);
 		auto computePass = std::dynamic_pointer_cast<ComputePass>(output[passI]);
 		ProcessedRenderPass p = drawPass ? ProcessedRenderPass(drawPass) : ProcessedRenderPass(computePass);
 		set.passes.push_back(p);
+		renderSets.push_back(set);
 		// TODO: combining passes with compatible textures, combining sets with no resource conflicts
 	}
 
-	// Determine resource lifetimes
+	// Determine resource lifetimes so that we can determine which resources can alias the same hardware resource
 	struct ResourceLifeTime {
-		bool isStatic; // the resource (both its memory and its data) is provided by cpu/engine. we cannot write to it and have no control over its lifetime.
+		// indices are with respect to renderSets
+		// -1 for first/lastwritePassIndex indicates that it has a value from the very start.
+		int firstWritePassIndex = INT_MAX;
+		int lastWritePassIndex = INT_MIN;
 
-		int firstWritePassIndex; // undefined if isStatic
-		int lastWritePassIndex; // undefined if isStatic
+		int firstReadPassIndex = INT_MAX;
+		int lastReadPassIndex = INT_MIN;
 
-		int firstReadPassIndex; 
-		int lastReadPassIndex;
-
-		void Verify() {
+		/*void Verify() {
 			if (!isStatic) {
 				Assert(firstWritePassIndex <= lastWritePassIndex);
 				Assert(lastWritePassIndex < firstReadPassIndex);
 			}
 			Assert(firstReadPassIndex <= lastReadPassIndex);
-		}
+		}*/
 	};
-	std::unordered_map<std::string, ResourceLifeTime> resourceLifetimes;
+	std::unordered_map<std::string, ResourceLifeTime> logicalResources;
 
+	for (int i = 0; i < renderSets.size(); i++) {
+		for (auto& pass : output) {
+			for (auto& write : pass->outputs) {
+				logicalResources[write].firstWritePassIndex = std::min(logicalResources[write].firstWritePassIndex, i);
+				logicalResources[write].lastWritePassIndex = std::max(logicalResources[write].lastWritePassIndex, i);
+			}
+			for (auto& read : pass->dependencies) {
+				logicalResources[read].firstReadPassIndex = std::min(logicalResources[read].firstReadPassIndex, i);
+				logicalResources[read].lastReadPassIndex = std::max(logicalResources[read].lastReadPassIndex, i);
+			}
+		}
+	}
+
+	// Make sure they aren't doing anything funky with the window/default framebuffer and that they actually draw something.
+	Assert(logicalResources[std::string(WINDOW_RESOURCE_NAME)].firstReadPassIndex = INT_MAX); // You cannot read the window/default framebuffer contents.
+	Assert(logicalResources[std::string(WINDOW_RESOURCE_NAME)].firstWritePassIndex != INT_MAX);
+	logicalResources[std::string(WINDOW_RESOURCE_NAME)].firstWritePassIndex = -1;
+	logicalResources[std::string(WINDOW_RESOURCE_NAME)].lastWritePassIndex = -1;
+
+	// Add in external resources
+	// TODO
+
+	// Error on any resources that aren't written to or where reads happen before writes.
+	for (auto& [_, rsrc] : logicalResources) {
+		Assert(rsrc.firstWritePassIndex != INT_MAX);
+		Assert(rsrc.lastWritePassIndex < rsrc.firstReadPassIndex);
+	}
+
+	// Allocate hardware resources to each logical resource
+	// TODO optimize
 }
 
 ProcessedRenderPass::ProcessedRenderPass(std::shared_ptr<DrawPass> drawPass) {

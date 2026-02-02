@@ -73,21 +73,18 @@ enum class AttachmentLoadPolicy {
 	DontCare, // all contents of the render target will be overwritten by this pass so it doesn't matter
 };
 
-struct Attachment {
+struct FramebufferAttachmentDescriptor {
 	std::string name;
 	AttachmentLoadPolicy loadPolicy = AttachmentLoadPolicy::Load;
 	glm::vec4 clearColor = { 0, 0, 0, 0 }; // used if loadPolicy == Clear
-	ImageFormat format;
-
+	ImageFormat format = {ImageFormat::RGBA_32_FLOAT};
+	glm::uvec2 size = {128, 128};
 	BlendFactorMode blendingSrcFactor = BlendFactorMode::SrcAlpha;
 	BlendFactorMode blendingDstFactor = BlendFactorMode::OneMinusSrcAlpha;
 };
 
 struct FramebufferRenderTargetDescriptor {
-public:
-	std::string name;
-	glm::uvec2 size;
-	std::vector<Attachment> attachments; // used if loadPolicy == Clear
+	std::vector<std::string> attachmentNames;
 };
 
 constexpr inline const char* WINDOW_RESOURCE_NAME = "__WINDOW__";
