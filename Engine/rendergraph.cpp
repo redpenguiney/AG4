@@ -101,9 +101,9 @@ void RenderGraph::AddPass(std::shared_ptr<RenderPass> pass) {
 	// Verify that render target attachments are specified in pass outputs
 	if (drawPass) {
 		if (std::holds_alternative<FramebufferRenderTargetDescriptor>(drawPass->renderTarget)) {
-			for (auto& attachment : std::get<FramebufferRenderTargetDescriptor>(drawPass->renderTarget).attachments) {
+			for (auto& attachment : std::get<FramebufferRenderTargetDescriptor>(drawPass->renderTarget).attachmentNames) {
 				for (auto& name : pass->outputs) {
-					if (name == attachment.name) goto foundOutput;
+					if (name == attachment) goto foundOutput;
 				}
 				Assert(false);
 				foundOutput:;
@@ -200,56 +200,44 @@ void RenderGraph::Compile() {
 		ProcessedRenderPass p = drawPass ? ProcessedRenderPass(drawPass) : ProcessedRenderPass(computePass);
 		set.passes.push_back(p);
 		renderSets.push_back(set);
-		// TODO: combining passes with compatible textures, combining sets with no resource conflicts
+		// TODO: combining passes with compatible textures, combining sets with no resource conflicts, optimizing intra-set pass order
 	}
 
 	// Determine resource lifetimes so that we can determine which resources can alias the same hardware resource
-	struct ResourceLifeTime {
-		// indices are with respect to renderSets
-		// -1 for first/lastwritePassIndex indicates that it has a value from the very start.
-		int firstWritePassIndex = INT_MAX;
-		int lastWritePassIndex = INT_MIN;
-
-		int firstReadPassIndex = INT_MAX;
-		int lastReadPassIndex = INT_MIN;
-
-		/*void Verify() {
-			if (!isStatic) {
-				Assert(firstWritePassIndex <= lastWritePassIndex);
-				Assert(lastWritePassIndex < firstReadPassIndex);
-			}
-			Assert(firstReadPassIndex <= lastReadPassIndex);
-		}*/
-	};
-	std::unordered_map<std::string, ResourceLifeTime> logicalResources;
+	std::unordered_map<std::string, LogicalResource> logicalResources;
 
 	for (int i = 0; i < renderSets.size(); i++) {
 		for (auto& pass : output) {
 			for (auto& write : pass->outputs) {
-				logicalResources[write].firstWritePassIndex = std::min(logicalResources[write].firstWritePassIndex, i);
-				logicalResources[write].lastWritePassIndex = std::max(logicalResources[write].lastWritePassIndex, i);
+				logicalResources[write].lifetime.firstWritePassIndex = std::min(logicalResources[write].lifetime.firstWritePassIndex, i);
+				logicalResources[write].lifetime.lastWritePassIndex = std::max(logicalResources[write].lifetime.lastWritePassIndex, i);
 			}
 			for (auto& read : pass->dependencies) {
-				logicalResources[read].firstReadPassIndex = std::min(logicalResources[read].firstReadPassIndex, i);
-				logicalResources[read].lastReadPassIndex = std::max(logicalResources[read].lastReadPassIndex, i);
+				logicalResources[read].lifetime.firstReadPassIndex = std::min(logicalResources[read].lifetime.firstReadPassIndex, i);
+				logicalResources[read].lifetime.lastReadPassIndex = std::max(logicalResources[read].lifetime.lastReadPassIndex, i);
 			}
+			
 		}
 	}
 
 	// Make sure they aren't doing anything funky with the window/default framebuffer and that they actually draw something.
-	Assert(logicalResources[std::string(WINDOW_RESOURCE_NAME)].firstReadPassIndex = INT_MAX); // You cannot read the window/default framebuffer contents.
-	Assert(logicalResources[std::string(WINDOW_RESOURCE_NAME)].firstWritePassIndex != INT_MAX);
-	logicalResources[std::string(WINDOW_RESOURCE_NAME)].firstWritePassIndex = -1;
-	logicalResources[std::string(WINDOW_RESOURCE_NAME)].lastWritePassIndex = -1;
+	Assert(logicalResources[std::string(WINDOW_RESOURCE_NAME)].lifetime.firstReadPassIndex = INT_MAX); // You cannot read the window/default framebuffer contents.
+	Assert(logicalResources[std::string(WINDOW_RESOURCE_NAME)].lifetime.firstWritePassIndex != INT_MAX);
+	logicalResources[std::string(WINDOW_RESOURCE_NAME)].lifetime.firstWritePassIndex = -1;
+	logicalResources[std::string(WINDOW_RESOURCE_NAME)].lifetime.lastWritePassIndex = -1;
 
 	// Add in external resources
 	// TODO
 
 	// Error on any resources that aren't written to or where reads happen before writes.
 	for (auto& [_, rsrc] : logicalResources) {
-		Assert(rsrc.firstWritePassIndex != INT_MAX);
-		Assert(rsrc.lastWritePassIndex < rsrc.firstReadPassIndex);
+		Assert(rsrc.lifetime.firstWritePassIndex != INT_MAX);
+		Assert(rsrc.lifetime.lastWritePassIndex < rsrc.lifetime.firstReadPassIndex);
 	}
+
+	// Validate framebuffer/attachments according to the following:
+		// All attachments written by a pass must be the same size.
+		// The last write of all the attachments in a framebufer must occur in a RenderSet before the first read of said attachments.
 
 	// Allocate hardware resources to each logical resource
 	// TODO optimize

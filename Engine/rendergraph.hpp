@@ -43,6 +43,35 @@ struct RenderSet {
 	void OptimizePassOrder();
 };
 
+struct ResourceLifeTime {
+	// indices are with respect to renderSets
+	// -1 for first/lastwritePassIndex indicates that it has a value from the very start.
+	int firstWritePassIndex = INT_MAX;
+	int lastWritePassIndex = INT_MIN;
+
+	int firstReadPassIndex = INT_MAX;
+	int lastReadPassIndex = INT_MIN;
+
+	/*void Verify() {
+		if (!isStatic) {
+			Assert(firstWritePassIndex <= lastWritePassIndex);
+			Assert(lastWritePassIndex < firstReadPassIndex);
+		}
+		Assert(firstReadPassIndex <= lastReadPassIndex);
+	}*/
+};
+
+enum class ResourceType {
+	FramebufferAttachment,
+	//ShaderStorageBuffer,
+};
+
+struct LogicalResource {
+	ResourceLifeTime lifetime;
+	
+	std::variant<FramebufferAttachmentDescriptor> framebufferAttachmentInfo;
+};
+
 // A compiled render graph. The user should not work with this class directly.
 class RenderGraph {
 public:
@@ -61,8 +90,6 @@ private:
 	bool dirty = true;
 	// updates the contents of renderSets
 	void Compile();
-
-	std::unordered_map<
 
 	//BufferedBuffer indirectDrawingCommandBuffer;
 	std::unordered_map<std::string, std::shared_ptr<RenderPass>> passes;
