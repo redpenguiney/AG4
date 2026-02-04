@@ -238,7 +238,6 @@ void RenderGraph::Compile() {
 	// Assign/validate framebuffer/attachments according to the following:
 		// All attachments written by a pass must be the same size.
 		// The last write of all the attachments in a framebufer must occur in a RenderSet before the first read of said attachments.
-	
 	for (auto& set : renderSets) {
 		glm::uvec2 framebufferSize = set.passes.at(0);
 		std::vector<FramebufferAttachmentDescriptor> currentFramebufferAttachments;
