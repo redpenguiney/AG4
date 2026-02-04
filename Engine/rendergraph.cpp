@@ -101,9 +101,9 @@ void RenderGraph::AddPass(std::shared_ptr<RenderPass> pass) {
 	// Verify that render target attachments are specified in pass outputs
 	if (drawPass) {
 		if (std::holds_alternative<FramebufferRenderTargetDescriptor>(drawPass->renderTarget)) {
-			for (auto& attachment : std::get<FramebufferRenderTargetDescriptor>(drawPass->renderTarget).attachmentNames) {
+			for (auto& attachment : std::get<FramebufferRenderTargetDescriptor>(drawPass->renderTarget).attachments) {
 				for (auto& name : pass->outputs) {
-					if (name == attachment) goto foundOutput;
+					if (name == attachment.resourceName) goto foundOutput;
 				}
 				Assert(false);
 				foundOutput:;
@@ -235,9 +235,24 @@ void RenderGraph::Compile() {
 		Assert(rsrc.lifetime.lastWritePassIndex < rsrc.lifetime.firstReadPassIndex);
 	}
 
-	// Validate framebuffer/attachments according to the following:
+	// Assign/validate framebuffer/attachments according to the following:
 		// All attachments written by a pass must be the same size.
 		// The last write of all the attachments in a framebufer must occur in a RenderSet before the first read of said attachments.
+	
+	for (auto& set : renderSets) {
+		glm::uvec2 framebufferSize = set.passes.at(0);
+		std::vector<FramebufferAttachmentDescriptor> currentFramebufferAttachments;
+		for (auto& pass : set.passes) {
+			if (std::holds_alternative<FramebufferRenderTargetDescriptor>(pass.renderTarget)) {
+				auto& attachments = std::get<FramebufferRenderTargetDescriptor>(pass.renderTarget).attachments;
+				Assert(!attachments.empty());
+				glm::uvec2 attSize = attachments[0].size;
+				for (auto& att : attachments) {
+					Assert(att.size == attSize);
+				}
+			}
+		}
+	}
 
 	// Allocate hardware resources to each logical resource
 	// TODO optimize

@@ -74,7 +74,10 @@ enum class AttachmentLoadPolicy {
 };
 
 struct FramebufferAttachmentDescriptor {
-	std::string name;
+	std::string resourceName;
+	// when drawing, the shader-specified index of the output variable which should be output onto this attachment. 
+	// -1 if not drawing to this attachment. (TODO why would you want that?)
+	int drawBuffer = -1; 
 	AttachmentLoadPolicy loadPolicy = AttachmentLoadPolicy::Load;
 	glm::vec4 clearColor = { 0, 0, 0, 0 }; // used if loadPolicy == Clear
 	ImageFormat format = {ImageFormat::RGBA_32_FLOAT};
@@ -84,7 +87,8 @@ struct FramebufferAttachmentDescriptor {
 };
 
 struct FramebufferRenderTargetDescriptor {
-	std::vector<std::string> attachmentNames;
+	// Note: don't include attachments this specific pass doesn't draw to. 
+	std::vector<FramebufferAttachmentDescriptor> attachments;
 };
 
 constexpr inline const char* WINDOW_RESOURCE_NAME = "__WINDOW__";
