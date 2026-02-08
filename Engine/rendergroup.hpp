@@ -35,8 +35,9 @@ private:
 
 	std::vector<IndirectDrawCommand> commands;
 
+	// users are RenderGroups, not Gameobjects.
 	std::unordered_map<DrawPass*, unsigned> drawPassNumUsers;
-	std::unordered_map<std::string, DrawPass*> drawPassesInUse;
+	//std::unordered_map<std::string, DrawPass*> drawPassesInUse;
 
 	friend class RenderGraph;
 };

@@ -73,8 +73,11 @@ enum class AttachmentLoadPolicy {
 	DontCare, // all contents of the render target will be overwritten by this pass so it doesn't matter
 };
 
+// TODO: TEXTURE SAMPLING PARAMETERS?
 struct FramebufferAttachmentDescriptor {
 	std::string resourceName;
+	// probably only set to true for depth buffers you don't want to read from inside shaders
+	bool renderbuffer = false;
 	// when drawing, the shader-specified index of the output variable which should be output onto this attachment. 
 	// -1 if not drawing to this attachment. (TODO why would you want that?)
 	int drawBuffer = -1; 

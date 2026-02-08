@@ -36,6 +36,7 @@ struct ProcessedRenderPass {
 struct RenderSet {
 	// these passes can be carried out in any order.
 	std::vector<ProcessedRenderPass> passes;
+	std::vector<std::shared_ptr<RenderPass>> source;
 
 	// TODO: barriers/synchroninzation info
 
@@ -81,8 +82,8 @@ public:
 	void AddPass(std::shared_ptr<RenderPass> pass);
 	void RemovePass(std::shared_ptr<RenderPass> pass);
 
-	void AddLogicalResource(std::string name, FramebufferAttachmentDescriptor renderTarget);
-	void RemoveLogicalResource(std::string name);
+	//void AddLogicalResource(std::string name, FramebufferAttachmentDescriptor renderTarget);
+	//void RemoveLogicalResource(std::string name);
 
 	~RenderGraph() = default;
 	RenderGraph(const RenderGraph&) = delete;
@@ -91,10 +92,21 @@ private:
 	// updates the contents of renderSets
 	void Compile();
 
+	
+
+	struct FramebufferResource {
+		std::shared_ptr<Framebuffer> hardwareResource;
+		glm::uvec2 size;
+		std::vector<GLenum> attachmentFormats;
+		//TODO lifetime information
+	};
+
+	FramebufferResource& GetFramebuffer(FramebufferRenderTargetDescriptor params);
+
 	//BufferedBuffer indirectDrawingCommandBuffer;
 	std::unordered_map<std::string, std::shared_ptr<RenderPass>> passes;
 
-	std::unordered_map<std::string, std::shared_ptr<Framebuffer>> framebuffers;
+	std::vector<FramebufferResource> framebuffers;
 
 	// Ordered based on the dependency graph of the RenderPasses in each RenderSet
 	std::vector<RenderSet> renderSets;

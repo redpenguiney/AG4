@@ -6,10 +6,58 @@
 #include "window.hpp"
 #include "utility.hpp"
 #include <algorithm>
+#include "shader_program.hpp"
 
 int main() {
+	std::vector<std::shared_ptr<Gameobject>> objects;
+
 	Window::Get();
 	GraphicsEngine::Get();
+
+	// renderpasses
+	{
+		// normal objects
+		auto newPass = std::make_shared<DrawPass>();
+		newPass->name = "default";
+		auto frt = FramebufferRenderTargetDescriptor();
+		frt.attachments.push_back(FramebufferAttachmentDescriptor{
+			.resourceName = "FINAL_SCENE",
+			.drawBuffer = 0,
+			.format = ImageFormat::RGBA_32_FLOAT,
+			.size = {200, 200},
+			});
+		frt.attachments.push_back(FramebufferAttachmentDescriptor{
+			.resourceName = "FINAL_SCENE_DEPTH",
+			.renderbuffer = true,
+			.format = ImageFormat::DEPTH_16_DECIMAL,
+			.size = {200, 200},
+			});
+		newPass->renderTarget = frt;
+		newPass->outputs.push_back("FINAL_SCENE");
+		newPass->outputs.push_back("FINAL_SCENE_DEPTH");
+		newPass->params.depthTestMode = DepthTestMode::Disabled;
+		newPass->params.cullMode = FaceCulling::None;
+		newPass->params.shader = ShaderProgram::New("../shaders/world_vertex.glsl", "../shaders/world_fragment.glsl");
+		GraphicsEngine::Get().defaultDrawingPasses.push_back(newPass);
+
+		// postproc
+		auto postprocPass = std::make_shared<DrawPass>();
+		postprocPass->name = "postproc";
+		auto rt = WindowRenderTargetDescriptor();
+		rt.loadPolicy = AttachmentLoadPolicy::DontCare;
+		postprocPass->renderTarget = rt;
+		postprocPass->dependencies.push_back("FINAL_SCENE");
+		postprocPass->outputs.push_back(WINDOW_RESOURCE_NAME);
+		postprocPass->params.depthTestMode = DepthTestMode::Disabled;
+		postprocPass->params.cullMode = FaceCulling::None;
+		postprocPass->params.shader = ShaderProgram::New("../shaders/postproc_vertex.glsl", "../shaders/postproc_fragment.glsl");
+		GameobjectCreateParams quadParams;
+		quadParams.mesh = Mesh::Quad();
+		quadParams.renderPasses = { postprocPass, };
+		std::shared_ptr<Gameobject> postProcQuad(Gameobject::New(quadParams));
+		objects.push_back(postProcQuad);
+	}
+	
 
 	DebugLogInfo("Main function reached successfully.");
 	auto mparams = MeshCreateParams::Default();
@@ -20,7 +68,6 @@ int main() {
 	GameobjectCreateParams p;
 	p.mesh = squareMesh;
 
-	std::vector<std::shared_ptr<Gameobject>> objects;
 	for (int i = 0; i < 5; i++) {
 		Gameobject* gameObj = Gameobject::New(p);
 		gameObj->SetPosition({ i, 0, -5 - i });
@@ -35,6 +82,8 @@ int main() {
 
 	}
 	
+	//GraphicsEngine::Get().currentCamera.far
+
 	// Freecam
 	float pitch = 0, yaw = 0, speed = 0;
 	Mainloop::Get().preRender->Connect([&pitch, &yaw, &speed](float) {

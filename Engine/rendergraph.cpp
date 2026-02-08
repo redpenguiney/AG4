@@ -63,7 +63,14 @@ void RenderGraph::Render() {
 			else {
 				glDisable(GL_SCISSOR_TEST);
 			}
-			glDepthFunc(static_cast<GLenum>(p.params.depthTestMode));
+
+			if (p.params.depthTestMode == DepthTestMode::Disabled) {
+				glDisable(GL_DEPTH_TEST);
+			}
+			else {
+				glEnable(GL_DEPTH_TEST);
+				glDepthFunc(static_cast<GLenum>(p.params.depthTestMode));
+			}
 
 
 			if (p.params.cullMode == FaceCulling::None) {
@@ -78,13 +85,12 @@ void RenderGraph::Render() {
 				renderGroup->meshpool->BindVAO(p.params.shader);
 				renderGroup->meshpool->indices.Bind();
 				for (auto& c : renderGroup->commands) {
-					glPointSize(5);
+					//glPointSize(5);
 					unsigned baseVertexOffset = renderGroup->meshpool->vertices.GetOffset() / renderGroup->meshpool->format.GetNonInstancedVertexSize();
 					unsigned firstIndexOffset = renderGroup->meshpool->indices.GetOffset();
 					unsigned instanceOffset = renderGroup->meshpool->instances.GetOffset() / renderGroup->meshpool->format.GetInstancedVertexSize();
 					glDrawElementsInstancedBaseVertexBaseInstance(renderGroup->primitiveType, c.count, GL_UNSIGNED_INT, (void*)(unsigned int)((c.firstIndex + firstIndexOffset) * sizeof(unsigned int)), c.instanceCount, c.baseVertex + baseVertexOffset, c.baseInstance + instanceOffset);
 				}
-
 			}
 		}
 	}
@@ -153,7 +159,7 @@ void RenderGraph::Compile() {
 					if (alreadyDependency) continue;
 
 					for (auto& dep : child->dependencies) {
-						if (dep == potentialChildName) {
+						if (dep == outputName) {
 							parentsToChildren[parentName].push_back(potentialChildName);
 							if (!numParents.contains(potentialChildName)) numParents[potentialChildName] = 0;
 							numParents[potentialChildName]++;
@@ -172,8 +178,8 @@ void RenderGraph::Compile() {
 				orphans.insert(parentName);
 		}
 
-		while (!orphans.empty()) {
-			auto& parentName = *orphans.begin();
+		while (orphans.size() > 0) {
+			auto parentName = *orphans.begin();
 			orphans.erase(orphans.begin());
 			output.push_back(passes[parentName]);
 
@@ -199,15 +205,17 @@ void RenderGraph::Compile() {
 		auto computePass = std::dynamic_pointer_cast<ComputePass>(output[passI]);
 		ProcessedRenderPass p = drawPass ? ProcessedRenderPass(drawPass) : ProcessedRenderPass(computePass);
 		set.passes.push_back(p);
+		set.source.push_back(output[passI]);
 		renderSets.push_back(set);
 		// TODO: combining passes with compatible textures, combining sets with no resource conflicts, optimizing intra-set pass order
+		passI++;
 	}
 
 	// Determine resource lifetimes so that we can determine which resources can alias the same hardware resource
 	std::unordered_map<std::string, LogicalResource> logicalResources;
 
 	for (int i = 0; i < renderSets.size(); i++) {
-		for (auto& pass : output) {
+		for (auto& pass : renderSets[i].source) {
 			for (auto& write : pass->outputs) {
 				logicalResources[write].lifetime.firstWritePassIndex = std::min(logicalResources[write].lifetime.firstWritePassIndex, i);
 				logicalResources[write].lifetime.lastWritePassIndex = std::max(logicalResources[write].lifetime.lastWritePassIndex, i);
@@ -256,6 +264,10 @@ void RenderGraph::Compile() {
 	// Allocate hardware resources to each logical resource
 	// TODO optimize
 }
+
+//RenderGraph::FramebufferResource& RenderGraph::GetFramebuffer(FramebufferRenderTargetDescriptor params) {
+//	
+//}
 
 ProcessedRenderPass::ProcessedRenderPass(std::shared_ptr<DrawPass> drawPass) {
 	params = drawPass->params;

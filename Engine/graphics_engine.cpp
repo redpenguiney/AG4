@@ -6,6 +6,7 @@
 #include "rendergraph_node.hpp"
 #include "shader_program.hpp"
 #include "window.hpp"
+#include "mesh.hpp"
 
 GraphicsEngine& GraphicsEngine::Get() {
     static GraphicsEngine GE;
@@ -31,11 +32,11 @@ void GraphicsEngine::RenderScene(double dt) {
     Meshpool::PrepareWrite();
 }
 
-void GraphicsEngine::AddRenderPass(std::shared_ptr<RenderPass> node) {
+void GraphicsEngine::AddComputePass(std::shared_ptr<ComputePass> node) {
     renderGraph->AddPass(node);
 }
 
-void GraphicsEngine::RemoveRenderPass(std::shared_ptr<RenderPass> node) {
+void GraphicsEngine::RemoveComputePass(std::shared_ptr<ComputePass> node) {
     renderGraph->RemovePass(node);
 }
 
@@ -63,13 +64,8 @@ void GraphicsEngine::WriteModelMatrices() {
 }
 
 GraphicsEngine::GraphicsEngine() {
-    auto newPass = std::make_shared<DrawPass>();
-    newPass->name = "default";
-    newPass->renderTarget = WindowRenderTargetDescriptor();
-    newPass->params.shader = ShaderProgram::New("../shaders/world_vertex.glsl", "../shaders/world_fragment.glsl");
-    defaultDrawingPasses.push_back(newPass);
-    
-    
+    defaultDrawingPasses = {};  
+    renderGraph = std::shared_ptr<RenderGraph>(new RenderGraph());  
 }
 
 GraphicsEngine::~GraphicsEngine() {

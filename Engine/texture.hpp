@@ -53,7 +53,8 @@ class Texture {
         Grayscale_8Bit = GL_R8,
         Auto_8Bit = 0, // texture format will be identical to the file's format (but still rgb)
 
-        RGBA_16Float = GL_RGBA16F // you don't need 16 bit textures for objects, these are for things like floating point framebuffers for HDR
+        RGBA_16Float = GL_RGBA16F, // you don't need 16 bit textures for objects, these are for things like floating point framebuffers for HDR
+        DEPTH24_STENCIL8 = GL_DEPTH24_STENCIL8
     };
 
     enum TextureWrappingBehaviour {
@@ -82,14 +83,6 @@ class Texture {
         // TODO: fontmaps currently mandate GlGenerate.
     };
 
-    enum TextureUsage {
-        ColorMap = 0,
-        SpecularMap = 1,
-        NormalMap = 2,
-        DisplacementMap = 3,
-        FontMap = 4
-    };
-
     // lets textureId be read only without a getter
     const unsigned int& textureId = glTextureId;
 
@@ -98,17 +91,17 @@ class Texture {
     // normal constructor for a texture. TextureIndex refers to which texture unit it will occupy when bound (when rendering, each texture unit can hold one texture for shaders to access)
     // Aborts if arguments are inherently invalid, but throws an exception if texture files is nonexistent/incompatible with those arguments.
     
-    Texture(const TextureCreateParams& params, const GLuint textureIndex, const TextureType textureType); 
+    Texture(const TextureCreateParams& params, const TextureType textureType); 
 
     // constructor that creates an empty texture (params.texturePaths is ignored and should be an empty vector) and binds it to the given framebuffer.
-    Texture(Framebuffer& framebuffer, const TextureCreateParams& params, const GLuint textureIndex, const TextureType textureType, const GLenum framebufferAttachmentType); 
+    Texture(Framebuffer& framebuffer, const TextureCreateParams& params, const TextureType textureType, const GLenum framebufferAttachmentType); 
     
     Texture(const Texture&) = delete; // destructor deletes the openGL texture, so copying it would be bad since it would be using the same id of the now-deleted openGL texture 
 
     Texture(Texture&&) noexcept; // move constructor is allowed
 
     // Given that the texture is an array texture, will append the image at the given path to the texture array, returning the textureZ coordinate the image can be accessed through.
-    float AddLayer();
+    //float AddLayer();
 
     
     // static std::shared_ptr<Texture> New(TextureType textureType, std::string path, int layerHeight = -1, int mipmapLevels = 4);
@@ -121,10 +114,9 @@ class Texture {
     glm::uvec3 GetSize();
 
     // Makes OpenGL draw everything with this texture, until Use() is called on a different texture.
-    void Use();
+    void Use(unsigned index);
 
     const TextureType type;
-    const TextureUsage usage;
 
     // read-only access to fontGlyphs
     const std::optional<std::unordered_map<char, Glyph>>& glyphs = fontGlyphs; 
@@ -138,7 +130,7 @@ class Texture {
 
     GLuint glTextureId; // id is used by opengl
     const GLenum bindingLocation; // basically what kind of opengl texture it is; cubemap, 3d, 2d, 2d array, etc.
-    const GLuint glTextureIndex; // multiple textures can be bound at once; this is which index it is bound to
+    //const GLuint glTextureIndex; // multiple textures can be bound at once; this is which index it is bound to
     
     // Recursively generates texture mipmap.
     // face is for cubemap, -1 if not cubemap
@@ -192,16 +184,21 @@ public:
 };
 
 struct TextureCreateParams {
+    // Only applicable when creating framebuffers. Must be false if this is not the case.
+    // If true, attaches a renderbuffer to the framebuffer instead of an actual texture, which may offer performance benefits.
+    // If you want to read from this attachment in a shader, set this to false. 
+    bool renderBuffer = false; 
+
+
+    bool isFont = false;
+
     // Unless creating cubemap, size must = 1.
     // If it is a cubemap, it goes Right,Left,Top,Bottom,Back,Front
     std::vector<TextureSource> textureSources; 
 
     // how texture data is stored on the GPU; RGB, RGBA, grayscale for things like heightmaps, etc.
     // NOT how it is stored within the file, we automatically determine that.
-    Texture::TextureFormat format = Texture::Auto_8Bit;;
-
-    // whether texture is for color, normals, specular, etc.
-    Texture::TextureUsage usage;
+    Texture::TextureFormat format = Texture::Auto_8Bit;
 
     // what happens when a shader tries to sample outside the texture's area, whether the texture tiles or does something else
     Texture::TextureWrappingBehaviour wrappingBehaviour = Texture::WrapTiled;
@@ -216,7 +213,7 @@ struct TextureCreateParams {
 
     std::optional<std::shared_ptr<TextureAtlas>> mipmapAtlas = std::nullopt; // May NOT be nullptr. Only used for mipmap generation (depending on mipmapGenerationMethod).
 
-    TextureCreateParams(const std::vector<TextureSource>& imagePaths, const Texture::TextureUsage usage);
+    TextureCreateParams(const std::vector<TextureSource>& imagePaths);
 
     //TextureCreateParams(const TextureCreateParams&) = default;
     //TextureCreateParams& operator=(const TextureCreateParams&) = default;

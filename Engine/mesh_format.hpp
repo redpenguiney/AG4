@@ -12,6 +12,11 @@ union VertexScalar {
     float f;
     unsigned u;
     int i;
+
+    VertexScalar(float v) : f(v) {}
+    VertexScalar(unsigned v) : u(v) {}
+    VertexScalar(int v) : i(v) {}
+    VertexScalar() {}
 };
 
 class Material;

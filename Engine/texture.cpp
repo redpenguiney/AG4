@@ -61,13 +61,13 @@ unsigned int NChannelsFromFormat(Texture::TextureFormat format ) {
 
 // Create texture (for use on objects).
 #pragma warning( disable: 4244)
-Texture::Texture(const TextureCreateParams& params, const GLuint textureIndex, const TextureType textureType):
+Texture::Texture(const TextureCreateParams& params, const TextureType textureType):
 format(params.format),
 type(textureType),
-usage(params.usage),
+//usage(params.usage),
 lineSpacing(params.fontHeight), // TODO: get line spacing from face->height instead
-bindingLocation(TextureBindingLocationFromType(textureType)),
-glTextureIndex(textureIndex)
+bindingLocation(TextureBindingLocationFromType(textureType))
+//glTextureIndex(textureIndex)
 {
     //DebugLogInfo("Writing new texture.");
 
@@ -79,12 +79,12 @@ glTextureIndex(textureIndex)
         Assert(params.textureSources.size() == 1);
     }
 
-    
+    Assert(params.renderBuffer == false);
 
     // Get all the image data
     std::vector<std::shared_ptr<Image>> imageDatas; 
 
-    if (usage != Texture::FontMap) { // For textures that aren't a font, we use stbi_image.h to load the files and then figure all the formatting and what not.
+    if (params.isFont) { // For textures that aren't a font, we use stbi_image.h to load the files and then figure all the formatting and what not.
 
         int isArgb = -1; // -1 if unknown atm, 0 if false, 1 if true. If one image is argb, all of them must be.
         int lastWidth = 0, lastHeight = 0, lastNChannels = 0;
@@ -229,7 +229,7 @@ glTextureIndex(textureIndex)
         // for (unsigned int i = 0; i < width; i++) {
         //     std:: cout << (int)(imageDatas.back()[i]) << " ";
         // }
-        Use();
+        Use(0);
 
         // setup wrapping, mipmaps, etc.
         ConfigTexture(params);
@@ -325,7 +325,7 @@ glTextureIndex(textureIndex)
 
         // create openGL texture
         glGenTextures(1, &glTextureId);
-        Use();
+        Use(0);
 
         // allocate space for all the glyphs
         int maxWidth; // if texture is too wide to be supported by the OpenGL implmentation, we split it into multiple rows. 
@@ -397,26 +397,27 @@ glTextureIndex(textureIndex)
 
 // Create texture and attach it to framebuffer
 #pragma warning( disable: 4244)
-Texture::Texture(Framebuffer& framebuffer, const TextureCreateParams& params, const GLuint textureIndex, const TextureType textureType, const GLenum framebufferAttachmentType):
+Texture::Texture(Framebuffer& framebuffer, const TextureCreateParams& params, const TextureType textureType, const GLenum framebufferAttachmentType):
 format(params.format),
 type(textureType),
-usage(params.usage),
 lineSpacing(params.fontHeight),
-bindingLocation(TextureBindingLocationFromType(textureType)),
-glTextureIndex(textureIndex) 
+bindingLocation(TextureBindingLocationFromType(textureType))
+//glTextureIndex(textureIndex) 
 {
+    Assert(params.renderBuffer == false);
+
     Assert(params.textureSources.size() == 0); 
     //if (framebufferAttachmentType != GL_COLOR_ATTACHMENT0) return;
 
     glGenTextures(1, &glTextureId);
-    Use();
+    Use(0);
 
     width = framebuffer.width;
     height = framebuffer.height;
     depth = 1; // TODO
 
     // std::cout << " bind buffer for tex creation\n";
-    framebuffer.Bind(); // bind the framebuffer so we can attach textures to it
+    framebuffer.Bind({}); // bind the framebuffer so we can attach textures to it
     if (bindingLocation == GL_TEXTURE_2D_ARRAY) {
 
         // allocate storage for texture by passing nullptr as the data to load into the texture
@@ -447,10 +448,10 @@ glTextureIndex(textureIndex)
 Texture::Texture(Texture&& old) noexcept :
     format(old.format),
     type(old.type),
-    usage(old.usage),
+    //usage(old.usage),
     lineSpacing(old.lineSpacing),
     bindingLocation(old.bindingLocation),
-    glTextureIndex(old.glTextureIndex),
+    //glTextureIndex(old.glTextureIndex),
     glTextureId(old.glTextureId),
     width(old.width),
     height(old.height),
@@ -473,7 +474,7 @@ glm::uvec3 Texture::GetSize() {
     return glm::uvec3(width, height, depth);
 }
 
-void Texture::Use() {
+void Texture::Use(unsigned glTextureIndex) {
     glActiveTexture(GL_TEXTURE0 + glTextureIndex);
     //glBindTextureUnit(GL_TEXTURE0 + glTextureIndex, textureId); // TODOD: opengl 4.5 only
     glBindTexture(bindingLocation, glTextureId);
@@ -624,7 +625,7 @@ void Texture::ConfigTexture(const TextureCreateParams& params) {
     // mag filter is used when a fragment (pixel) on the screen is smaller than the pixels on texture (for close up objects)
     // min filter is used when each fragment covers up many pixels on a texture (for far away objects)
 
-    Use();
+    Use(0);
 
     if (nMipmapLevels != 0) {
         glTexParameteri(bindingLocation, GL_TEXTURE_MAX_LEVEL, nMipmapLevels);
@@ -685,22 +686,22 @@ void Texture::ConfigTexture(const TextureCreateParams& params) {
     case Texture::WrapClampToEdge:
     glTexParameteri(bindingLocation, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE); 
     glTexParameteri(bindingLocation, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    if (glTextureIndex == GL_TEXTURE_CUBE_MAP) {glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE); }
+    if (bindingLocation == GL_TEXTURE_CUBE_MAP) {glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE); }
     break;
     case Texture::WrapTiled:
     glTexParameteri(bindingLocation, GL_TEXTURE_WRAP_S, GL_REPEAT); // GL_REPEAT means tile the texture
     glTexParameteri(bindingLocation, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    if (glTextureIndex == GL_TEXTURE_CUBE_MAP) {glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_REPEAT); }
+    if (bindingLocation == GL_TEXTURE_CUBE_MAP) {glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_REPEAT); }
     break;
     case Texture::WrapMirroredTiled:
     glTexParameteri(bindingLocation, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT); 
     glTexParameteri(bindingLocation, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
-    if (glTextureIndex == GL_TEXTURE_CUBE_MAP) {glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_MIRRORED_REPEAT); }
+    if (bindingLocation == GL_TEXTURE_CUBE_MAP) {glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_MIRRORED_REPEAT); }
     break;
     case Texture::WrapMirroredClamped:
     glTexParameteri(bindingLocation, GL_TEXTURE_WRAP_S, GL_MIRROR_CLAMP_TO_EDGE); 
     glTexParameteri(bindingLocation, GL_TEXTURE_WRAP_T, GL_MIRROR_CLAMP_TO_EDGE);
-    if (glTextureIndex == GL_TEXTURE_CUBE_MAP) {glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_MIRROR_CLAMP_TO_EDGE); }
+    if (bindingLocation == GL_TEXTURE_CUBE_MAP) {glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_MIRROR_CLAMP_TO_EDGE); }
     break;
     default:
     DebugLogError("something very wrong in config texture wrapping"); abort();
@@ -816,9 +817,8 @@ void Texture::ConfigTexture(const TextureCreateParams& params) {
 //     ConfigTexture();
 // }
 
-TextureCreateParams::TextureCreateParams(const std::vector<TextureSource>& imagePaths, const Texture::TextureUsage texUsage):
-    textureSources(imagePaths),
-    usage(texUsage)
+TextureCreateParams::TextureCreateParams(const std::vector<TextureSource>& imagePaths):
+    textureSources(imagePaths)
 {   
 }
 

@@ -3,7 +3,7 @@
 //#include "graphics_engine.hpp"
 #include "window.hpp"
 
-Framebuffer::Framebuffer(const unsigned int fbWidth, const unsigned int fbHeight, const std::vector<TextureCreateParams>& attachmentParams, const bool haveDepthRenderbuffer): 
+Framebuffer::Framebuffer(const unsigned int fbWidth, const unsigned int fbHeight, const std::vector<TextureCreateParams>& attachmentParams, std::optional<TextureCreateParams> depthAndStencilAttachment):
 width(fbWidth), 
 height(fbHeight),
 bindingLocation(GL_FRAMEBUFFER)
@@ -12,29 +12,26 @@ bindingLocation(GL_FRAMEBUFFER)
     glGenFramebuffers(1, &glFramebufferId);
 
     // bind it so we can set it up
-    Bind();
+    Bind({});
 
     // attach textures (TODO: support for texture arrays, cubemaps?)
-    int attachmentI = 0; // TODO: is there stuff besides color attachments we need to care about? 
+    GLenum attachmentI = 0; // TODO: is there stuff besides color attachments we need to care about? 
     for (auto & params: attachmentParams) {
-        //if (attachmentI == 0)
-            textureAttachments.emplace_back(*this, params, attachmentI, Texture::Texture2DFlat, GL_COLOR_ATTACHMENT0 + attachmentI);
-        //else
-            //new Texture(TextureCreateParams({ TextureSource("../textures/grass.png") }, Texture::ColorMap), 0, Texture::Texture2D);
-        colorAttachmentNames.emplace_back(GL_COLOR_ATTACHMENT0 + attachmentI);
+        Assert(params.format != Texture::Auto_8Bit && params.fontHeight != Texture::DEPTH24_STENCIL8);
+        if (params.renderBuffer) {
+            RenderbufferCreateParams rbp{
+                .storageFormat = static_cast<GLenum>(params.format), 
+                .attachmentPoint = GL_COLOR_ATTACHMENT0 + attachmentI,
+                .size = {fbWidth, fbHeight},
+            };
+            colorAttachments.push_back(Renderbuffer(rbp, *this));
+        }
+        else {
+            colorAttachments.push_back(Texture(*this, params, Texture::Texture2DFlat, GL_COLOR_ATTACHMENT0 + attachmentI));
+        }
         attachmentI++;
     }
     
-    // create renderbuffer if they want it
-    if (haveDepthRenderbuffer) {
-        unsigned int rbo;
-        glGenRenderbuffers(1, &rbo);
-        depthRenderbufferId = rbo;
-        glBindRenderbuffer(GL_RENDERBUFFER, depthRenderbufferId.value());
-        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
-        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo);  
-    }
-
     // make sure framebuffer is "complete"? 
     Assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
 }
@@ -44,27 +41,24 @@ Framebuffer::~Framebuffer() {
         currentlyBound = 0;
     }
     glDeleteFramebuffers(1, &glFramebufferId);
-    if (depthRenderbufferId) {
-        glDeleteRenderbuffers(1, &depthRenderbufferId.value());
-    }
 }
 
 // TODO: apparently sometimes you want to use an argument besides GL_FRAMEBUFFER?
-void Framebuffer::Bind() {
-    std::vector<size_t> attachments;
-    for (size_t i = 0; i < colorAttachmentNames.size(); i++) attachments.push_back(i);
-    Bind(attachments);
-}
+//void Framebuffer::Bind() {
+//    std::vector<size_t> attachments;
+//    for (size_t i = 0; i < attachmentNames.size(); i++) attachments.push_back(i);
+//    Bind(attachments);
+//}
 
-void Framebuffer::Bind(std::vector<size_t> attachmentIndices) {
+void Framebuffer::Bind(std::vector<GLenum> attachments) {
 
-    std::vector<GLenum> attachments;
-    for (auto i : attachmentIndices) {
-        attachments.push_back(colorAttachmentNames.at(i));
-    }
+    //std::vector<GLenum> attachments;
+    //for (auto i : attachmentIndices) {
+    //    attachments.push_back(attachmentNames.at(i));
+    //}
 
     if (currentlyBound == glFramebufferId) {
-        if (attachmentIndices != currentDrawBuffers) {
+        if (attachments != currentDrawBuffers) {
             glDrawBuffers((GLsizei)attachments.size(), attachments.data());
             
         }
@@ -76,14 +70,14 @@ void Framebuffer::Bind(std::vector<size_t> attachmentIndices) {
         glViewport(0, 0, width, height);
         glDrawBuffers((GLsizei)attachments.size(), attachments.data());
     }
-    currentDrawBuffers = attachmentIndices;
+    currentDrawBuffers = attachments;
     
     //const GLenum buffers[]{ GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
     
     
 }
 
-void Framebuffer::Clear(std::vector<glm::vec4> clearColors)
+void Framebuffer::ClearColor(std::vector<glm::vec4> clearColors)
 {
     //Assert(clearColors.size() == colorAttachmentNames.size());
     Assert(clearColors.size() == currentDrawBuffers.size());
@@ -100,11 +94,14 @@ void Framebuffer::Clear(std::vector<glm::vec4> clearColors)
     }
 }
 
-void Framebuffer::ClearDepthRenderbuffer() {
-    Assert(depthRenderbufferId.has_value());
+void Framebuffer::ClearDepth(float value) {
     Assert(currentlyBound == glFramebufferId);
-    glDepthMask(true);
-    glClear(GL_DEPTH_BUFFER_BIT);
+    glClearDepth(value);
+}
+
+void Framebuffer::ClearStencil(int value) {
+    Assert(currentlyBound == glFramebufferId);
+    glClearStencil(value);
 }
 
 void Framebuffer::Unbind() {

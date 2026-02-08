@@ -50,6 +50,8 @@ void main()
     }
 
     vec3 light = CalculateLighting(specularStrength, normal);
+    vec3 globalAmbient = vec3(0.1, 0.1, 0.1);
+    light += globalAmbient;
 
     vec4 tx;
     if (realTexCoords.z < 0) {
@@ -60,7 +62,6 @@ void main()
     }
     
 
-    //vec3 globalAmbient = vec3(0.1, 0.1, 0.1);
 
     vec4 color = vec4(1.0, 1.0, 1.0, 1.0);
     if (vertexColorEnabled) {

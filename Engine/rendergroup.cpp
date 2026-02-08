@@ -35,10 +35,19 @@ void RenderGroup::RemoveGameobject(Gameobject& obj) {
 	}
 
 	if (commands.empty()) {
+		for (auto& p : drawPasses) {
+			drawPassNumUsers[p.get()]--;
+			if (drawPassNumUsers[p.get()] == 0) {
+				drawPassNumUsers.erase(p.get());
+				GraphicsEngine::Get().renderGraph->RemovePass(p);
+			}
+		}
+
 		for (unsigned i = 0; i < renderGroupsByMeshpool[meshpool.get()].size(); i++) {
 			if (renderGroupsByMeshpool[meshpool.get()][i].get() == this) {
 				renderGroupsByMeshpool[meshpool.get()][i] = renderGroupsByMeshpool[meshpool.get()].back();
 				renderGroupsByMeshpool[meshpool.get()].pop_back();
+				
 				return; // OBJECT IS DESTRUCTED AFTER THIS POINT
 			}
 		}
@@ -63,6 +72,11 @@ void RenderGroup::AddGameobject(Gameobject& obj, GameobjectCreateParams& params)
 RenderGroup::RenderGroup(std::vector<std::shared_ptr<DrawPass>> renderpasses, std::shared_ptr<Meshpool> meshpool): drawPasses(renderpasses), meshpool(meshpool) {
 	for (auto& pass : renderpasses) {
 		pass->drawnObjects.push_back(this);
+		if (!drawPassNumUsers.contains(pass.get())) {
+			drawPassNumUsers[pass.get()] = 0;
+			GraphicsEngine::Get().renderGraph->AddPass(pass);
+		}
+		drawPassNumUsers[pass.get()]++;
 	}
 }
 

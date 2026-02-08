@@ -9,6 +9,8 @@ class Meshpool;
 class Mesh {
 public:
 	static std::shared_ptr<Mesh> New(MeshCreateParams params);
+	// returns a UV-mapped quad for postprocessing purposes.
+	static std::shared_ptr<Mesh> Quad();
 
 	const MeshVertexFormat format;
 	

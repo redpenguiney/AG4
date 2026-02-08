@@ -17,13 +17,17 @@ public:
 
 	void RenderScene(double dt);
 
-	void AddRenderPass(std::shared_ptr<RenderPass> node);
-	void RemoveRenderPass(std::shared_ptr<RenderPass> node);
+	// (DrawPasses are automatically added when a gameobject using one is created for the first ime, and removed dynamically)
+	void AddComputePass(std::shared_ptr<ComputePass> node);
+	void RemoveComputePass(std::shared_ptr<ComputePass> node);
 
 	// Default renderpasses for newly created GameobjectCreateParams. Will have a reasonable default, but change at your discretion. 
 	std::vector<std::shared_ptr<DrawPass>> defaultDrawingPasses;
 
 private:
+	// RenderGroup dynamically adds/removes drawpasses to/from renderGraph
+	friend class RenderGroup;
+
 	void WriteModelMatrices();
 
 	std::shared_ptr<RenderGraph> renderGraph;

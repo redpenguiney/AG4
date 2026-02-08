@@ -13,6 +13,23 @@ std::shared_ptr<Mesh> Mesh::New(MeshCreateParams params)
 	return ptr;
 }
 
+std::shared_ptr<Mesh> Mesh::Quad() {
+	MeshCreateParams params;
+	std::vector<VertexAttribute> attributes;
+	attributes.push_back(VertexAttribute{ .name = SpecialVertexAttributeNames::VERTEX_POSITION, .nComponents = 3, .instanced = false });
+	attributes.push_back(VertexAttribute{ .name = SpecialVertexAttributeNames::VERTEX_UV, .nComponents = 2, .instanced = false });
+	attributes.push_back(VertexAttribute{ .name = SpecialVertexAttributeNames::MODEL_MATRIX, .nComponents = 16, .instanced = true });
+	attributes.push_back(VertexAttribute{ .name = SpecialVertexAttributeNames::NORMAL_MATRIX, .nComponents = 9, .instanced = true });
+	params.meshVertexFormat = MeshVertexFormat(attributes);
+	params.normalizeSize = false;
+	params.generateNormals = false;
+	params.generateTangents = false;
+	params.vertices = { -1.0f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f, -1.0f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f, -1.0f, 1.0f, 0.0f, 0.0f, 1.0f };
+	params.indices = { 0, 1, 2, 0, 2, 3 };
+	static std::shared_ptr<Mesh> m = Mesh::New(std::move(params));
+	return m;
+}
+
 const std::vector<VertexScalar>& Mesh::GetVertices() {
 	return vertices;
 }
