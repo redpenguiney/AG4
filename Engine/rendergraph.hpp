@@ -19,26 +19,28 @@ struct CommandSet {
 // The conceptual difference between this and RenderPass is:
 // - RenderPass only describes what the user WANTS to happen on that drawing step (like what textures they want to use).
 // - ProcessedRenderPass contains the information needed to actually make that occur (like how those textures are actually stored in texture arrays, the actual framebuffer object being used).
-struct ProcessedRenderPass {
+struct ProcessedDrawPass {
 	std::vector<std::string> sources;
 	size_t order;
 
-	RenderTargetDescriptor renderTarget;
+	std::function<void()> bindRenderTarget;
 	std::vector<TextureBinding> textures;
 	std::vector<RenderGroup*> thingsToDraw;
 	
 	RenderingParameters params;
 
-	ProcessedRenderPass(std::shared_ptr<DrawPass> drawPass);
-	ProcessedRenderPass(std::shared_ptr<ComputePass> computePass);
+	ProcessedDrawPass(std::shared_ptr<DrawPass> drawPass);
+	//ProcessedDrawPass(std::shared_ptr<ComputePass> computePass);
 };
 
 struct RenderSet {
 	// these passes can be carried out in any order.
-	std::vector<ProcessedRenderPass> passes;
+	std::vector<ProcessedDrawPass> passes;
 	std::vector<std::shared_ptr<RenderPass>> source;
 
 	// TODO: barriers/synchroninzation info
+	std::vector<std::string> writtenAttachments;
+	//std::vector<std::string> readAttachments;
 
 	// sorts passes so that they are in the order which minimizes OpenGL state changes
 	void OptimizePassOrder();
@@ -65,12 +67,13 @@ struct ResourceLifeTime {
 enum class ResourceType {
 	FramebufferAttachment,
 	//ShaderStorageBuffer,
+	Abstract
 };
 
 struct LogicalResource {
 	ResourceLifeTime lifetime;
-	
-	std::variant<FramebufferAttachmentDescriptor> framebufferAttachmentInfo;
+	ResourceType type = ResourceType::Abstract;
+	FramebufferAttachmentDescriptor framebufferAttachmentInfo;
 };
 
 // A compiled render graph. The user should not work with this class directly.
@@ -104,7 +107,8 @@ private:
 	FramebufferResource& GetFramebuffer(FramebufferRenderTargetDescriptor params);
 
 	//BufferedBuffer indirectDrawingCommandBuffer;
-	std::unordered_map<std::string, std::shared_ptr<RenderPass>> passes;
+	std::unordered_map<std::string, std::shared_ptr<DrawPass>> drawPasses;
+	std::unordered_map<std::string, std::shared_ptr<ComputePass>> computePasses;
 
 	std::vector<FramebufferResource> framebuffers;
 
