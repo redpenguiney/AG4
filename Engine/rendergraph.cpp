@@ -278,6 +278,33 @@ void RenderGraph::Compile() {
 				}
 
 				FramebufferResource& framebuffer = GetFramebuffer(target);
+				std::vector<GLenum> attachments;
+				attachments.resize(target.attachments.size());
+				for (auto& t : target.attachments) {
+					for (auto& f: framebuffer.hardwareResource->) 
+				}
+
+				pass.bindRenderTarget = [attachments, framebuffer, target]() {
+					framebuffer.hardwareResource->Bind(attachments);
+					for (unsigned i = 0; i < target.attachments.size(); i++) {
+						auto& a = target.attachments[i];
+						if (a.loadPolicy == AttachmentLoadPolicy::Clear) {
+							if (a.format == Texture::DEPTH24_STENCIL8) {
+								glClearDepth(a.clearColor.x);
+								glClearStencil(a.clearColor.y);
+							}
+							else {
+								glClearBufferfv(GL_COLOR, i, &a.clearColor[0]);
+							}
+						}
+
+						GLenum bindingLocation = attachments[i];
+						if (bindingLocation != GL_DEPTH_STENCIL_ATTACHMENT) {
+							glBlendEquationi(i, static_cast<GLenum>(a.blendFunc));
+							glBlendFunci(i, static_cast<GLenum>(a.blendingSrcFactor), static_cast<GLenum>(a.blendingDstFactor));
+						}
+					}
+				};
 			}
 			else {
 				auto target = std::get<WindowRenderTargetDescriptor>(drawPass->renderTarget);
@@ -287,23 +314,46 @@ void RenderGraph::Compile() {
 						glClearColor(target.clearColor.r, target.clearColor.g, target.clearColor.b, target.clearColor.a);
 						glClear(GL_COLOR_BUFFER_BIT);
 					}
+					glBlendEquation(static_cast<GLenum>(target.blendFunc));
 					glBlendFunc(static_cast<GLenum>(target.blendingSrcFactor), static_cast<GLenum>(target.blendingDstFactor));
 				};
 			}
 		}
 	}
 
-	// Allocate hardware resources to each logical resource
-	// TODO optimize
+	// TODO buffers
 }
 
-//RenderGraph::FramebufferResource& RenderGraph::GetFramebuffer(FramebufferRenderTargetDescriptor params) {
-//	
-//}
+bool RenderGraph::Compatible(const FramebufferRenderTargetDescriptor& requirements, const std::shared_ptr<Framebuffer>& hardwareResource)
+{
+	std::unordered_set<GLenum> attachmentsBeingUsed;
+
+}
+
+RenderGraph::FramebufferResource& RenderGraph::GetFramebuffer(FramebufferRenderTargetDescriptor params) {
+	for (auto& f : framebuffers) {
+		if (Compatible(params, f.hardwareResource)) return f;
+	}
+
+	std::vector<GLenum> attachmentFormats;
+	std::vector<bool> isRenderbuffer;
+	for (auto& a : params.attachments) {
+		attachmentFormats.push_back(a.format);
+		isRenderbuffer.push_back(a.renderbuffer);
+	}
+
+	framebuffers.push_back(FramebufferResource{
+		.hardwareResource = std::make_shared<Framebuffer>(ijijiji),
+		.size = params.attachments[0].size,
+		.isRenderbuffer = isRenderbuffer,
+		.attachmentFormats = attachmentFormats,
+
+		});
+}
 
 ProcessedDrawPass::ProcessedDrawPass(std::shared_ptr<DrawPass> drawPass) {
 	params = drawPass->params;
-	renderTarget = drawPass->renderTarget;
+	//renderTarget = drawPass->renderTarget;
 	thingsToDraw = drawPass->drawnObjects;
 	sources.push_back(drawPass->name);
 }

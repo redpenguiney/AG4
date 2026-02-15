@@ -3,6 +3,7 @@
 #include "indirect_draw_command.hpp"
 #include "rendergraph_node.hpp"
 #include <string>
+#include <functional>
 
 class Meshpool;
 
@@ -82,13 +83,11 @@ private:
 	// updates the contents of renderSets
 	void Compile();
 
-	
+	bool Compatible(const FramebufferRenderTargetDescriptor& requirements, const std::shared_ptr<Framebuffer>& hardwareResource);
 
 	struct FramebufferResource {
 		std::shared_ptr<Framebuffer> hardwareResource;
-		glm::uvec2 size;
-		std::vector<GLenum> attachmentFormats;
-		//TODO lifetime information
+		std::vector<ResourceLifeTime> attachmentAccesses;
 	};
 
 	FramebufferResource& GetFramebuffer(FramebufferRenderTargetDescriptor params);
@@ -96,6 +95,8 @@ private:
 	//BufferedBuffer indirectDrawingCommandBuffer;
 	std::unordered_map<std::string, std::shared_ptr<DrawPass>> drawPasses;
 	std::unordered_map<std::string, std::shared_ptr<ComputePass>> computePasses;
+
+	
 
 	std::vector<FramebufferResource> framebuffers;
 
