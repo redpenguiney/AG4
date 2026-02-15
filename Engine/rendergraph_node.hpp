@@ -91,7 +91,7 @@ struct FramebufferAttachmentDescriptor {
 
 struct FramebufferRenderTargetDescriptor {
 	// Note: don't include attachments this specific pass doesn't draw to. 
-	std::vector<FramebufferAttachmentDescriptor> attachments;
+	std::vector<FramebufferAttachmentDescriptor> colorAttachments;
 };
 
 constexpr inline const char* WINDOW_RESOURCE_NAME = "__WINDOW__";

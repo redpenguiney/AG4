@@ -33,19 +33,6 @@ struct ProcessedDrawPass {
 	//ProcessedDrawPass(std::shared_ptr<ComputePass> computePass);
 };
 
-struct RenderSet {
-	// these passes can be carried out in any order.
-	std::vector<ProcessedDrawPass> passes;
-	std::vector<std::shared_ptr<RenderPass>> source;
-
-	// TODO: barriers/synchroninzation info
-	std::vector<std::string> writtenAttachments;
-	//std::vector<std::string> readAttachments;
-
-	// sorts passes so that they are in the order which minimizes OpenGL state changes
-	void OptimizePassOrder();
-};
-
 struct ResourceLifeTime {
 	// indices are with respect to renderSets
 	// -1 for first/lastwritePassIndex indicates that it has a value from the very start.
@@ -112,6 +99,6 @@ private:
 
 	std::vector<FramebufferResource> framebuffers;
 
-	// Ordered based on the dependency graph of the RenderPasses in each RenderSet
-	std::vector<RenderSet> renderSets;
+	// Ordered based on the dependency graph of the RenderPasses in each RenderSet, and then in an order intended to improve performance by reducing OpenGL state changes
+	std::vector<ProcessedDrawPass> renderSets;
 };
