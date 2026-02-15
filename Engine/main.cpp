@@ -23,13 +23,13 @@ int main() {
 		frt.attachments.push_back(FramebufferAttachmentDescriptor{
 			.resourceName = "FINAL_SCENE",
 			.drawBuffer = 0,
-			.format = ImageFormat::RGBA_32_FLOAT,
+			.format = Texture::RGBA_16Float,
 			.size = {200, 200},
 			});
 		frt.attachments.push_back(FramebufferAttachmentDescriptor{
 			.resourceName = "FINAL_SCENE_DEPTH",
 			.renderbuffer = true,
-			.format = ImageFormat::DEPTH_16_DECIMAL,
+			.format = Texture::DEPTH24_STENCIL8,
 			.size = {200, 200},
 			});
 		newPass->renderTarget = frt;

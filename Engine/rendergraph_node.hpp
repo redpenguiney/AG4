@@ -14,17 +14,17 @@ class RenderGroup;
 class Texture;
 struct TextureCreateParams;
 
-enum class ImageFormat : GLenum {
-	RGBA_16_DECIMAL = GL_RGBA16, // google opengl "normalized integer".
-	RGBA_16_INT = GL_RGBA16I,
-	RGBA_16_UINT = GL_RGBA16UI,
-	RGBA_32_FLOAT = GL_RGBA32F,
-
-	DEPTH_16_DECIMAL = GL_DEPTH_COMPONENT16,
-	DEPTH_24_DECIMAL = GL_DEPTH_COMPONENT24,
-	DEPTH_32_DECIMAL = GL_DEPTH_COMPONENT32,
-	DEPTH_32_FLOAT = GL_DEPTH_COMPONENT32F
-};
+//enum class ImageFormat : GLenum {
+//	RGBA_16_DECIMAL = GL_RGBA16, // google opengl "normalized integer".
+//	RGBA_16_INT = GL_RGBA16I,
+//	RGBA_16_UINT = GL_RGBA16UI,
+//	RGBA_32_FLOAT = GL_RGBA32F,
+//
+//	DEPTH_16_DECIMAL = GL_DEPTH_COMPONENT16,
+//	DEPTH_24_DECIMAL = GL_DEPTH_COMPONENT24,
+//	DEPTH_32_DECIMAL = GL_DEPTH_COMPONENT32,
+//	DEPTH_32_FLOAT = GL_DEPTH_COMPONENT32F
+//};
 
 enum class DepthTestMode : GLenum {
 	Disabled = GL_ALWAYS, // values in depth buffer are ignored for rendering purposes.
@@ -82,11 +82,13 @@ struct FramebufferAttachmentDescriptor {
 	// -1 if not drawing to this attachment. (TODO why would you want that?)
 	int drawBuffer = -1; 
 	AttachmentLoadPolicy loadPolicy = AttachmentLoadPolicy::Load;
-	glm::vec4 clearColor = { 0, 0, 0, 0 }; // used if loadPolicy == Clear
-	ImageFormat format = {ImageFormat::RGBA_32_FLOAT};
+	glm::vec4 clearColor = { 0, 0, 0, 0 }; // used if loadPolicy == Clear. x value is used for clearing depth, y value is used for clearing stencil.
+	Texture::TextureFormat format = Texture::RGBA_16Float;
 	glm::uvec2 size = {128, 128};
 	BlendFactorMode blendingSrcFactor = BlendFactorMode::SrcAlpha;
 	BlendFactorMode blendingDstFactor = BlendFactorMode::OneMinusSrcAlpha;
+	BlendingEquation blendFunc = BlendingEquation::Addition;
+
 };
 
 struct FramebufferRenderTargetDescriptor {
