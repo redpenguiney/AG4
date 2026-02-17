@@ -421,7 +421,7 @@ bindingLocation(TextureBindingLocationFromType(textureType))
     if (bindingLocation == GL_TEXTURE_2D_ARRAY) {
 
         // allocate storage for texture by passing nullptr as the data to load into the texture
-        glTexImage3D(bindingLocation, 0, params.format, width, height, depth, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+        glTexStorage3D(bindingLocation, 1, params.format, width, height, depth);
         ConfigTexture(params);
         
         // attach the texture to the framebuffer
@@ -430,7 +430,7 @@ bindingLocation(TextureBindingLocationFromType(textureType))
     }
     else if (bindingLocation == GL_TEXTURE_2D) {
         //if (framebufferAttachmentType == GL_COLOR_ATTACHMENT0) {
-            glTexImage2D(bindingLocation, 0, params.format, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+            glTexStorage2D(bindingLocation, 1, params.format, width, height);
             ConfigTexture(params);
             //DebugLogInfo("ATTACHING ", framebufferAttachmentType, " TO ", framebuffer.glFramebufferId);
 
@@ -438,7 +438,7 @@ bindingLocation(TextureBindingLocationFromType(textureType))
         //}
     }
     else {
-        std::cout << " add support first my guy\n";
+        DebugLogError(" add support first my guy\n");
         abort();
     }
 

@@ -78,9 +78,9 @@ struct FramebufferAttachmentDescriptor {
 	std::string resourceName;
 	// probably only set to true for depth buffers you don't want to read from inside shaders
 	bool renderbuffer = false;
-	// when drawing, the shader-specified index of the output variable which should be output onto this attachment. 
-	// -1 if not drawing to this attachment. (TODO why would you want that?)
-	int drawBuffer = -1; 
+	//// when drawing, the shader-specified index of the output variable which should be output onto this attachment. 
+	//// -1 if not drawing to this attachment. (TODO why would you want that?)
+	//int drawBuffer = -1; 
 	AttachmentLoadPolicy loadPolicy = AttachmentLoadPolicy::Load;
 	glm::vec4 clearColor = { 0, 0, 0, 0 }; // used if loadPolicy == Clear. x value is used for clearing depth, y value is used for clearing stencil.
 	Texture::TextureFormat format = Texture::RGBA_16Float;
@@ -92,8 +92,10 @@ struct FramebufferAttachmentDescriptor {
 };
 
 struct FramebufferRenderTargetDescriptor {
-	// Note: don't include attachments this specific pass doesn't draw to. 
+	// Note: don't include attachments this pass doesn't draw to. 
+	// Corresponds 1:1 with drawbuffers.
 	std::vector<FramebufferAttachmentDescriptor> colorAttachments;
+	std::optional<FramebufferAttachmentDescriptor> depthStencilAttachment;
 };
 
 constexpr inline const char* WINDOW_RESOURCE_NAME = "__WINDOW__";
@@ -124,11 +126,11 @@ using TextureHandle = std::variant<std::string, std::shared_ptr<Texture>, Textur
 
 struct TextureUsageDescriptor {
 public:
-	std::shared_ptr<TextureHandle> texture;
+	TextureHandle texture;
 	std::string textureUsageLocation; // name of the shader's sample uniform variable where this shader should be bound.
 
 	bool willRead = true;
-	bool willWrite = false;
+	//bool willWrite = false;
 };
 
 enum class FaceCulling {
@@ -162,6 +164,8 @@ public:
 	std::vector<std::string> dependencies; // names of Resources that this RenderPass reads from
 	std::vector<std::string> outputs; // names of Resources that this RenderPass writes to
 
+	std::vector<TextureUsageDescriptor> boundAttachments;
+
 	virtual ~RenderPass() = default;
 
 protected:
@@ -182,6 +186,7 @@ public:
 };
 
 class ComputePass : public RenderPass {
+public:
 	std::shared_ptr<ComputeShaderProgram> shader;
 	glm::uvec3 workgroupSize;
 };

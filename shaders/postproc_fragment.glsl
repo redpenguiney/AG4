@@ -3,7 +3,7 @@ out vec4 FragColor;
   
 in vec2 TexCoords;
 
-layout(binding=0) uniform sampler2D screenTextureColor; // note: this syntax not ok until opengl 4.2
+uniform sampler2D screenTextureColor;
 
 const float offset = 1.0 / 1000.0;  
 
@@ -21,10 +21,16 @@ void main()
         vec2( offset, -offset)  // bottom-right    
     );
 
+//    float kernel[9] = float[](
+//        0.0675,  0.125, 0.0675,
+//        0.125,   0.25, 0.125,
+//        0.0675,  0.125, 0.0675
+//    );
+
     float kernel[9] = float[](
-        0.0675,  0.125, 0.0675,
-        0.125,   0.25, 0.125,
-        0.0675,  0.125, 0.0675
+       0,  -1, 0,
+       -1,   5, -1,        
+       0,  -1, 0
     );
     
     // do kernel-based post processing
@@ -40,16 +46,9 @@ void main()
     // tonemapping
     vec3 mapped = col; //col / (col + vec3(1.0));
     FragColor = vec4(mapped, 1.0);
-    //FragColor = vec4(texture(screenTextureColor, vec2(TexCoords.x, 1-TexCoords.y)).xxx, 1.0);
-    //FragColor = vec4(TexCoords, 0.5, 1.0);
-    //FragColor = vec4(0, 1, 1, 1);
+    //FragColor = texture(screenTextureColor, gl_FragCoord.xy);
+//    FragColor = texture(screenTextureColor, TexCoords);
+    //FragColor = vec4(TexCoords, 0.0, 1.0);
+//    FragColor = vec4(0, 1, 1, 1);
     //float depthValue = texture(screenTextureColor, TexCoords).r;
-    //FragColor = vec4(vec3(depthValue), 1.0);
-    //FragColor = vec4(texture(screenTextureColor, (TexCoords.st), 0).xyz, 1.0);
-    //FragColor = vec4(texture(screenTextureAlpha, (TexCoords.st), 0).rrr, 1.0);
-    FragColor = vec4(1.0, 1.0, 0.0, 1.0);   
-
-
-
-    
 }

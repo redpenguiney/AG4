@@ -3,7 +3,7 @@
 //#include "graphics_engine.hpp"
 #include "window.hpp"
 
-Framebuffer::Framebuffer(const unsigned int fbWidth, const unsigned int fbHeight, const std::vector<TextureCreateParams>& attachmentParams, std::optional<TextureCreateParams> depthAndStencilAttachment):
+Framebuffer::Framebuffer(const unsigned int fbWidth, const unsigned int fbHeight, const std::vector<TextureCreateParams>& attachmentParams, std::optional<TextureCreateParams> depthAndStencilAttachmentParams):
 width(fbWidth), 
 height(fbHeight),
 bindingLocation(GL_FRAMEBUFFER)
@@ -31,9 +31,24 @@ bindingLocation(GL_FRAMEBUFFER)
         }
         attachmentI++;
     }
+
+    if (depthAndStencilAttachmentParams) {
+        if (depthAndStencilAttachmentParams->renderBuffer) {
+            RenderbufferCreateParams rbp{
+                .storageFormat = static_cast<GLenum>(depthAndStencilAttachmentParams->format),
+                .attachmentPoint = GL_DEPTH_STENCIL_ATTACHMENT,
+                .size = {fbWidth, fbHeight},
+            };
+            depthAndStencilAttachment.emplace(Renderbuffer(rbp, *this));
+        }
+        else {
+            depthAndStencilAttachment.emplace(Texture(*this, *depthAndStencilAttachmentParams, Texture::Texture2DFlat, GL_DEPTH_STENCIL_ATTACHMENT));
+        }
+    }
     
-    // make sure framebuffer is "complete"? 
-    Assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
+    // make sure framebuffer is valid
+    auto status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+    Assert(status == GL_FRAMEBUFFER_COMPLETE);
 }
 
 Framebuffer::~Framebuffer() {

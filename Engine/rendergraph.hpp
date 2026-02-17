@@ -8,7 +8,7 @@
 class Meshpool;
 
 struct TextureBinding {
-	std::shared_ptr<Texture> textureToBind;
+	Texture* textureToBind; // non-owning
 	std::string shaderSamplerName;
 };
 
@@ -17,12 +17,12 @@ struct CommandSet {
 	unsigned nCommands;
 };
 
-// The conceptual difference between this and RenderPass is:
+// The conceptual difference between this and DrawPass is:
 // - RenderPass only describes what the user WANTS to happen on that drawing step (like what textures they want to use).
 // - ProcessedRenderPass contains the information needed to actually make that occur (like how those textures are actually stored in texture arrays, the actual framebuffer object being used).
 struct ProcessedDrawPass {
 	std::vector<std::string> sources;
-	size_t order;
+	//size_t order;
 
 	std::function<void()> bindRenderTarget;
 	std::vector<TextureBinding> textures;
@@ -30,8 +30,19 @@ struct ProcessedDrawPass {
 	
 	RenderingParameters params;
 
+	GLbitfield dependencyWriteMemoryBarrierBits = 0;
+
 	ProcessedDrawPass(std::shared_ptr<DrawPass> drawPass);
-	//ProcessedDrawPass(std::shared_ptr<ComputePass> computePass);
+};
+
+struct ProcessedComputePass {
+	std::string source;
+	std::shared_ptr<ComputeShaderProgram> shader;
+	glm::uvec3 workgroupSize;
+
+	GLbitfield dependencyWriteMemoryBarrierBits = 0;
+
+	ProcessedComputePass(std::shared_ptr<ComputePass> computePass);
 };
 
 struct ResourceLifeTime {
@@ -87,19 +98,21 @@ private:
 
 	struct FramebufferResource {
 		std::shared_ptr<Framebuffer> hardwareResource;
-		std::vector<ResourceLifeTime> attachmentAccesses;
+		std::vector<std::vector<ResourceLifeTime>> colorAttachmentAccesses; // one vector per color attachment
+		std::vector<ResourceLifeTime> depthAttachmentAccesses;
+		std::unordered_map<std::string, GLenum> attachmentLocations;
+		std::unordered_map<std::string, Texture*> readableAttachments;
+		bool destroy;
 	};
 
-	FramebufferResource& GetFramebuffer(FramebufferRenderTargetDescriptor params);
+	FramebufferResource& GetFramebuffer(FramebufferRenderTargetDescriptor params, std::vector<ResourceLifeTime> clts, std::optional<ResourceLifeTime> dlt);
 
 	//BufferedBuffer indirectDrawingCommandBuffer;
 	std::unordered_map<std::string, std::shared_ptr<DrawPass>> drawPasses;
 	std::unordered_map<std::string, std::shared_ptr<ComputePass>> computePasses;
 
-	
-
 	std::vector<FramebufferResource> framebuffers;
 
 	// Ordered based on the dependency graph of the RenderPasses in each RenderSet, and then in an order intended to improve performance by reducing OpenGL state changes
-	std::vector<ProcessedDrawPass> renderSets;
+	std::vector<std::variant<ProcessedDrawPass, ProcessedComputePass>> renderOrder;
 };

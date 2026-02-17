@@ -14,23 +14,28 @@ int main() {
 	Window::Get();
 	GraphicsEngine::Get();
 
+	
+
 	// renderpasses
 	{
+		
+		
+
 		// normal objects
 		auto newPass = std::make_shared<DrawPass>();
 		newPass->name = "default";
 		auto frt = FramebufferRenderTargetDescriptor();
-		frt.attachments.push_back(FramebufferAttachmentDescriptor{
+		frt.colorAttachments.push_back(FramebufferAttachmentDescriptor{
 			.resourceName = "FINAL_SCENE",
-			.drawBuffer = 0,
+			.loadPolicy = AttachmentLoadPolicy::Clear,
 			.format = Texture::RGBA_16Float,
-			.size = {200, 200},
+			.size = {1024, 1024},
 			});
-		frt.attachments.push_back(FramebufferAttachmentDescriptor{
+		frt.depthStencilAttachment.emplace(FramebufferAttachmentDescriptor{
 			.resourceName = "FINAL_SCENE_DEPTH",
 			.renderbuffer = true,
 			.format = Texture::DEPTH24_STENCIL8,
-			.size = {200, 200},
+			.size = {1024, 1024},
 			});
 		newPass->renderTarget = frt;
 		newPass->outputs.push_back("FINAL_SCENE");
@@ -47,6 +52,10 @@ int main() {
 		rt.loadPolicy = AttachmentLoadPolicy::DontCare;
 		postprocPass->renderTarget = rt;
 		postprocPass->dependencies.push_back("FINAL_SCENE");
+		postprocPass->boundAttachments.push_back(TextureUsageDescriptor{
+			.texture = "FINAL_SCENE",
+			.textureUsageLocation = "screenTextureColor"
+		});
 		postprocPass->outputs.push_back(WINDOW_RESOURCE_NAME);
 		postprocPass->params.depthTestMode = DepthTestMode::Disabled;
 		postprocPass->params.cullMode = FaceCulling::None;

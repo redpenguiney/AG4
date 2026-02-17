@@ -4,7 +4,9 @@
 #include "static_meshpool.hpp"
 #include "GL/glew.h"
 #include "shader_program.hpp"
+#include "compute_shader_program.hpp"
 #include <unordered_set>
+#include <algorithm>
 
 RenderGraph::RenderGraph() {
 	
@@ -25,8 +27,14 @@ RenderGraph::RenderGraph() {
 void RenderGraph::Render() {
 	if (dirty) Compile();
 
-	for (auto& set : renderSets) {
-		for (auto& p : set.passes) {
+	for (auto& pass : renderOrder) {
+		if (std::holds_alternative<ProcessedDrawPass>(pass)) {
+			auto& p = std::get<ProcessedDrawPass>(pass);
+
+			if (p.dependencyWriteMemoryBarrierBits != 0) {
+				glMemoryBarrier(p.dependencyWriteMemoryBarrierBits);
+			}
+
 			p.bindRenderTarget();
 
 			p.params.shader->Use();
@@ -73,6 +81,13 @@ void RenderGraph::Render() {
 				glCullFace(p.params.cullMode == FaceCulling::Frontface ? GL_FRONT : GL_BACK);
 			}
 
+			int activeTexture = 0;
+			for (auto& f : p.textures) {
+				p.params.shader->Uniform(f.shaderSamplerName, activeTexture);
+				f.textureToBind->Use(activeTexture);
+				activeTexture++;
+			}
+
 			for (auto& renderGroup : p.thingsToDraw) {
 				renderGroup->meshpool->BindVAO(p.params.shader);
 				renderGroup->meshpool->indices.Bind();
@@ -85,26 +100,63 @@ void RenderGraph::Render() {
 				}
 			}
 		}
+		else {
+			auto& p = std::get<ProcessedComputePass>(pass);
+
+			if (p.dependencyWriteMemoryBarrierBits != 0) {
+				glMemoryBarrier(p.dependencyWriteMemoryBarrierBits);
+			}
+
+			p.shader->Dispatch(p.workgroupSize);
+		}
 	}
 }
 
 void RenderGraph::AddPass(std::shared_ptr<RenderPass> pass) {
 	// can't add same pass twice
-	Assert(drawPasses.contains(pass->name) == false);
+	Assert(drawPasses.contains(pass->name) == false && computePasses.contains(pass->name) == false);
 
 	auto drawPass = std::dynamic_pointer_cast<DrawPass>(pass);
 	auto computePass = std::dynamic_pointer_cast<ComputePass>(pass);
 	Assert(drawPass || computePass);
 
+	for (auto& t : pass->boundAttachments) {
+		Assert(std::holds_alternative<std::string>(t.texture));
+		if (t.willRead) {
+			for (auto& d : pass->dependencies) {
+				if (d == std::get<std::string>(t.texture)) goto foundOutput4;
+			}
+			Assert(false);
+			foundOutput4:;
+		}
+	}
+
 	// Verify that render target attachments are specified in pass outputs
+	// TODO: buffer outputs exist
 	if (drawPass) {
 		if (std::holds_alternative<FramebufferRenderTargetDescriptor>(drawPass->renderTarget)) {
-			for (auto& attachment : std::get<FramebufferRenderTargetDescriptor>(drawPass->renderTarget).attachments) {
+			auto fbt = std::get<FramebufferRenderTargetDescriptor>(drawPass->renderTarget);
+
+			Assert(fbt.colorAttachments.size() > 0 || fbt.depthStencilAttachment.has_value());
+			for (auto& attachment : fbt.colorAttachments) {
 				for (auto& name : pass->outputs) {
 					if (name == attachment.resourceName) goto foundOutput;
 				}
 				Assert(false);
 				foundOutput:;
+			}
+			if (fbt.depthStencilAttachment.has_value()) {
+				for (auto& name : pass->outputs) {
+					if (name == fbt.depthStencilAttachment->resourceName) goto foundOutput3;
+				}
+				Assert(false);
+				foundOutput3:;
+			}
+
+			// Validate that all attachments written to are the same size.
+			glm::uvec2 size = fbt.depthStencilAttachment ? fbt.depthStencilAttachment->size : fbt.colorAttachments[0].size;
+			for (auto& attachment : fbt.colorAttachments) {
+				Assert(size == attachment.size);
 			}
 		}
 		else {
@@ -132,9 +184,18 @@ void RenderGraph::RemovePass(std::shared_ptr<RenderPass> pass) {
 void RenderGraph::Compile() {
 	Assert(dirty);
 	dirty = false;
-	renderSets.clear();
+	renderOrder.clear();
+
+	for (auto& f : framebuffers) {
+		f.destroy = true;
+		for (auto& a : f.colorAttachmentAccesses) a.clear();
+		f.depthAttachmentAccesses.clear();
+		f.attachmentLocations.clear();
+		f.readableAttachments.clear();
+	}
 
 	// Use Khan's algorithm to topologically sort our render passes into an order that ensures any node is visited only after its dependencies are.
+		// This sort also minimizes OpenGL state changes by trying to keep passes with the same framebuffer/shaders/textures/etc. close together
 	std::vector<std::shared_ptr<RenderPass>> output;
 	{
 		std::unordered_set<std::string> orphans;
@@ -180,6 +241,15 @@ void RenderGraph::Compile() {
 			orphans.erase(orphans.begin());
 			output.push_back(drawPasses[parentName]);
 
+			std::sort(parentsToChildren[parentName].begin(), parentsToChildren[parentName].end(), [this](const std::string& passNameA, const std::string& passNameB) -> bool {
+				auto& p1 = drawPasses.at(passNameA);
+				auto& p2 = drawPasses.at(passNameB);
+				return passNameA < passNameB; // TODO stupid way to do it
+
+				//if (p1->params.shader != p2->params.shader) return p1->params.shader.get() < p2->params.shader.get();
+				//else 
+				});
+
 			for (auto& childName : parentsToChildren[parentName]) {
 				numParents[childName]--;
 				if (numParents[childName] == 0) {
@@ -195,12 +265,11 @@ void RenderGraph::Compile() {
 	
 
 
-	// Assign render passes into as few RenderSets as possible
+	// Convert the DrawPasses into ProcessedRenderPasses
 	int passI = 0;
 	std::unordered_map<std::string, LogicalResource> logicalResources;
 
 	while (passI < output.size()) {
-		RenderSet set;
 
 		// Determine resource lifetimes so that we can determine which resources can alias the same hardware resource
 		for (auto& write : output[passI]->outputs) {
@@ -216,21 +285,22 @@ void RenderGraph::Compile() {
 		auto computePass = std::dynamic_pointer_cast<ComputePass>(output[passI]);
 		if (drawPass) {
 			ProcessedDrawPass p(drawPass);
-			set.passes.push_back(p);
-			set.source.push_back(output[passI]);
-			renderSets.push_back(set);
 
 			if (std::holds_alternative<FramebufferRenderTargetDescriptor>(drawPass->renderTarget)) {
 				auto descriptor = std::get<FramebufferRenderTargetDescriptor>(drawPass->renderTarget);
-				for (auto& a : descriptor.attachments) {
+				for (auto& a : descriptor.colorAttachments) {
 					Assert(logicalResources.contains(a.resourceName));
 					logicalResources[a.resourceName].framebufferAttachmentInfo = a;
 					logicalResources[a.resourceName].type = ResourceType::FramebufferAttachment;
-					set.writtenAttachments.push_back(a.resourceName);
+					//set.writtenAttachments.push_back(a.resourceName);
+				}
+				if (descriptor.depthStencilAttachment) {
+
 				}
 			}
-			// TODO: combining passes with compatible textures, combining sets with no resource conflicts, optimizing intra-set pass order
 
+			renderOrder.push_back(p);
+			// TODO: combining passes with compatible textures
 		}
 		else {
 			Assert(false);
@@ -255,100 +325,146 @@ void RenderGraph::Compile() {
 		Assert(rsrc.lifetime.lastWritePassIndex < rsrc.lifetime.firstReadPassIndex);
 	}
 
-	// Validate framebuffer/attachments according to the following:
-		// All attachments written by a pass must be the same size.
-		// The last write of all the attachments in a framebufer must occur in a RenderSet before the first read of said attachments.
-	for (auto& set : renderSets) {
-		int lastWrite = -1, firstRead = INT_MAX;
-		for (auto& aName: set.writtenAttachments) {
-			lastWrite = std::max(lastWrite, logicalResources[aName].lifetime.lastWritePassIndex);
-			firstRead = std::min(firstRead, logicalResources[aName].lifetime.firstReadPassIndex);
+	std::unordered_map<std::string, Texture*> attachmentLocations;
+
+	// Setup render targets
+	for (auto& pass : renderOrder) {
+		auto drawPass = drawPasses.at(pass.sources.at(0));
+		if (std::holds_alternative<FramebufferRenderTargetDescriptor>(drawPass->renderTarget)) {
+			auto& target = std::get<FramebufferRenderTargetDescriptor>(drawPass->renderTarget);
+			
+			std::vector<ResourceLifeTime> colorAttachmentLifetimes;
+			for (auto& t : target.colorAttachments) {
+				colorAttachmentLifetimes.push_back(logicalResources[t.resourceName].lifetime);
+			}
+			FramebufferResource& framebuffer = GetFramebuffer(target, colorAttachmentLifetimes, target.depthStencilAttachment ? std::make_optional(logicalResources[target.depthStencilAttachment->resourceName].lifetime) : std::nullopt);
+			std::vector<GLenum> drawBuffers;
+			for (auto& t : target.colorAttachments) {
+				GLenum attachmentLocation = framebuffer.attachmentLocations[t.resourceName];
+				drawBuffers.push_back(attachmentLocation);
+			}
+
+			for (auto& [name, texture] : framebuffer.readableAttachments) {
+				if (attachmentLocations.contains(name)) Assert(attachmentLocations[name] == texture);
+				attachmentLocations[name] = texture;
+			}
+
+			pass.bindRenderTarget = [drawBuffers, framebuffer, target]() {
+				framebuffer.hardwareResource->Bind(drawBuffers);
+				for (unsigned i = 0; i < target.colorAttachments.size(); i++) {
+					auto& a = target.colorAttachments[i];
+					if (a.loadPolicy == AttachmentLoadPolicy::Clear) {			
+						glClearBufferfv(GL_COLOR, i, &a.clearColor[0]);
+					}
+
+					glBlendEquationi(i, static_cast<GLenum>(a.blendFunc));
+					glBlendFunci(i, static_cast<GLenum>(a.blendingSrcFactor), static_cast<GLenum>(a.blendingDstFactor));
+				}
+
+				if (target.depthStencilAttachment) {
+					Assert(target.depthStencilAttachment->format == Texture::DEPTH24_STENCIL8);
+					glClearDepth(target.depthStencilAttachment->clearColor.x);
+					glClearStencil(target.depthStencilAttachment->clearColor.y);
+				}
+			};
 		}
-		Assert(lastWrite < firstRead);
-		std::vector<FramebufferAttachmentDescriptor> currentFramebufferAttachments;
-		for (auto& pass : set.passes) {
-			auto drawPass = drawPasses.at(pass.sources.at(0));
-			if (std::holds_alternative<FramebufferRenderTargetDescriptor>(drawPass->renderTarget)) {
-				auto& target = std::get<FramebufferRenderTargetDescriptor>(drawPass->renderTarget);
-				for (auto& att : target.attachments) {
-					if (currentFramebufferAttachments.size() > 0) {
-						Assert(att.size == currentFramebufferAttachments.back().size);
-					}
-					currentFramebufferAttachments.push_back(att);
+		else {
+			auto target = std::get<WindowRenderTargetDescriptor>(drawPass->renderTarget);
+			pass.bindRenderTarget = [target]() {
+				Framebuffer::Unbind();
+				if (target.loadPolicy == AttachmentLoadPolicy::Clear) {
+					glClearColor(target.clearColor.r, target.clearColor.g, target.clearColor.b, target.clearColor.a);
+					glClear(GL_COLOR_BUFFER_BIT);
 				}
+				glBlendEquation(static_cast<GLenum>(target.blendFunc));
+				glBlendFunc(static_cast<GLenum>(target.blendingSrcFactor), static_cast<GLenum>(target.blendingDstFactor));
+			};
+		}
+	}
 
-				FramebufferResource& framebuffer = GetFramebuffer(target);
-				std::vector<GLenum> attachments;
-				attachments.resize(target.attachments.size());
-				for (auto& t : target.attachments) {
-					for (auto& f: framebuffer.hardwareResource->) 
-				}
-
-				pass.bindRenderTarget = [attachments, framebuffer, target]() {
-					framebuffer.hardwareResource->Bind(attachments);
-					for (unsigned i = 0; i < target.attachments.size(); i++) {
-						auto& a = target.attachments[i];
-						if (a.loadPolicy == AttachmentLoadPolicy::Clear) {
-							if (a.format == Texture::DEPTH24_STENCIL8) {
-								glClearDepth(a.clearColor.x);
-								glClearStencil(a.clearColor.y);
-							}
-							else {
-								glClearBufferfv(GL_COLOR, i, &a.clearColor[0]);
-							}
-						}
-
-						GLenum bindingLocation = attachments[i];
-						if (bindingLocation != GL_DEPTH_STENCIL_ATTACHMENT) {
-							glBlendEquationi(i, static_cast<GLenum>(a.blendFunc));
-							glBlendFunci(i, static_cast<GLenum>(a.blendingSrcFactor), static_cast<GLenum>(a.blendingDstFactor));
-						}
-					}
-				};
-			}
-			else {
-				auto target = std::get<WindowRenderTargetDescriptor>(drawPass->renderTarget);
-				pass.bindRenderTarget = [target]() {
-					Framebuffer::Unbind();
-					if (target.loadPolicy == AttachmentLoadPolicy::Clear) {
-						glClearColor(target.clearColor.r, target.clearColor.g, target.clearColor.b, target.clearColor.a);
-						glClear(GL_COLOR_BUFFER_BIT);
-					}
-					glBlendEquation(static_cast<GLenum>(target.blendFunc));
-					glBlendFunc(static_cast<GLenum>(target.blendingSrcFactor), static_cast<GLenum>(target.blendingDstFactor));
-				};
-			}
+	// Setup attachment texture bindings
+	for (auto& pass : renderOrder) {
+		auto drawPass = drawPasses.at(pass.sources.at(0));
+		for (auto& usageDescriptor : drawPass->boundAttachments) {
+			pass.textures.push_back(TextureBinding{
+				.textureToBind = attachmentLocations.at(std::get<std::string>(usageDescriptor.texture)),
+				.shaderSamplerName = usageDescriptor.textureUsageLocation
+				});
 		}
 	}
 
 	// TODO buffers
+
+	// destroy unused framebuffers
+	for (unsigned i = 0; i < framebuffers.size(); i++) {
+		if (framebuffers[i].destroy) {
+			framebuffers[i] = framebuffers.back();
+			framebuffers.pop_back();
+			i--;
+		}
+	}
 }
 
 bool RenderGraph::Compatible(const FramebufferRenderTargetDescriptor& requirements, const std::shared_ptr<Framebuffer>& hardwareResource)
 {
-	std::unordered_set<GLenum> attachmentsBeingUsed;
-
+	return false; // TODO
 }
 
-RenderGraph::FramebufferResource& RenderGraph::GetFramebuffer(FramebufferRenderTargetDescriptor params) {
+RenderGraph::FramebufferResource& RenderGraph::GetFramebuffer(FramebufferRenderTargetDescriptor params, std::vector<ResourceLifeTime> clts, std::optional<ResourceLifeTime> dlt) {
 	for (auto& f : framebuffers) {
-		if (Compatible(params, f.hardwareResource)) return f;
+		if (Compatible(params, f.hardwareResource)) { // TODO LIFETIME CHECK
+			f.destroy = false;
+			f.colorAttachmentAccesses.push_back(clts);
+			if (dlt) f.depthAttachmentAccesses.push_back(*dlt);
+			//f.attachmentLocations TODO???
+			return f;
+		}
 	}
 
-	std::vector<GLenum> attachmentFormats;
-	std::vector<bool> isRenderbuffer;
-	for (auto& a : params.attachments) {
-		attachmentFormats.push_back(a.format);
-		isRenderbuffer.push_back(a.renderbuffer);
+	
+	glm::uvec2 size = params.colorAttachments.empty() ? params.depthStencilAttachment.value().size : params.colorAttachments[0].size;
+	std::vector<TextureCreateParams> colorAttachments;
+	std::unordered_map<std::string, GLenum> attachmentLocations; 
+	std::unordered_map<std::string, Texture*> textures;
+	unsigned i = 0;
+	for (auto& att : params.colorAttachments) {
+		TextureCreateParams tcp({});
+		tcp.format = att.format;
+		tcp.renderBuffer = att.renderbuffer;
+		colorAttachments.push_back(tcp);
+		attachmentLocations[att.resourceName] = GL_COLOR_ATTACHMENT0 + (i++);
+	}
+	std::optional<TextureCreateParams> depthStencil;
+	if (params.depthStencilAttachment.has_value()) {
+		depthStencil.emplace(TextureCreateParams({}));
+		depthStencil->format = params.depthStencilAttachment->format;
+		depthStencil->renderBuffer = params.depthStencilAttachment->renderbuffer;
+		attachmentLocations[params.depthStencilAttachment->resourceName] = GL_DEPTH_STENCIL_ATTACHMENT;
+	}
+	auto framebuffer = std::make_shared<Framebuffer>(size.x, size.y, colorAttachments, depthStencil);
+	for (unsigned j = 0; j < colorAttachments.size(); j++) {
+		if (std::holds_alternative<Texture>(framebuffer->colorAttachments[j])) {
+			textures[params.colorAttachments[j].resourceName] = &std::get<Texture>(framebuffer->colorAttachments[j]);
+		}
+	}
+	if (framebuffer->depthAndStencilAttachment && std::holds_alternative<Texture>(*framebuffer->depthAndStencilAttachment)) {
+		textures[params.depthStencilAttachment->resourceName] = &std::get<Texture>(*framebuffer->depthAndStencilAttachment);
 	}
 
 	framebuffers.push_back(FramebufferResource{
-		.hardwareResource = std::make_shared<Framebuffer>(ijijiji),
-		.size = params.attachments[0].size,
-		.isRenderbuffer = isRenderbuffer,
-		.attachmentFormats = attachmentFormats,
+		.hardwareResource = framebuffer,
+		.colorAttachmentAccesses = {clts,},
+		.depthAttachmentAccesses = dlt ? std::vector<ResourceLifeTime>{*dlt,} : std::vector<ResourceLifeTime>{},
+		.attachmentLocations = attachmentLocations,
+		.readableAttachments = textures,
+		.destroy = false,
+		//.size = size,
+		//.isRenderbuffer = isRenderbuffer,
+		//.attachmentFormats = attachmentFormats,
 
 		});
+
+	return framebuffers.back();
 }
 
 ProcessedDrawPass::ProcessedDrawPass(std::shared_ptr<DrawPass> drawPass) {
@@ -358,7 +474,15 @@ ProcessedDrawPass::ProcessedDrawPass(std::shared_ptr<DrawPass> drawPass) {
 	sources.push_back(drawPass->name);
 }
 
-ProcessedDrawPass::ProcessedDrawPass(std::shared_ptr<ComputePass> computePass) {
-	sources.push_back(computePass->name);
-	Assert(false);
+//ProcessedDrawPass::ProcessedDrawPass(std::shared_ptr<ComputePass> computePass) {
+//	sources.push_back(computePass->name);
+//	Assert(false);
+//}
+
+ProcessedComputePass::ProcessedComputePass(std::shared_ptr<ComputePass> computePass):
+source(computePass->name),
+workgroupSize(computePass->workgroupSize),
+shader(computePass->shader)
+{
+
 }
