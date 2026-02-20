@@ -5,16 +5,16 @@
 #include "static_meshpool.hpp"
 
 void RenderGroup::RemoveGameobject(Gameobject& obj) {
-	meshpool->RemoveInstance(obj.render.instanceIndex);
+	meshpool->RemoveInstance(obj.drawInstanceIndex);
 
 	// TODO: data structure to accelerate this
 	for (unsigned i = 0; i < commands.size(); i++) {
-		if (commands[i].baseInstance <= obj.render.instanceIndex && commands[i].baseInstance + commands[i].instanceCount > obj.render.instanceIndex) {
+		if (commands[i].baseInstance <= obj.drawInstanceIndex && commands[i].baseInstance + commands[i].instanceCount > obj.drawInstanceIndex) {
 			
-			if (commands[i].baseInstance + commands[i].instanceCount - 1 == obj.render.instanceIndex) {
+			if (commands[i].baseInstance + commands[i].instanceCount - 1 == obj.drawInstanceIndex) {
 				commands[i].instanceCount--;
 			}
-			else if (commands[i].baseInstance == obj.render.instanceIndex) {
+			else if (commands[i].baseInstance == obj.drawInstanceIndex) {
 				if (commands[i].instanceCount == 1) {
 					commands[i] = commands.back();
 					commands.pop_back();
@@ -25,9 +25,9 @@ void RenderGroup::RemoveGameobject(Gameobject& obj) {
 			}
 			else {
 				commands.emplace_back(commands[i]);
-				commands.back().baseInstance = obj.render.instanceIndex + 1;
+				commands.back().baseInstance = obj.drawInstanceIndex + 1;
 				commands.back().instanceCount = commands[i].baseInstance + commands[i].instanceCount - commands.back().baseInstance;
-				commands[i].instanceCount = obj.render.instanceIndex - commands[i].baseInstance;
+				commands[i].instanceCount = obj.drawInstanceIndex - commands[i].baseInstance;
 			}
 
 			break;
@@ -55,16 +55,16 @@ void RenderGroup::RemoveGameobject(Gameobject& obj) {
 
 }
 
-void RenderGroup::AddGameobject(Gameobject& obj, GameobjectCreateParams& params) {
-	obj.render.instanceIndex = meshpool->AddInstance();
-	obj.render.group = this;
-	obj.render.pool = meshpool.get();
+void RenderGroup::AddGameobject(Gameobject& obj, const GameobjectCreateParams& params) {
+	obj.drawInstanceIndex = meshpool->AddInstance();
+	obj.renderGroup = this;
+	obj.meshpool = meshpool.get();
 
 	IndirectDrawCommand command;
 	command.baseVertex = params.mesh->baseVertex;
 	command.count = params.mesh->numIndices;
 	command.firstIndex = params.mesh->firstIndex;
-	command.baseInstance = obj.render.instanceIndex;
+	command.baseInstance = obj.drawInstanceIndex;
 	command.instanceCount = 1;
 	AddDrawCommand(command);
 }
@@ -96,7 +96,7 @@ void RenderGroup::AddDrawCommand(IndirectDrawCommand cmd) {
 	commands.push_back(cmd);
 }
 
-void RenderGroup::FindRendergroupForGameobject(Gameobject& obj, GameobjectCreateParams& params) {
+void RenderGroup::FindRendergroupForGameobject(Gameobject& obj, const GameobjectCreateParams& params) {
 	RenderGroup* group = nullptr;
 
 	if (renderGroupsByMeshpool.contains(params.mesh->pool.get())) {

@@ -13,7 +13,7 @@ class RenderGroup {
 public:
 	const GLenum primitiveType = GL_TRIANGLES;
 
-	static void FindRendergroupForGameobject(Gameobject& obj, GameobjectCreateParams& params);
+	static void FindRendergroupForGameobject(Gameobject& obj, const GameobjectCreateParams& params);
 
 	const std::vector<std::shared_ptr<DrawPass>> drawPasses;
 
@@ -23,7 +23,7 @@ public:
 	~RenderGroup() = default;
 
 private:
-	void AddGameobject(Gameobject& obj, GameobjectCreateParams& params);
+	void AddGameobject(Gameobject& obj, const GameobjectCreateParams& params);
 
 	RenderGroup(std::vector<std::shared_ptr<DrawPass>> drawPasses, std::shared_ptr<Meshpool> meshpool);
 

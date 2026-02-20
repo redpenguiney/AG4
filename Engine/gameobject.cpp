@@ -3,12 +3,12 @@
 #include <glm/gtx/quaternion.hpp>
 #include "static_meshpool.hpp"
 
-Gameobject* Gameobject::New(GameobjectCreateParams params)
+Gameobject* Gameobject::New(const GameobjectCreateParams& params)
 {
-    return MemoryPool<Gameobject, GameobjectCreateParams>::Get().New(params);
+    return MemoryPool<Gameobject, const GameobjectCreateParams&>::Get().New(params);
 }
 
-Gameobject::Gameobject(GameobjectCreateParams params) {
+Gameobject::Gameobject(const GameobjectCreateParams& params) {
     live = true;
     normalMatDirty = true;
 
@@ -21,12 +21,12 @@ Gameobject::Gameobject(GameobjectCreateParams params) {
 }
 
 Gameobject::~Gameobject() {
-    render.group->RemoveGameobject(*this);
+    renderGroup->RemoveGameobject(*this);
     live = false;
 }
 
 void Gameobject::operator delete(void* obj) {
-    MemoryPool<Gameobject, GameobjectCreateParams>::Get().Destroy(reinterpret_cast<Gameobject*>(obj));
+    MemoryPool<Gameobject, const GameobjectCreateParams&>::Get().Destroy(reinterpret_cast<Gameobject*>(obj));
 }
 
 const glm::dvec3& Gameobject::Position() const {
@@ -58,7 +58,7 @@ void Gameobject::SetRotation(const glm::quat& r) {
 }
 
 void Gameobject::SetInstanceAttribute(const VertexAttribute& attrib, VertexScalar* value) {
-    render.pool->SetInstancedVertexAttribute(render.instanceIndex, attrib, value);
+    meshpool->SetInstancedVertexAttribute(drawInstanceIndex, attrib, value);
 }
 
 void Gameobject::SetInstanceAttribute(const VertexAttribute& attrib, glm::vec4 value) {
@@ -87,6 +87,19 @@ bool Gameobject::Live() {
     return live;
 }
 
-//Physobject::Physobject(): Gameobject() {
-//
-//}
+Physobject::Physobject(const PhysobjectCreateParams& params): Gameobject(params) {
+
+}
+
+Physobject* Physobject::New(const PhysobjectCreateParams& params)
+{
+    return MemoryPool<Physobject, const PhysobjectCreateParams&>::Get().New(params);
+}
+
+void Physobject::operator delete(void* obj) {
+    MemoryPool<Physobject, const PhysobjectCreateParams&>::Get().Destroy(reinterpret_cast<Physobject*>(obj));
+}
+
+Physobject::~Physobject() {
+
+}

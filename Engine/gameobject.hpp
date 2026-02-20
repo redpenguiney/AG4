@@ -15,12 +15,6 @@ class Meshpool;
 class VertexAttribute;
 union VertexScalar;
 
-struct DrawHandle {
-	Meshpool* pool; // nullptr for null draw handle
-	unsigned instanceIndex;
-	RenderGroup* group;
-};
-
 struct GameobjectCreateParams {
 	std::vector<std::shared_ptr<DrawPass>> renderPasses = GraphicsEngine::Get().defaultDrawingPasses;
 	std::shared_ptr<Mesh> mesh;
@@ -30,9 +24,9 @@ class Gameobject {
 public:
 	// We use a factory function so gameobjects are always created in an object pool.
 	// You own the returned pointer and may safely place it in whatever wrappers (std::shared_ptr, std::unique_ptr, etc.) you please.
-	static Gameobject* New(GameobjectCreateParams params);
+	static Gameobject* New(const GameobjectCreateParams& params);
 
-	~Gameobject();
+	virtual ~Gameobject();
 
 	// Returns this object's memory to the object pool it came from. 
 	static void operator delete(void* obj);
@@ -58,7 +52,7 @@ public:
 
 protected:
 
-	Gameobject(GameobjectCreateParams params);
+	Gameobject(const GameobjectCreateParams& params);
 	Gameobject(const Gameobject&) = delete;
 
 	glm::dvec3 position;
@@ -69,9 +63,12 @@ protected:
 	bool normalMatDirty; // indicates that the normal matrix must be uploaded to the graphics engine again. TODO could hold false for gameobjects with meshes that don't use normal matrix 
 	// Used by MemoryPool. Not the first member in order to A. exploit otherwise wasted padding bytes and B. avoid interfering with free list
 	bool live;
+	
+	unsigned drawInstanceIndex; // undefined if not being drawn
+	Meshpool* meshpool; // nullptr if not being drawn
+	RenderGroup* renderGroup; // undefined if not being drawn
 
 	std::unique_ptr<Collider> collider;
-	DrawHandle render;
 
 	friend class MemoryPool<Gameobject, GameobjectCreateParams>;
 	friend class RenderGroup;
@@ -85,13 +82,15 @@ using PhysobjectCreateParams = GameobjectCreateParams;
 
 class Physobject : public Gameobject {
 public:
-	static Physobject* New();
+	static Physobject* New(const PhysobjectCreateParams& params);
 
 	static void operator delete(void* obj);
 
+	virtual ~Physobject();
+
 protected:
 
-	Physobject();
+	Physobject(const PhysobjectCreateParams& params);
 
 	glm::dvec3 lastPos;
 	glm::dvec3 nextPos;
