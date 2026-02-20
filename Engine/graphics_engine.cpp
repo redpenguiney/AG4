@@ -45,26 +45,29 @@ void GraphicsEngine::AddAttachment(FramebufferAttachmentFormatDescriptor attachm
 }
 
 void GraphicsEngine::WriteModelMatrices() {
-    for (auto& page : MemoryPool<Gameobject, GameobjectCreateParams>::Get().GetIterable()) {
-        for (unsigned i = 0; i < MemoryPool<Gameobject, GameobjectCreateParams>::objectsPerPage; i++) {
-            Gameobject& obj = page[i].obj;
-            if (!obj.Live()) continue;
+    auto write = [&](auto iterable) {
+        for (auto& page : iterable) {
+            for (unsigned i = 0; i < POOL_OBJECTS_PER_PAGE; i++) {
+                Gameobject& obj = page[i].obj;
+                if (!obj.Live()) continue;
 
-            glm::vec3 relPos = (obj.Position() - currentCamera.position);
-            glm::mat4x4 modelMatrix = glm::mat4x4(obj.GetRotSclMatrix());
-            modelMatrix[3].x = relPos.x;
-            modelMatrix[3].y = relPos.y;
-            modelMatrix[3].z = relPos.z;
-            modelMatrix[3].w = 1; // TODO is this one neccesary?
-            obj.render.pool->StreamModelMatrix(obj.render.instanceIndex, modelMatrix);
-            if (obj.normalMatDirty) {
-                //obj.normalMatDirty = false; TODO: it's always dirty because we're streaming it;
-                obj.render.pool->StreamNormalMatrix(obj.render.instanceIndex, glm::inverseTranspose(obj.GetRotSclMatrix())); // TODO: many things won't be nonuniformly scaled and this will be an unneccesary performance cost for them
+                glm::vec3 relPos = (obj.Position() - currentCamera.position);
+                glm::mat4x4 modelMatrix = glm::mat4x4(obj.GetRotSclMatrix());
+                modelMatrix[3].x = relPos.x;
+                modelMatrix[3].y = relPos.y;
+                modelMatrix[3].z = relPos.z;
+                modelMatrix[3].w = 1; // TODO is this one neccesary?
+                obj.meshpool->StreamModelMatrix(obj.drawInstanceIndex, modelMatrix);
+                if (obj.normalMatDirty) {
+                    //obj.normalMatDirty = false; TODO: it's always dirty because we're streaming it;
+                    obj.meshpool->StreamNormalMatrix(obj.drawInstanceIndex, glm::inverseTranspose(obj.GetRotSclMatrix())); // TODO: many things won't be nonuniformly scaled and this will be an unneccesary performance cost for them
+                }
             }
         }
-    }
+        };
 
-    // TODO: physobjects
+    write(Gameobject::Pool::Get().GetIterable());
+    write(Physobject::Pool::Get().GetIterable());
 }
 
 GraphicsEngine::GraphicsEngine() {

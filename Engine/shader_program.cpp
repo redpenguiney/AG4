@@ -24,13 +24,13 @@ void ShaderProgram::SetCameraUniforms(glm::mat4x4 cameraProjMatrix, glm::mat4x4 
     for (auto & [shaderId, shaderProgram] : LOADED_PROGRAMS) {
         (void)shaderId;
         if (shaderProgram->HasUniform("orthro")) { // make sure the shader program actually wants our camera/projection matrix
-            shaderProgram->Uniform("orthro", orthrographicMatrix, false);
+            shaderProgram->Uniform("orthro", orthrographicMatrix, false, false);
         }
         if (shaderProgram->HasUniform("perspective")) {
-            shaderProgram->Uniform("perspective",  cameraProjMatrix, false);
+            shaderProgram->Uniform("perspective",  cameraProjMatrix, false, false);
         }
         if (shaderProgram->HasUniform("persectiveNoFloatingOrigin")) {
-            shaderProgram->Uniform("perspectiveNoFloatingOrigin", cameraProjMatrixNoFloatingOrigin, false);
+            shaderProgram->Uniform("perspectiveNoFloatingOrigin", cameraProjMatrixNoFloatingOrigin, false, false);
         }
     }
 }

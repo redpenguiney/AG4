@@ -18,7 +18,6 @@ layout(location=10) in mat3 normalMatrix;
 
 // perspective has projection matrix and camera matrix
 uniform mat4 perspective;
-uniform mat4 modelToLightSpace;
 
 uniform bool normalMappingEnabled;
 
@@ -28,17 +27,16 @@ out vec3 cameraToFragmentInTangentSpace;
 out vec3 fragmentNormal;
 out vec3 fragmentTexCoords;
 out mat3 TBNmatrix; //TBN matrix is need to make normal mapping work when an object is rotated
-// out vec4 lightSpaceCoords;
 
 void main()
 {
-    gl_Position = modelMatrix * vec4(vertexPos, 1.0);
-    cameraToFragmentPosition = gl_Position.xyz;
-    gl_Position = perspective * gl_Position;
-    fragmentColor = color;
+    vec4 p = modelMatrix * vec4(vertexPos, 1.0);
+    cameraToFragmentPosition = p.xyz;
+    gl_Position = perspective * p;
+    //fragmentColor = color;
+    fragmentColor = vec4(gl_Position.zzz, 1);
     fragmentNormal = normalize(normalMatrix * vertexNormal);
     fragmentTexCoords = vec3(textureXY, autoTextureZ);
-    //lightSpaceCoords = modelToLightSpace * model * vec4(vertexPos, 1.0);
 
     vec3 T = normalize(vec3(modelMatrix * vec4(vertexTangent,   0.0)));
     vec3 B = cross(fragmentNormal, T);

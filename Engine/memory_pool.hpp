@@ -5,6 +5,8 @@
 //template <typename T>
 //concept CanGoInPool = requires (const T & a) { { a.live } -> std::same_as<bool&>; };
 
+static constexpr size_t POOL_OBJECTS_PER_PAGE = 256;
+
 // Singleton class. T must have a boolean member "live"
 template <typename T, typename...ConstructorArgs>
 	//requires CanGoInPool<T>
@@ -39,12 +41,12 @@ public:
 		if (!foundObj) {
 			// if we didn't find an object, then we must allocate a new page
 			StorageType* newPage = reinterpret_cast<StorageType*>(malloc(pageSize));
-			for (unsigned i = 0; i < objectsPerPage - 1; i++) {
+			for (unsigned i = 0; i < POOL_OBJECTS_PER_PAGE - 1; i++) {
 				newPage[i].nextFree = newPage + i + 1;
 				newPage[i].obj.live = false;
 			}
-			newPage[objectsPerPage - 1].nextFree = nullptr;
-			newPage[objectsPerPage - 1].obj.live = false;
+			newPage[POOL_OBJECTS_PER_PAGE - 1].nextFree = nullptr;
+			newPage[POOL_OBJECTS_PER_PAGE - 1].obj.live = false;
 			foundObj = &newPage->obj;
 			firstFree.push_back(newPage->nextFree);
 			pages.push_back(newPage);
@@ -66,7 +68,7 @@ public:
 		unsigned pageI = 0;
 		for (unsigned i = 0; i < pages.size(); i++) { // TODO: binary search would be better
 			auto& p = pages[i];
-			if (obj - &p->obj < objectsPerPage) {
+			if (obj - &p->obj < POOL_OBJECTS_PER_PAGE) {
 				page = p;
 				pageI = i;
 				break;
@@ -86,13 +88,12 @@ public:
 	}
 	
 	const std::vector<StorageType*>& GetIterable() { return pages; }	
-	static constexpr size_t objectsPerPage = 256;
 
 private:
 	MemoryPool() {}
 	MemoryPool(const MemoryPool&) = delete;
 
-	static constexpr size_t pageSize = sizeof(T) * objectsPerPage;
+	static constexpr size_t pageSize = sizeof(T) * POOL_OBJECTS_PER_PAGE;
 	std::vector<StorageType*> pages;
 	std::vector<StorageType*> firstFree; // for each page, first unallocated. nullptr if the page is entirely allocated.
 };

@@ -12,7 +12,7 @@ class Mesh;
 class RenderPass;
 class RenderGroup;
 class Meshpool;
-class VertexAttribute;
+struct VertexAttribute;
 union VertexScalar;
 
 struct GameobjectCreateParams {
@@ -50,6 +50,8 @@ public:
 
 	bool Live();
 
+	using Pool = MemoryPool<Gameobject, const GameobjectCreateParams&>;
+
 protected:
 
 	Gameobject(const GameobjectCreateParams& params);
@@ -70,7 +72,7 @@ protected:
 
 	std::unique_ptr<Collider> collider;
 
-	friend class MemoryPool<Gameobject, GameobjectCreateParams>;
+	friend class Pool;
 	friend class RenderGroup;
 	friend class GraphicsEngine;
 
@@ -88,6 +90,8 @@ public:
 
 	virtual ~Physobject();
 
+	using Pool = MemoryPool<Physobject, const PhysobjectCreateParams&>;
+
 protected:
 
 	Physobject(const PhysobjectCreateParams& params);
@@ -97,12 +101,15 @@ protected:
 	glm::quat lastRot;
 	glm::quat nextRot;
 
+	glm::vec3 velocity;
+	glm::vec3 rotVelocity;
+
 	glm::mat3x3 inverseInertiaTensor; // the moment of inertia is like mass, but for rotation.
 	
 	float inverseMass;
 	float elasticity;
 	float friction;
 
-	friend class MemoryPool<Physobject, PhysobjectCreateParams>;
-
+	friend class Pool;
+	friend class PhysicsEngine;
 };

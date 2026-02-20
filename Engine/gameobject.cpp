@@ -88,7 +88,8 @@ bool Gameobject::Live() {
 }
 
 Physobject::Physobject(const PhysobjectCreateParams& params): Gameobject(params) {
-
+    velocity = { 0, 0, 0 };
+    rotVelocity = { 0, 0, 0 };
 }
 
 Physobject* Physobject::New(const PhysobjectCreateParams& params)

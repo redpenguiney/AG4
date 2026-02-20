@@ -38,7 +38,7 @@ int main() {
 		newPass->outputs.push_back("FINAL_SCENE");
 		newPass->outputs.push_back("FINAL_SCENE_DEPTH");
 		newPass->params.depthTestMode = DepthTestMode::Disabled;
-		newPass->params.cullMode = FaceCulling::None;
+		newPass->params.cullMode = FaceCulling::Backface;
 		newPass->params.shader = ShaderProgram::New("../shaders/world_vertex.glsl", "../shaders/world_fragment.glsl");
 		newPass->params.shader->Uniform("vertexColorEnabled", true, true);
 		GraphicsEngine::Get().defaultDrawingPasses.push_back(newPass);
@@ -68,7 +68,7 @@ int main() {
 		});
 		postprocPass->outputs.push_back(WINDOW_RESOURCE_NAME);
 		postprocPass->params.depthTestMode = DepthTestMode::Disabled;
-		postprocPass->params.cullMode = FaceCulling::None;
+		postprocPass->params.cullMode = FaceCulling::Backface;
 		postprocPass->params.shader = ShaderProgram::New("../shaders/postproc_vertex.glsl", "../shaders/postproc_fragment.glsl");
 		GameobjectCreateParams quadParams;
 		quadParams.mesh = Mesh::Quad();
@@ -88,16 +88,16 @@ int main() {
 	p.mesh = squareMesh;
 
 	{
-		Gameobject* gameObj = Gameobject::New(p);
-		gameObj->SetPosition({ 0, -5, 0 });
-		gameObj->SetScale({ 10, 1, 10 });
-		glm::vec4 color(0, 1, 0, 1);
-		gameObj->SetInstanceAttribute(*squareMesh->format.GetAttribute("color"), color);
-		gameObj->SetInstanceAttribute(*squareMesh->format.GetAttribute(SpecialVertexAttributeNames::AUTOMATIC_TEXTURE_ARRAY_SELECTION), -1.0f);
+		//Gameobject* gameObj = Gameobject::New(p);
+		//gameObj->SetPosition({ 0, -5, 0 });
+		//gameObj->SetScale({ 10, 1, 10 });
+		//glm::vec4 color(0, 1, 0, 1);
+		//gameObj->SetInstanceAttribute(*squareMesh->format.GetAttribute("color"), color);
+		//gameObj->SetInstanceAttribute(*squareMesh->format.GetAttribute(SpecialVertexAttributeNames::AUTOMATIC_TEXTURE_ARRAY_SELECTION), -1.0f);
 
 		//delete gameObj;
-		std::shared_ptr<Gameobject> unique(gameObj);
-		objects.push_back(unique);
+		//std::shared_ptr<Gameobject> unique(gameObj);
+		//objects.push_back(unique);
 	}
 
 	for (int i = 0; i < 5; i++) {
@@ -119,16 +119,16 @@ int main() {
 	// Freecam
 	float pitch = 0, yaw = 0, speed = 0;
 	Mainloop::Get().preRender->Connect([&pitch, &yaw, &speed](float) {
-		pitch += 0.01 * Window::Get().MOUSE_DELTA.y;
-		yaw += 0.01 * Window::Get().MOUSE_DELTA.x;
+		pitch += 0.01f * Window::Get().MOUSE_DELTA.y;
+		yaw += 0.01f * Window::Get().MOUSE_DELTA.x;
 		pitch = std::clamp(pitch, -glm::radians(89.0f), glm::radians(89.0f));
-		if (yaw < 0) yaw += glm::radians(360.0f);
+		if (yaw < 0.0f) yaw += glm::radians(360.0f);
 		yaw = std::fmod(yaw,glm::radians(360.0f));
 
 		auto& cam = GraphicsEngine::Get().currentCamera;
-		float forward = (Window::Get().PRESSED_KEYS.contains(InputObject::W) ? 1 : 0) - (Window::Get().PRESSED_KEYS.contains(InputObject::S) ? 1 : 0);
-		float right = (Window::Get().PRESSED_KEYS.contains(InputObject::D) ? 1 : 0) - (Window::Get().PRESSED_KEYS.contains(InputObject::A) ? 1 : 0);
-		float up = (Window::Get().PRESSED_KEYS.contains(InputObject::Q) ? 1 : 0) - (Window::Get().PRESSED_KEYS.contains(InputObject::E) ? 1 : 0);
+		float forward = (Window::Get().PRESSED_KEYS.contains(InputObject::W) ? 1.0f : 0.0f) - (Window::Get().PRESSED_KEYS.contains(InputObject::S) ? 1.0f : 0.0f);
+		float right = (Window::Get().PRESSED_KEYS.contains(InputObject::D) ? 1.0f : 0.0f) - (Window::Get().PRESSED_KEYS.contains(InputObject::A) ? 1.0f : 0.0f);
+		float up = (Window::Get().PRESSED_KEYS.contains(InputObject::Q) ? 1.0f : 0.0f) - (Window::Get().PRESSED_KEYS.contains(InputObject::E) ? 1.0f : 0.0f);
 
 		if (forward == 0 && right == 0 && up == 0) speed = 0;
 		speed += 0.1;
@@ -139,6 +139,7 @@ int main() {
 		cam.position += (fDir * forward + rDir * right + upDir * up) * speed;
 		});
 
+	Mainloop::Get().physicsPaused = true;
 	Mainloop::Get().Run();
 	// TODO cleanup?
 
