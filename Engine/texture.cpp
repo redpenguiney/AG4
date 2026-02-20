@@ -397,7 +397,7 @@ bindingLocation(TextureBindingLocationFromType(textureType))
 
 // Create texture and attach it to framebuffer
 #pragma warning( disable: 4244)
-Texture::Texture(Framebuffer& framebuffer, const TextureCreateParams& params, const TextureType textureType, const GLenum framebufferAttachmentType):
+Texture::Texture(glm::uvec2 size, const TextureCreateParams& params, const TextureType textureType):
 format(params.format),
 type(textureType),
 lineSpacing(params.fontHeight),
@@ -412,30 +412,18 @@ bindingLocation(TextureBindingLocationFromType(textureType))
     glGenTextures(1, &glTextureId);
     Use(0);
 
-    width = framebuffer.width;
-    height = framebuffer.height;
+    width = size[0];
+    height = size[1];
     depth = 1; // TODO
 
-    // std::cout << " bind buffer for tex creation\n";
-    framebuffer.Bind({}); // bind the framebuffer so we can attach textures to it
     if (bindingLocation == GL_TEXTURE_2D_ARRAY) {
-
         // allocate storage for texture by passing nullptr as the data to load into the texture
         glTexStorage3D(bindingLocation, 1, params.format, width, height, depth);
         ConfigTexture(params);
-        
-        // attach the texture to the framebuffer
-        glFramebufferTextureLayer(framebuffer.bindingLocation, framebufferAttachmentType, glTextureId, 0, 0);
-        // allocate storage for texture by passing nullptr as the data to load into the texture
     }
     else if (bindingLocation == GL_TEXTURE_2D) {
-        //if (framebufferAttachmentType == GL_COLOR_ATTACHMENT0) {
-            glTexStorage2D(bindingLocation, 1, params.format, width, height);
-            ConfigTexture(params);
-            //DebugLogInfo("ATTACHING ", framebufferAttachmentType, " TO ", framebuffer.glFramebufferId);
-
-            glFramebufferTexture(framebuffer.bindingLocation, framebufferAttachmentType, glTextureId, 0);
-        //}
+        glTexStorage2D(bindingLocation, 1, params.format, width, height);
+        ConfigTexture(params);
     }
     else {
         DebugLogError(" add support first my guy\n");
@@ -461,6 +449,20 @@ Texture::Texture(Texture&& old) noexcept :
     fontGlyphs(old.fontGlyphs)
 {
     old.glTextureId = 0;
+}
+
+void Texture::AttachToFramebuffer(Framebuffer& framebuffer, const GLenum framebufferAttachmentType) {
+    framebuffer.Bind({}); // bind the framebuffer so we can attach textures to it
+    if (bindingLocation == GL_TEXTURE_2D_ARRAY) {
+        glFramebufferTextureLayer(framebuffer.bindingLocation, framebufferAttachmentType, glTextureId, 0, 0);
+    }
+    else if (bindingLocation == GL_TEXTURE_2D) {
+        glFramebufferTexture(framebuffer.bindingLocation, framebufferAttachmentType, glTextureId, 0);
+    }
+    else {
+        DebugLogError(" add support first my guy\n");
+        abort();
+    }
 }
 
 Texture::~Texture() {

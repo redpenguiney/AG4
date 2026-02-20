@@ -40,6 +40,10 @@ void GraphicsEngine::RemoveComputePass(std::shared_ptr<ComputePass> node) {
     renderGraph->RemovePass(node);
 }
 
+void GraphicsEngine::AddAttachment(FramebufferAttachmentFormatDescriptor attachment) {
+    renderGraph->CreateAttachment(attachment);
+}
+
 void GraphicsEngine::WriteModelMatrices() {
     for (auto& page : MemoryPool<Gameobject, GameobjectCreateParams>::Get().GetIterable()) {
         for (unsigned i = 0; i < MemoryPool<Gameobject, GameobjectCreateParams>::objectsPerPage; i++) {

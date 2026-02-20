@@ -3,10 +3,12 @@
 //#include "graphics_engine.hpp"
 #include "window.hpp"
 
-Framebuffer::Framebuffer(const unsigned int fbWidth, const unsigned int fbHeight, const std::vector<TextureCreateParams>& attachmentParams, std::optional<TextureCreateParams> depthAndStencilAttachmentParams):
+Framebuffer::Framebuffer(const unsigned int fbWidth, const unsigned int fbHeight, const std::vector<Attachment>& attachments, std::optional<Attachment> depthAndStencilAttachment):
 width(fbWidth), 
 height(fbHeight),
-bindingLocation(GL_FRAMEBUFFER)
+bindingLocation(GL_FRAMEBUFFER),
+colorAttachments(attachments),
+depthAndStencilAttachment(depthAndStencilAttachment)
 {
     // create openGL framebuffer
     glGenFramebuffers(1, &glFramebufferId);
@@ -14,37 +16,62 @@ bindingLocation(GL_FRAMEBUFFER)
     // bind it so we can set it up
     Bind({});
 
-    // attach textures (TODO: support for texture arrays, cubemaps?)
-    GLenum attachmentI = 0; // TODO: is there stuff besides color attachments we need to care about? 
-    for (auto & params: attachmentParams) {
-        Assert(params.format != Texture::Auto_8Bit && params.fontHeight != Texture::DEPTH24_STENCIL8);
-        if (params.renderBuffer) {
-            RenderbufferCreateParams rbp{
-                .storageFormat = static_cast<GLenum>(params.format), 
-                .attachmentPoint = GL_COLOR_ATTACHMENT0 + attachmentI,
-                .size = {fbWidth, fbHeight},
-            };
-            colorAttachments.push_back(Renderbuffer(rbp, *this));
+    GLenum attachmentI = 0;
+    for (auto& c : colorAttachments) {
+        if (std::holds_alternative<std::shared_ptr<Texture>>(c)) {
+            auto t = std::get<std::shared_ptr<Texture>>(c);
+            Assert(t->format != Texture::DEPTH24_STENCIL8);
+            t->AttachToFramebuffer(*this, GL_COLOR_ATTACHMENT0 + attachmentI);
         }
         else {
-            colorAttachments.push_back(Texture(*this, params, Texture::Texture2DFlat, GL_COLOR_ATTACHMENT0 + attachmentI));
+            auto r = std::get<std::shared_ptr<Renderbuffer>>(c);
+            Assert(r->format != Texture::DEPTH24_STENCIL8);
+            r->AttachToFramebuffer(*this, GL_COLOR_ATTACHMENT0 + attachmentI);
         }
-        attachmentI++;
+    }
+    if (depthAndStencilAttachment) {
+        if (std::holds_alternative<std::shared_ptr<Texture>>(*depthAndStencilAttachment)) {
+            auto t = std::get<std::shared_ptr<Texture>>(*depthAndStencilAttachment);
+            Assert(t->format == Texture::DEPTH24_STENCIL8);
+            t->AttachToFramebuffer(*this, GL_DEPTH_STENCIL_ATTACHMENT);
+        }
+        else {
+            auto r = std::get<std::shared_ptr<Renderbuffer>>(*depthAndStencilAttachment);
+            Assert(r->format == Texture::DEPTH24_STENCIL8);
+            r->AttachToFramebuffer(*this, GL_DEPTH_STENCIL_ATTACHMENT);
+        }
     }
 
-    if (depthAndStencilAttachmentParams) {
-        if (depthAndStencilAttachmentParams->renderBuffer) {
-            RenderbufferCreateParams rbp{
-                .storageFormat = static_cast<GLenum>(depthAndStencilAttachmentParams->format),
-                .attachmentPoint = GL_DEPTH_STENCIL_ATTACHMENT,
-                .size = {fbWidth, fbHeight},
-            };
-            depthAndStencilAttachment.emplace(Renderbuffer(rbp, *this));
-        }
-        else {
-            depthAndStencilAttachment.emplace(Texture(*this, *depthAndStencilAttachmentParams, Texture::Texture2DFlat, GL_DEPTH_STENCIL_ATTACHMENT));
-        }
-    }
+    //// attach textures (TODO: support for texture arrays, cubemaps?)
+    //for (auto & params: attachmentParams) {
+    //    Assert(params.format != Texture::Auto_8Bit && params.format != Texture::DEPTH24_STENCIL8);
+    //    if (params.renderBuffer) {
+    //        RenderbufferCreateParams rbp{
+    //            .storageFormat = static_cast<GLenum>(params.format), 
+    //            .attachmentPoint = GL_COLOR_ATTACHMENT0 + attachmentI,
+    //            .size = {fbWidth, fbHeight},
+    //        };
+    //        colorAttachments.push_back(Renderbuffer(rbp, *this));
+    //    }
+    //    else {
+    //        colorAttachments.push_back(Texture(*this, params, Texture::Texture2DFlat, GL_COLOR_ATTACHMENT0 + attachmentI));
+    //    }
+    //    attachmentI++;
+    //}
+
+    //if (depthAndStencilAttachmentParams) {
+    //    if (depthAndStencilAttachmentParams->renderBuffer) {
+    //        RenderbufferCreateParams rbp{
+    //            .storageFormat = static_cast<GLenum>(depthAndStencilAttachmentParams->format),
+    //            .attachmentPoint = GL_DEPTH_STENCIL_ATTACHMENT,
+    //            .size = {fbWidth, fbHeight},
+    //        };
+    //        depthAndStencilAttachment.emplace(Renderbuffer(rbp, *this));
+    //    }
+    //    else {
+    //        depthAndStencilAttachment.emplace(Texture(*this, *depthAndStencilAttachmentParams, Texture::Texture2DFlat, GL_DEPTH_STENCIL_ATTACHMENT));
+    //    }
+    //}
     
     // make sure framebuffer is valid
     auto status = glCheckFramebufferStatus(GL_FRAMEBUFFER);

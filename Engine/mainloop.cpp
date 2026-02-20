@@ -3,6 +3,7 @@
 #include "log.hpp"
 #include "graphics_engine.hpp"
 #include "window.hpp"
+#include "physics_engine.hpp"
 
 Mainloop& Mainloop::Get() {
 	static Mainloop m;
@@ -22,7 +23,7 @@ void Mainloop::Run() {
 		while (physicsLag > simulationTimestep && tries++ < 2) {
 			prePhysics->Fire(simulationTimestep);
 			BaseEvent::FlushEventQueue();
-			// TODO PHYSICS
+			PhysicsEngine::Get().StepSimulation(simulationTimestep);
 			postPhysics->Fire(simulationTimestep);
 			BaseEvent::FlushEventQueue();
 			physicsLag -= simulationTimestep;

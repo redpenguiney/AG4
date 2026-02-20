@@ -4,7 +4,9 @@
 #include "rendergraph_node.hpp"
 #include <string>
 #include <functional>
+#include "framebuffer.hpp"
 
+class BaseShaderProgram;
 class Meshpool;
 
 struct TextureBinding {
@@ -25,6 +27,7 @@ struct ProcessedDrawPass {
 	//size_t order;
 
 	std::function<void()> bindRenderTarget;
+	std::function<void(std::shared_ptr<BaseShaderProgram>)> setUniforms; // may be empty
 	std::vector<TextureBinding> textures;
 	std::vector<RenderGroup*> thingsToDraw;
 	
@@ -39,7 +42,7 @@ struct ProcessedComputePass {
 	std::string source;
 	std::shared_ptr<ComputeShaderProgram> shader;
 	glm::uvec3 workgroupSize;
-
+	std::function<void(std::shared_ptr<BaseShaderProgram>)> setUniforms; // may be empty
 	GLbitfield dependencyWriteMemoryBarrierBits = 0;
 
 	ProcessedComputePass(std::shared_ptr<ComputePass> computePass);
@@ -72,7 +75,7 @@ enum class ResourceType {
 struct LogicalResource {
 	ResourceLifeTime lifetime;
 	ResourceType type = ResourceType::Abstract;
-	FramebufferAttachmentDescriptor framebufferAttachmentInfo;
+	//FramebufferAttachmentFormatDescriptor framebufferAttachmentInfo;
 };
 
 // A compiled render graph. The user should not work with this class directly.
@@ -84,8 +87,7 @@ public:
 	void AddPass(std::shared_ptr<RenderPass> pass);
 	void RemovePass(std::shared_ptr<RenderPass> pass);
 
-	//void AddLogicalResource(std::string name, FramebufferAttachmentDescriptor renderTarget);
-	//void RemoveLogicalResource(std::string name);
+	void CreateAttachment(FramebufferAttachmentFormatDescriptor attachment);
 
 	~RenderGraph() = default;
 	RenderGraph(const RenderGraph&) = delete;
@@ -94,24 +96,32 @@ private:
 	// updates the contents of renderSets
 	void Compile();
 
-	bool Compatible(const FramebufferRenderTargetDescriptor& requirements, const std::shared_ptr<Framebuffer>& hardwareResource);
+	glm::uvec2 AttachmentSize(std::string name);
 
 	struct FramebufferResource {
 		std::shared_ptr<Framebuffer> hardwareResource;
-		std::vector<std::vector<ResourceLifeTime>> colorAttachmentAccesses; // one vector per color attachment
-		std::vector<ResourceLifeTime> depthAttachmentAccesses;
 		std::unordered_map<std::string, GLenum> attachmentLocations;
 		std::unordered_map<std::string, Texture*> readableAttachments;
 		bool destroy;
 	};
 
-	FramebufferResource& GetFramebuffer(FramebufferRenderTargetDescriptor params, std::vector<ResourceLifeTime> clts, std::optional<ResourceLifeTime> dlt);
+	struct AttachmentResource {
+		std::string name;
+		Framebuffer::Attachment hardwareResource;
+		std::vector<ResourceLifeTime> accesses;
+		bool destroy;
+	};
+
+	bool Compatible(const FramebufferRenderTargetDescriptor& requirements, const FramebufferResource& resource);
+
+	FramebufferResource& GetFramebuffer(FramebufferRenderTargetDescriptor params);
 
 	//BufferedBuffer indirectDrawingCommandBuffer;
 	std::unordered_map<std::string, std::shared_ptr<DrawPass>> drawPasses;
 	std::unordered_map<std::string, std::shared_ptr<ComputePass>> computePasses;
 
 	std::vector<FramebufferResource> framebuffers;
+	std::unordered_map<std::string, AttachmentResource> attachments;
 
 	// Ordered based on the dependency graph of the RenderPasses in each RenderSet, and then in an order intended to improve performance by reducing OpenGL state changes
 	std::vector<std::variant<ProcessedDrawPass, ProcessedComputePass>> renderOrder;

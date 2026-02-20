@@ -120,13 +120,13 @@ void BufferedBuffer::Reallocate(unsigned int newSize) {
     _bufferData = (char*)newBufferData;
 }
 
-void BufferedBuffer::Bind() {
+void BufferedBuffer::Bind(GLenum bindingLocation) {
     Assert(bufferId != 0);
-    glBindBuffer(bufferBindingLocation, bufferId);
+    glBindBuffer(bindingLocation, bufferId);
 }
 
-void BufferedBuffer::BindBase(unsigned int index) {
-    glBindBufferBase(bufferBindingLocation, index, bufferId);
+void BufferedBuffer::BindBase(GLenum bindingLocation, unsigned int index) {
+    glBindBufferBase(bindingLocation, index, bufferId);
 }
 
 // returns pointer to buffer contents that you can write to

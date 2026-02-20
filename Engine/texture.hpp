@@ -1,6 +1,7 @@
 #pragma once
 #include "GL/glew.h"
 #include <glm/vec3.hpp>
+#include <glm/ext/vector_uint2.hpp>
 #include <memory>
 #include <optional>
 #include <string>
@@ -90,23 +91,17 @@ class Texture {
 
     // normal constructor for a texture. TextureIndex refers to which texture unit it will occupy when bound (when rendering, each texture unit can hold one texture for shaders to access)
     // Aborts if arguments are inherently invalid, but throws an exception if texture files is nonexistent/incompatible with those arguments.
-    
     Texture(const TextureCreateParams& params, const TextureType textureType); 
 
-    // constructor that creates an empty texture (params.texturePaths is ignored and should be an empty vector) and binds it to the given framebuffer.
-    Texture(Framebuffer& framebuffer, const TextureCreateParams& params, const TextureType textureType, const GLenum framebufferAttachmentType); 
+    // constructor that creates an empty texture of the given size (params.texturePaths is ignored and should be an empty vector).
+    // Only useful for framebuffers, should be used with Framebuffer constructor.
+    Texture(glm::uvec2 size, const TextureCreateParams& params, const TextureType textureType); 
     
     Texture(const Texture&) = delete; // destructor deletes the openGL texture, so copying it would be bad since it would be using the same id of the now-deleted openGL texture 
 
     Texture(Texture&&) noexcept; // move constructor is allowed
 
-    // Given that the texture is an array texture, will append the image at the given path to the texture array, returning the textureZ coordinate the image can be accessed through.
-    //float AddLayer();
-
-    
-    // static std::shared_ptr<Texture> New(TextureType textureType, std::string path, int layerHeight = -1, int mipmapLevels = 4);
-
-    // static std::shared_ptr<Texture> New(TextureType textureType, std::vector<std::string>& paths, int mipmapLevels = 4);
+    void AttachToFramebuffer(Framebuffer& f, const GLenum framebufferAttachmentType);
 
     ~Texture();
 

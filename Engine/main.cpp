@@ -19,23 +19,20 @@ int main() {
 	// renderpasses
 	{
 		
-		
+	
 
 		// normal objects
 		auto newPass = std::make_shared<DrawPass>();
 		newPass->name = "default";
 		auto frt = FramebufferRenderTargetDescriptor();
-		frt.colorAttachments.push_back(FramebufferAttachmentDescriptor{
-			.resourceName = "FINAL_SCENE",
+		frt.colorAttachments.push_back(FramebufferAttachmentUsageDescriptor{
+			.attachmentName = "FINAL_SCENE",
 			.loadPolicy = AttachmentLoadPolicy::Clear,
-			.format = Texture::RGBA_16Float,
-			.size = {1024, 1024},
+			
 			});
-		frt.depthStencilAttachment.emplace(FramebufferAttachmentDescriptor{
-			.resourceName = "FINAL_SCENE_DEPTH",
-			.renderbuffer = true,
-			.format = Texture::DEPTH24_STENCIL8,
-			.size = {1024, 1024},
+		frt.depthStencilAttachment.emplace(FramebufferAttachmentUsageDescriptor{
+			.attachmentName = "FINAL_SCENE_DEPTH",
+			.loadPolicy =  AttachmentLoadPolicy::Clear
 			});
 		newPass->renderTarget = frt;
 		newPass->outputs.push_back("FINAL_SCENE");
@@ -43,7 +40,20 @@ int main() {
 		newPass->params.depthTestMode = DepthTestMode::Disabled;
 		newPass->params.cullMode = FaceCulling::None;
 		newPass->params.shader = ShaderProgram::New("../shaders/world_vertex.glsl", "../shaders/world_fragment.glsl");
+		newPass->params.shader->Uniform("vertexColorEnabled", true, true);
 		GraphicsEngine::Get().defaultDrawingPasses.push_back(newPass);
+
+		GraphicsEngine::Get().AddAttachment(FramebufferAttachmentFormatDescriptor{
+			.resourceName = "FINAL_SCENE",
+			.format = Texture::RGBA_16Float,
+			.size = {1024, 1024},
+			});
+		GraphicsEngine::Get().AddAttachment(FramebufferAttachmentFormatDescriptor{
+			.resourceName = "FINAL_SCENE_DEPTH",
+			.renderbuffer = true,
+			.format = Texture::DEPTH24_STENCIL8,
+			.size = {1024, 1024},
+			});
 
 		// postproc
 		auto postprocPass = std::make_shared<DrawPass>();
@@ -77,9 +87,22 @@ int main() {
 	GameobjectCreateParams p;
 	p.mesh = squareMesh;
 
-	for (int i = 0; i < 5; i++) {
+	{
 		Gameobject* gameObj = Gameobject::New(p);
-		gameObj->SetPosition({ i, 0, -5 - i });
+		gameObj->SetPosition({ 0, -5, 0 });
+		gameObj->SetScale({ 10, 1, 10 });
+		glm::vec4 color(0, 1, 0, 1);
+		gameObj->SetInstanceAttribute(*squareMesh->format.GetAttribute("color"), color);
+		gameObj->SetInstanceAttribute(*squareMesh->format.GetAttribute(SpecialVertexAttributeNames::AUTOMATIC_TEXTURE_ARRAY_SELECTION), -1.0f);
+
+		//delete gameObj;
+		std::shared_ptr<Gameobject> unique(gameObj);
+		objects.push_back(unique);
+	}
+
+	for (int i = 0; i < 5; i++) {
+		Physobject* gameObj = Physobject::New(p);
+		gameObj->SetPosition({ i, 0, -3 - i });
 		gameObj->SetScale({ 0.8, 0.8, 0.8 });
 		glm::vec4 color(1, 0, 1, 1);
 		gameObj->SetInstanceAttribute(*squareMesh->format.GetAttribute("color"), color);

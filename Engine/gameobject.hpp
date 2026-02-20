@@ -39,7 +39,7 @@ public:
 	void SetScale(const glm::vec3&);
 	void SetRotation(const glm::quat&);
 
-	// attrib and value better match up, or you'll be lucky to get a segfault
+	// attrib and value better match up, or you'll be lucky if you get a segfault
 	void SetInstanceAttribute(const VertexAttribute& attrib, VertexScalar* value);
 
 	void SetInstanceAttribute(const VertexAttribute& attrib, glm::vec4 value);
@@ -97,9 +97,9 @@ protected:
 	glm::quat lastRot;
 	glm::quat nextRot;
 
-	float inverseMass;
 	glm::mat3x3 inverseInertiaTensor; // the moment of inertia is like mass, but for rotation.
-
+	
+	float inverseMass;
 	float elasticity;
 	float friction;
 

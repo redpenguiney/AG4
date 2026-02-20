@@ -56,7 +56,7 @@ void Meshpool::PrepareWrite() {
 }
 
 void Meshpool::SetupVAOAttributes(const std::shared_ptr<ShaderProgram>& shader, bool instanced) {
-	if (instanced) instances.Bind(); else vertices.Bind();
+	if (instanced) instances.Bind(GL_ARRAY_BUFFER); else vertices.Bind(GL_ARRAY_BUFFER);
 	
 	for (const auto& attributeRequested : shader->GetInputVertexAttributes()) {
 		for (auto& attribute : format.GetAttributes()) {
@@ -154,7 +154,7 @@ instances(GL_ARRAY_BUFFER, 3, currentInstanceCapacity* f.GetInstancedVertexSize(
 void Meshpool::UpdateVertexCapacity() {
 	vertices.Reallocate(currentVertexCapacity * format.GetNonInstancedVertexSize());
 	DestroyVAOs();
-	vertices.Bind();
+	vertices.Bind(GL_ARRAY_BUFFER);
 }
 
 void Meshpool::UpdateIndicesCapacity() {
@@ -164,7 +164,7 @@ void Meshpool::UpdateIndicesCapacity() {
 void Meshpool::UpdateInstanceCapacity() {
 	instances.Reallocate(currentInstanceCapacity * format.GetInstancedVertexSize());
 	DestroyVAOs();
-	instances.Bind();
+	instances.Bind(GL_ARRAY_BUFFER);
 }
 
 StaticMeshpool::StaticMeshpool(MeshVertexFormat f): Meshpool(f) {

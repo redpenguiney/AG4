@@ -1,11 +1,13 @@
 #pragma once
 #include <memory>
 #include <vector>
+#include <functional>
 #include "glm/vec4.hpp"
 #include "glm/vec2.hpp"
 #include "GL/glew.h"
 #include "texture_collection.hpp"
 
+class BaseShaderProgram;
 class Framebuffer;
 class BufferedBuffer;
 class ShaderProgram;
@@ -74,28 +76,35 @@ enum class AttachmentLoadPolicy {
 };
 
 // TODO: TEXTURE SAMPLING PARAMETERS?
-struct FramebufferAttachmentDescriptor {
+struct FramebufferAttachmentFormatDescriptor {
 	std::string resourceName;
 	// probably only set to true for depth buffers you don't want to read from inside shaders
 	bool renderbuffer = false;
 	//// when drawing, the shader-specified index of the output variable which should be output onto this attachment. 
 	//// -1 if not drawing to this attachment. (TODO why would you want that?)
 	//int drawBuffer = -1; 
-	AttachmentLoadPolicy loadPolicy = AttachmentLoadPolicy::Load;
-	glm::vec4 clearColor = { 0, 0, 0, 0 }; // used if loadPolicy == Clear. x value is used for clearing depth, y value is used for clearing stencil.
+
 	Texture::TextureFormat format = Texture::RGBA_16Float;
 	glm::uvec2 size = {128, 128};
+	
+
+};
+
+struct FramebufferAttachmentUsageDescriptor {
+	std::string attachmentName;
+
+	AttachmentLoadPolicy loadPolicy = AttachmentLoadPolicy::Load;
+	glm::vec4 clearColor = { 0, 0, 0, 0 }; // used if loadPolicy == Clear. x value is used for clearing depth, y value is used for clearing stencil.
 	BlendFactorMode blendingSrcFactor = BlendFactorMode::SrcAlpha;
 	BlendFactorMode blendingDstFactor = BlendFactorMode::OneMinusSrcAlpha;
 	BlendingEquation blendFunc = BlendingEquation::Addition;
-
 };
 
 struct FramebufferRenderTargetDescriptor {
 	// Note: don't include attachments this pass doesn't draw to. 
 	// Corresponds 1:1 with drawbuffers.
-	std::vector<FramebufferAttachmentDescriptor> colorAttachments;
-	std::optional<FramebufferAttachmentDescriptor> depthStencilAttachment;
+	std::vector<FramebufferAttachmentUsageDescriptor> colorAttachments;
+	std::optional<FramebufferAttachmentUsageDescriptor> depthStencilAttachment;
 };
 
 constexpr inline const char* WINDOW_RESOURCE_NAME = "__WINDOW__";
@@ -155,7 +164,7 @@ struct RenderingParameters {
 	glm::ivec2 scissorCorner2;
 };
 
-
+//using ShaderUniformType = std::variant<glm::mat4x4, glm::vec4, glm::vec3, glm::vec2, float, bool, unsigned, int>;
 
 class RenderPass {
 public:
@@ -165,6 +174,13 @@ public:
 	std::vector<std::string> outputs; // names of Resources that this RenderPass writes to
 
 	std::vector<TextureUsageDescriptor> boundAttachments;
+
+	// uniforms (constant globals) to be fed to shaders
+	//std::vector<std::pair<std::string, ShaderUniformType>> uniforms;
+
+	// optional user defined function which if supplied can be used to set shader uniforms (constant globals) prior to drawing/compute work.
+	// Passed argument is the shader about to be used.
+	std::function<void(std::shared_ptr<BaseShaderProgram>)> uniformSupplier;
 
 	virtual ~RenderPass() = default;
 
