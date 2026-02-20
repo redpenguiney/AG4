@@ -11,6 +11,7 @@
 // TODO: for persistently mapped buffers on platforms that don't support them, we can just make it call glBufferData when Commit() is called.
 class BufferedBuffer {
     public:
+    // note that buffer can be bound elsewhere
     const GLenum bufferBindingLocation;
 
     // lets stuff be read only without a getter
@@ -47,8 +48,8 @@ class BufferedBuffer {
     // Might yield if GPU isn't ready for us to write the data, so call at the last possible second.
     void Flip();
 
-    void Bind();
-    void BindBase(unsigned int index);
+    void Bind(GLenum bindingLocation);
+    void BindBase(GLenum bindingLocation, unsigned int index);
     char* Data();
     // returns offset in bytes from start of _bufferData to Data()'s current value
     unsigned int GetOffset();

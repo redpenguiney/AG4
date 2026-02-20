@@ -8,11 +8,17 @@
 
 // A framebuffer in OpenGL is an object you draw to.
 class Framebuffer {
-    public:
-    Framebuffer(const unsigned int fbWidth, const unsigned int fbHeight, const std::vector<TextureCreateParams>& colorAttachments, std::optional<TextureCreateParams> depthAndStencilAttachment);
+public:
+    // shared_ptr because multiple framebuffers can share the same attachment(s)
+    using Attachment = std::variant<std::shared_ptr<Texture>, std::shared_ptr<Renderbuffer>>;
+
+    // Attaches its arguments.
+    Framebuffer(const unsigned int fbWidth, const unsigned int fbHeight, const std::vector<Attachment>& colorAttachments, std::optional<Attachment> depthAndStencilAttachment);
     Framebuffer(const Framebuffer&) = delete; // copying the framebuffer would call the destructor (destroying the actual openGL framebuffer) but create a new framebuffer that thinks that openGL framebuffer still exists (bad)
 
     ~Framebuffer();
+
+
 
     // Binds the framebuffer, causing all drawing operations to be drawn onto this framebuffer until Bind() is called on another framebuffer, or Unbind() is called.
     // The nth fragment shader output will write to the nth framebuffer attachment.
@@ -44,11 +50,11 @@ class Framebuffer {
 
     // these store what is rendered onto the framebuffer
     // colorAttachments[n] uses GL_COLOR_ATTACHMENT0 + n
-    std::vector<std::variant<Texture, Renderbuffer>> colorAttachments;
-    std::optional<std::variant<Texture, Renderbuffer>> depthAndStencilAttachment;
+    std::vector<Attachment> colorAttachments;
+    std::optional<Attachment> depthAndStencilAttachment;
 
 
-    private:
+private:
     // id of currently bound framebuffer, 0 if none (aka the internal default framebuffer) is bound.
     // TOOD: other binding locations
     static inline int currentlyBound = 0; 

@@ -21,6 +21,8 @@ public:
 	void AddComputePass(std::shared_ptr<ComputePass> node);
 	void RemoveComputePass(std::shared_ptr<ComputePass> node);
 
+	void AddAttachment(FramebufferAttachmentFormatDescriptor attachment);
+
 	// Default renderpasses for newly created GameobjectCreateParams. Will have a reasonable default, but change at your discretion. 
 	std::vector<std::shared_ptr<DrawPass>> defaultDrawingPasses;
 

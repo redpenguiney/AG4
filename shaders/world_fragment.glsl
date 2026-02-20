@@ -50,7 +50,7 @@ void main()
     }
 
     vec3 light = CalculateLighting(specularStrength, normal);
-    vec3 globalAmbient = vec3(0.1, 0.1, 0.1);
+    vec3 globalAmbient = vec3(1, 1, 1);
     light += globalAmbient;
 
     vec4 tx;

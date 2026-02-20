@@ -38,6 +38,7 @@ void RenderGraph::Render() {
 			p.bindRenderTarget();
 
 			p.params.shader->Use();
+			if (p.setUniforms.operator bool()) p.setUniforms(p.params.shader);
 
 			if (p.params.blending) {
 				glEnable(GL_BLEND);
@@ -90,7 +91,7 @@ void RenderGraph::Render() {
 
 			for (auto& renderGroup : p.thingsToDraw) {
 				renderGroup->meshpool->BindVAO(p.params.shader);
-				renderGroup->meshpool->indices.Bind();
+				renderGroup->meshpool->indices.Bind(GL_ELEMENT_ARRAY_BUFFER);
 				for (auto& c : renderGroup->commands) {
 					//glPointSize(5);
 					unsigned baseVertexOffset = renderGroup->meshpool->vertices.GetOffset() / renderGroup->meshpool->format.GetNonInstancedVertexSize();
@@ -106,13 +107,16 @@ void RenderGraph::Render() {
 			if (p.dependencyWriteMemoryBarrierBits != 0) {
 				glMemoryBarrier(p.dependencyWriteMemoryBarrierBits);
 			}
-
+			
+			if (p.setUniforms.operator bool()) p.setUniforms(p.shader);
 			p.shader->Dispatch(p.workgroupSize);
 		}
 	}
 }
 
 void RenderGraph::AddPass(std::shared_ptr<RenderPass> pass) {
+	// TODO: ATTACHMENTS/RESOURCES WITH SAME NAME MUST HAVE SAME PARAMS, OR BE SPECIFIED EXTERNALLY
+
 	// can't add same pass twice
 	Assert(drawPasses.contains(pass->name) == false && computePasses.contains(pass->name) == false);
 
@@ -140,23 +144,31 @@ void RenderGraph::AddPass(std::shared_ptr<RenderPass> pass) {
 			Assert(fbt.colorAttachments.size() > 0 || fbt.depthStencilAttachment.has_value());
 			for (auto& attachment : fbt.colorAttachments) {
 				for (auto& name : pass->outputs) {
-					if (name == attachment.resourceName) goto foundOutput;
+					if (name == attachment.attachmentName) goto foundOutput;
 				}
 				Assert(false);
 				foundOutput:;
 			}
 			if (fbt.depthStencilAttachment.has_value()) {
 				for (auto& name : pass->outputs) {
-					if (name == fbt.depthStencilAttachment->resourceName) goto foundOutput3;
+					if (name == fbt.depthStencilAttachment->attachmentName) goto foundOutput3;
 				}
 				Assert(false);
 				foundOutput3:;
 			}
 
+			// Validate that all attachments written to exist
+			for (auto& attachment : fbt.colorAttachments) Assert(attachments.contains(attachment.attachmentName));
+			if (fbt.depthStencilAttachment) Assert(attachments.contains(fbt.depthStencilAttachment->attachmentName));
+
 			// Validate that all attachments written to are the same size.
-			glm::uvec2 size = fbt.depthStencilAttachment ? fbt.depthStencilAttachment->size : fbt.colorAttachments[0].size;
+			glm::uvec2 size;
+			if (fbt.depthStencilAttachment)
+				size = AttachmentSize(fbt.depthStencilAttachment->attachmentName);
+			else
+				size = AttachmentSize(fbt.colorAttachments[0].attachmentName);
 			for (auto& attachment : fbt.colorAttachments) {
-				Assert(size == attachment.size);
+				Assert(size == AttachmentSize(attachment.attachmentName));
 			}
 		}
 		else {
@@ -181,6 +193,32 @@ void RenderGraph::RemovePass(std::shared_ptr<RenderPass> pass) {
 	dirty = true;
 }
 
+void RenderGraph::CreateAttachment(FramebufferAttachmentFormatDescriptor attachment) {
+	Assert(!attachments.contains(attachment.resourceName));
+	Assert(attachment.format != Texture::Auto_8Bit);
+
+
+	Framebuffer::Attachment a;
+	if (attachment.renderbuffer) {
+		RenderbufferCreateParams rbp{
+			.storageFormat = static_cast<GLenum>(attachment.format),
+			.size = attachment.size,
+		};
+		a = std::make_shared<Renderbuffer>(rbp);
+	}
+	else {
+		TextureCreateParams tcp({});
+		tcp.format = attachment.format;
+		tcp.renderBuffer = attachment.renderbuffer;
+		a = std::make_shared<Texture>(attachment.size, tcp, Texture::Texture2DFlat);
+	}
+
+	AttachmentResource resource{ .name = attachment.resourceName, .hardwareResource = a, .accesses = {}, .destroy = false };
+	attachments.emplace(attachment.resourceName, resource);
+
+	dirty = true;
+}
+
 void RenderGraph::Compile() {
 	Assert(dirty);
 	dirty = false;
@@ -188,8 +226,6 @@ void RenderGraph::Compile() {
 
 	for (auto& f : framebuffers) {
 		f.destroy = true;
-		for (auto& a : f.colorAttachmentAccesses) a.clear();
-		f.depthAttachmentAccesses.clear();
 		f.attachmentLocations.clear();
 		f.readableAttachments.clear();
 	}
@@ -289,9 +325,9 @@ void RenderGraph::Compile() {
 			if (std::holds_alternative<FramebufferRenderTargetDescriptor>(drawPass->renderTarget)) {
 				auto descriptor = std::get<FramebufferRenderTargetDescriptor>(drawPass->renderTarget);
 				for (auto& a : descriptor.colorAttachments) {
-					Assert(logicalResources.contains(a.resourceName));
-					logicalResources[a.resourceName].framebufferAttachmentInfo = a;
-					logicalResources[a.resourceName].type = ResourceType::FramebufferAttachment;
+					Assert(logicalResources.contains(a.attachmentName));
+					//logicalResources[a.attachmentName].framebufferAttachmentInfo = a;
+					logicalResources[a.attachmentName].type = ResourceType::FramebufferAttachment;
 					//set.writtenAttachments.push_back(a.resourceName);
 				}
 				if (descriptor.depthStencilAttachment) {
@@ -328,68 +364,76 @@ void RenderGraph::Compile() {
 	std::unordered_map<std::string, Texture*> attachmentLocations;
 
 	// Setup render targets
-	for (auto& pass : renderOrder) {
-		auto drawPass = drawPasses.at(pass.sources.at(0));
-		if (std::holds_alternative<FramebufferRenderTargetDescriptor>(drawPass->renderTarget)) {
-			auto& target = std::get<FramebufferRenderTargetDescriptor>(drawPass->renderTarget);
-			
-			std::vector<ResourceLifeTime> colorAttachmentLifetimes;
-			for (auto& t : target.colorAttachments) {
-				colorAttachmentLifetimes.push_back(logicalResources[t.resourceName].lifetime);
-			}
-			FramebufferResource& framebuffer = GetFramebuffer(target, colorAttachmentLifetimes, target.depthStencilAttachment ? std::make_optional(logicalResources[target.depthStencilAttachment->resourceName].lifetime) : std::nullopt);
-			std::vector<GLenum> drawBuffers;
-			for (auto& t : target.colorAttachments) {
-				GLenum attachmentLocation = framebuffer.attachmentLocations[t.resourceName];
-				drawBuffers.push_back(attachmentLocation);
-			}
+	for (auto& p : renderOrder) {
+		if (std::holds_alternative<ProcessedDrawPass>(p)) {
+			auto& pass = std::get<ProcessedDrawPass>(p);
+			auto& drawPass = drawPasses.at(pass.sources.at(0));
+			if (std::holds_alternative<FramebufferRenderTargetDescriptor>(drawPass->renderTarget)) {
+				auto& target = std::get<FramebufferRenderTargetDescriptor>(drawPass->renderTarget);
 
-			for (auto& [name, texture] : framebuffer.readableAttachments) {
-				if (attachmentLocations.contains(name)) Assert(attachmentLocations[name] == texture);
-				attachmentLocations[name] = texture;
-			}
+				std::vector<ResourceLifeTime> colorAttachmentLifetimes;
+				for (auto& t : target.colorAttachments) {
+					colorAttachmentLifetimes.push_back(logicalResources[t.attachmentName].lifetime);
+				}
+				FramebufferResource& framebuffer = GetFramebuffer(target);
+				std::vector<GLenum> drawBuffers;
+				for (auto& t : target.colorAttachments) {
+					GLenum attachmentLocation = framebuffer.attachmentLocations.at(t.attachmentName);
+					drawBuffers.push_back(attachmentLocation);
+				}
 
-			pass.bindRenderTarget = [drawBuffers, framebuffer, target]() {
-				framebuffer.hardwareResource->Bind(drawBuffers);
-				for (unsigned i = 0; i < target.colorAttachments.size(); i++) {
-					auto& a = target.colorAttachments[i];
-					if (a.loadPolicy == AttachmentLoadPolicy::Clear) {			
-						glClearBufferfv(GL_COLOR, i, &a.clearColor[0]);
+				for (auto& [name, texture] : framebuffer.readableAttachments) {
+					if (attachmentLocations.contains(name)) Assert(attachmentLocations[name] == texture);
+					attachmentLocations[name] = texture;
+				}
+
+				pass.bindRenderTarget = [drawBuffers, framebuffer, target]() {
+					framebuffer.hardwareResource->Bind(drawBuffers);
+					for (unsigned i = 0; i < target.colorAttachments.size(); i++) {
+						auto& a = target.colorAttachments[i];
+						if (a.loadPolicy == AttachmentLoadPolicy::Clear) {
+							glClearBufferfv(GL_COLOR, i, &a.clearColor[0]);
+						}
+
+						glBlendEquationi(i, static_cast<GLenum>(a.blendFunc));
+						glBlendFunci(i, static_cast<GLenum>(a.blendingSrcFactor), static_cast<GLenum>(a.blendingDstFactor));
 					}
 
-					glBlendEquationi(i, static_cast<GLenum>(a.blendFunc));
-					glBlendFunci(i, static_cast<GLenum>(a.blendingSrcFactor), static_cast<GLenum>(a.blendingDstFactor));
-				}
-
-				if (target.depthStencilAttachment) {
-					Assert(target.depthStencilAttachment->format == Texture::DEPTH24_STENCIL8);
-					glClearDepth(target.depthStencilAttachment->clearColor.x);
-					glClearStencil(target.depthStencilAttachment->clearColor.y);
-				}
-			};
+					if (target.depthStencilAttachment) {
+						glClearDepth(target.depthStencilAttachment->clearColor.x);
+						glClearStencil(target.depthStencilAttachment->clearColor.y);
+					}
+					};
+			}
+			else {
+				auto target = std::get<WindowRenderTargetDescriptor>(drawPass->renderTarget);
+				pass.bindRenderTarget = [target]() {
+					Framebuffer::Unbind();
+					if (target.loadPolicy == AttachmentLoadPolicy::Clear) {
+						glClearColor(target.clearColor.r, target.clearColor.g, target.clearColor.b, target.clearColor.a);
+						glClear(GL_COLOR_BUFFER_BIT);
+					}
+					glBlendEquation(static_cast<GLenum>(target.blendFunc));
+					glBlendFunc(static_cast<GLenum>(target.blendingSrcFactor), static_cast<GLenum>(target.blendingDstFactor));
+					};
+			}
 		}
 		else {
-			auto target = std::get<WindowRenderTargetDescriptor>(drawPass->renderTarget);
-			pass.bindRenderTarget = [target]() {
-				Framebuffer::Unbind();
-				if (target.loadPolicy == AttachmentLoadPolicy::Clear) {
-					glClearColor(target.clearColor.r, target.clearColor.g, target.clearColor.b, target.clearColor.a);
-					glClear(GL_COLOR_BUFFER_BIT);
-				}
-				glBlendEquation(static_cast<GLenum>(target.blendFunc));
-				glBlendFunc(static_cast<GLenum>(target.blendingSrcFactor), static_cast<GLenum>(target.blendingDstFactor));
-			};
+			Assert(false);// TODO does processedcomputepass need anything?
 		}
 	}
 
 	// Setup attachment texture bindings
-	for (auto& pass : renderOrder) {
-		auto drawPass = drawPasses.at(pass.sources.at(0));
-		for (auto& usageDescriptor : drawPass->boundAttachments) {
-			pass.textures.push_back(TextureBinding{
-				.textureToBind = attachmentLocations.at(std::get<std::string>(usageDescriptor.texture)),
-				.shaderSamplerName = usageDescriptor.textureUsageLocation
-				});
+	for (auto& p : renderOrder) {
+		if (std::holds_alternative<ProcessedDrawPass>(p)) {
+			auto pass = std::get<ProcessedDrawPass>(p);
+			auto drawPass = drawPasses.at(pass.sources.at(0));
+			for (auto& usageDescriptor : drawPass->boundAttachments) {
+				pass.textures.push_back(TextureBinding{
+					.textureToBind = attachmentLocations.at(std::get<std::string>(usageDescriptor.texture)),
+					.shaderSamplerName = usageDescriptor.textureUsageLocation
+					});
+			}
 		}
 	}
 
@@ -405,56 +449,68 @@ void RenderGraph::Compile() {
 	}
 }
 
-bool RenderGraph::Compatible(const FramebufferRenderTargetDescriptor& requirements, const std::shared_ptr<Framebuffer>& hardwareResource)
+glm::uvec2 RenderGraph::AttachmentSize(std::string name) {
+	Assert(attachments.contains(name));
+	glm::uvec2 size;
+	if (std::holds_alternative < std::shared_ptr<Texture>>(attachments[name].hardwareResource))
+		size = std::get<std::shared_ptr<Texture>>(attachments[name].hardwareResource)->GetSize();
+	else
+		size = std::get<std::shared_ptr<Renderbuffer>>(attachments[name].hardwareResource)->size;
+	return size;
+}
+
+bool RenderGraph::Compatible(const FramebufferRenderTargetDescriptor& requirements, const FramebufferResource& hardwareResource)
 {
 	return false; // TODO
 }
 
-RenderGraph::FramebufferResource& RenderGraph::GetFramebuffer(FramebufferRenderTargetDescriptor params, std::vector<ResourceLifeTime> clts, std::optional<ResourceLifeTime> dlt) {
+RenderGraph::FramebufferResource& RenderGraph::GetFramebuffer(FramebufferRenderTargetDescriptor params) {
+	
+	// See if we already have a framebuffer with the requested attachments
 	for (auto& f : framebuffers) {
-		if (Compatible(params, f.hardwareResource)) { // TODO LIFETIME CHECK
+		bool hasAnAttachment = false;
+		for (auto& attachment : params.colorAttachments) {
+			bool contains = f.attachmentLocations.contains(attachment.attachmentName);
+			if (!contains && hasAnAttachment) {
+				Assert(false); // TODO: APPENDING ATTACHMENTS, BUT ONLY IF 
+			}
+		}
+	}
+
+	// See if this framebuffer can alias an existing one and if so use that
+	for (auto& f : framebuffers) {
+		if (Compatible(params, f)) {
 			f.destroy = false;
-			f.colorAttachmentAccesses.push_back(clts);
-			if (dlt) f.depthAttachmentAccesses.push_back(*dlt);
-			//f.attachmentLocations TODO???
 			return f;
 		}
 	}
 
 	
-	glm::uvec2 size = params.colorAttachments.empty() ? params.depthStencilAttachment.value().size : params.colorAttachments[0].size;
-	std::vector<TextureCreateParams> colorAttachments;
+	glm::uvec2 size = params.colorAttachments.empty() ? AttachmentSize(params.depthStencilAttachment->attachmentName) : AttachmentSize(params.colorAttachments[0].attachmentName);
+	std::vector<Framebuffer::Attachment> colorAttachments;
 	std::unordered_map<std::string, GLenum> attachmentLocations; 
 	std::unordered_map<std::string, Texture*> textures;
 	unsigned i = 0;
 	for (auto& att : params.colorAttachments) {
-		TextureCreateParams tcp({});
-		tcp.format = att.format;
-		tcp.renderBuffer = att.renderbuffer;
-		colorAttachments.push_back(tcp);
-		attachmentLocations[att.resourceName] = GL_COLOR_ATTACHMENT0 + (i++);
+		colorAttachments.push_back(attachments.at(att.attachmentName).hardwareResource);
 	}
-	std::optional<TextureCreateParams> depthStencil;
+	std::optional<Framebuffer::Attachment> depthStencil;
 	if (params.depthStencilAttachment.has_value()) {
-		depthStencil.emplace(TextureCreateParams({}));
-		depthStencil->format = params.depthStencilAttachment->format;
-		depthStencil->renderBuffer = params.depthStencilAttachment->renderbuffer;
-		attachmentLocations[params.depthStencilAttachment->resourceName] = GL_DEPTH_STENCIL_ATTACHMENT;
+		depthStencil.emplace(attachments.at(params.depthStencilAttachment->attachmentName).hardwareResource);
 	}
 	auto framebuffer = std::make_shared<Framebuffer>(size.x, size.y, colorAttachments, depthStencil);
 	for (unsigned j = 0; j < colorAttachments.size(); j++) {
-		if (std::holds_alternative<Texture>(framebuffer->colorAttachments[j])) {
-			textures[params.colorAttachments[j].resourceName] = &std::get<Texture>(framebuffer->colorAttachments[j]);
+		if (std::holds_alternative<std::shared_ptr<Texture>>(framebuffer->colorAttachments[j])) {
+			textures[params.colorAttachments[j].attachmentName] = std::get<std::shared_ptr<Texture>>(framebuffer->colorAttachments[j]).get();
 		}
+		attachmentLocations[params.colorAttachments[j].attachmentName] = GL_COLOR_ATTACHMENT0 + i;
 	}
-	if (framebuffer->depthAndStencilAttachment && std::holds_alternative<Texture>(*framebuffer->depthAndStencilAttachment)) {
-		textures[params.depthStencilAttachment->resourceName] = &std::get<Texture>(*framebuffer->depthAndStencilAttachment);
+	if (framebuffer->depthAndStencilAttachment && std::holds_alternative<std::shared_ptr<Texture>>(*framebuffer->depthAndStencilAttachment)) {
+		textures[params.depthStencilAttachment->attachmentName] = std::get<std::shared_ptr<Texture>>(*framebuffer->depthAndStencilAttachment).get();
 	}
-
+	if (framebuffer->depthAndStencilAttachment) attachmentLocations[params.depthStencilAttachment->attachmentName] = GL_DEPTH_STENCIL_ATTACHMENT;
 	framebuffers.push_back(FramebufferResource{
 		.hardwareResource = framebuffer,
-		.colorAttachmentAccesses = {clts,},
-		.depthAttachmentAccesses = dlt ? std::vector<ResourceLifeTime>{*dlt,} : std::vector<ResourceLifeTime>{},
 		.attachmentLocations = attachmentLocations,
 		.readableAttachments = textures,
 		.destroy = false,
@@ -469,7 +525,7 @@ RenderGraph::FramebufferResource& RenderGraph::GetFramebuffer(FramebufferRenderT
 
 ProcessedDrawPass::ProcessedDrawPass(std::shared_ptr<DrawPass> drawPass) {
 	params = drawPass->params;
-	//renderTarget = drawPass->renderTarget;
+	setUniforms = drawPass->uniformSupplier;
 	thingsToDraw = drawPass->drawnObjects;
 	sources.push_back(drawPass->name);
 }
@@ -482,7 +538,8 @@ ProcessedDrawPass::ProcessedDrawPass(std::shared_ptr<DrawPass> drawPass) {
 ProcessedComputePass::ProcessedComputePass(std::shared_ptr<ComputePass> computePass):
 source(computePass->name),
 workgroupSize(computePass->workgroupSize),
-shader(computePass->shader)
+shader(computePass->shader),
+setUniforms(computePass->uniformSupplier)
 {
 
 }

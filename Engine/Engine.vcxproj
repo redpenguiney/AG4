@@ -161,6 +161,7 @@
     <ClCompile Include="mesh_multifromfile.cpp" />
     <ClCompile Include="mesh_provider.cpp" />
     <ClCompile Include="mesh_voxels.cpp" />
+    <ClCompile Include="physics_engine.cpp" />
     <ClCompile Include="renderbuffer.cpp" />
     <ClCompile Include="rendergraph.cpp" />
     <ClCompile Include="rendergroup.cpp" />
@@ -200,6 +201,7 @@
     <ClInclude Include="mesh.hpp" />
     <ClInclude Include="meshold.hpp" />
     <ClInclude Include="mesh_format.hpp" />
+    <ClInclude Include="physics_engine.hpp" />
     <ClInclude Include="renderbuffer.hpp" />
     <ClInclude Include="rendergroup.hpp" />
     <ClInclude Include="static_meshpool.hpp" />
