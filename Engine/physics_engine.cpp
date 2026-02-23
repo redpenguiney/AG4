@@ -32,7 +32,7 @@ void PhysicsEngine::StepSimulation(double timestep) {
 			}
 		}
 		};
-	simulate(Physobject::Pool::Get().GetIterable());
+	simulate(Physobject::Pool::Get().GetIterable()); // note: not extendable to subclasses this way. do not copy paste
 }
 
 PhysicsEngine::PhysicsEngine() {

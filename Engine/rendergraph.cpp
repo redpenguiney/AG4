@@ -65,11 +65,12 @@ void RenderGraph::Render() {
 				glDisable(GL_SCISSOR_TEST);
 			}
 
+			glEnable(GL_DEPTH_TEST);
 			if (p.params.depthTestMode == DepthTestMode::Disabled) {
-				glDisable(GL_DEPTH_TEST);
+				glDepthFunc(GL_ALWAYS);
+				//glDisable(GL_DEPTH_TEST); // supposedly this cooks the depth mask?
 			}
 			else {
-				glEnable(GL_DEPTH_TEST);
 				glDepthFunc(static_cast<GLenum>(p.params.depthTestMode));
 			}
 
@@ -331,7 +332,8 @@ void RenderGraph::Compile() {
 					//set.writtenAttachments.push_back(a.resourceName);
 				}
 				if (descriptor.depthStencilAttachment) {
-
+					Assert(logicalResources.contains(descriptor.depthStencilAttachment->attachmentName));
+					logicalResources[descriptor.depthStencilAttachment->attachmentName].type = ResourceType::FramebufferAttachment;
 				}
 			}
 
@@ -402,6 +404,7 @@ void RenderGraph::Compile() {
 					if (target.depthStencilAttachment) {
 						glClearDepth(target.depthStencilAttachment->clearColor.x);
 						glClearStencil(target.depthStencilAttachment->clearColor.y);
+						glClear(GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT); // TODO WHAT IF THEY DONT WANNA CLEAR BOTH
 					}
 					};
 			}
@@ -426,14 +429,17 @@ void RenderGraph::Compile() {
 	// Setup attachment texture bindings
 	for (auto& p : renderOrder) {
 		if (std::holds_alternative<ProcessedDrawPass>(p)) {
-			auto pass = std::get<ProcessedDrawPass>(p);
-			auto drawPass = drawPasses.at(pass.sources.at(0));
+			auto& pass = std::get<ProcessedDrawPass>(p);
+			auto& drawPass = drawPasses.at(pass.sources.at(0));
 			for (auto& usageDescriptor : drawPass->boundAttachments) {
 				pass.textures.push_back(TextureBinding{
 					.textureToBind = attachmentLocations.at(std::get<std::string>(usageDescriptor.texture)),
 					.shaderSamplerName = usageDescriptor.textureUsageLocation
 					});
 			}
+		}
+		else {
+			Assert(false);
 		}
 	}
 

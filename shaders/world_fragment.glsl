@@ -75,6 +75,8 @@ void main()
 
     Output = color;
     //Output = vec4(1, 1, 1, 1);
+    //float ndc = gl_FragCoord.z * 2.0 - 1.0;
+    //Output = vec4(vec3(2.0 * 0.1 * 16384.0 / (16384.0 + 0.1 - ndc * (16384.0 - 0.1))/128.0), 1.0);
     //Output = fragmentColor;
     //Output = vec4(light, 1);
 };

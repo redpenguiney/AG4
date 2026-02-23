@@ -94,7 +94,10 @@ struct FramebufferAttachmentUsageDescriptor {
 	std::string attachmentName;
 
 	AttachmentLoadPolicy loadPolicy = AttachmentLoadPolicy::Load;
-	glm::vec4 clearColor = { 0, 0, 0, 0 }; // used if loadPolicy == Clear. x value is used for clearing depth, y value is used for clearing stencil.
+
+	// used if loadPolicy == Clear. x value is used for clearing depth, y value is used for clearing stencil.
+	// PROTIP: clear depth to 1, not 0
+	glm::vec4 clearColor = { 0, 0, 0, 0 }; 
 	BlendFactorMode blendingSrcFactor = BlendFactorMode::SrcAlpha;
 	BlendFactorMode blendingDstFactor = BlendFactorMode::OneMinusSrcAlpha;
 	BlendingEquation blendFunc = BlendingEquation::Addition;

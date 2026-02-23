@@ -136,6 +136,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="aabb_tree.cpp" />
     <ClCompile Include="animation.cpp" />
     <ClCompile Include="base_event.cpp" />
     <ClCompile Include="base_shader_program.cpp" />
@@ -178,6 +179,8 @@
     <ClCompile Include="window.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="aabb.hpp" />
+    <ClInclude Include="aabb_tree.hpp" />
     <ClInclude Include="animation.hpp" />
     <ClInclude Include="assert.hpp" />
     <ClInclude Include="base_event.hpp" />
@@ -202,6 +205,7 @@
     <ClInclude Include="meshold.hpp" />
     <ClInclude Include="mesh_format.hpp" />
     <ClInclude Include="physics_engine.hpp" />
+    <ClInclude Include="physics_mesh.hpp" />
     <ClInclude Include="renderbuffer.hpp" />
     <ClInclude Include="rendergroup.hpp" />
     <ClInclude Include="static_meshpool.hpp" />

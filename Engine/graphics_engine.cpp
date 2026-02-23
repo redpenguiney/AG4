@@ -18,7 +18,7 @@ void GraphicsEngine::RenderScene(double dt) {
 
     WriteModelMatrices();
     auto camera = currentCamera.GetCamera();
-    auto cameraNoFloatingOrigin = camera;
+    auto cameraNoFloatingOrigin = currentCamera.GetCamera();
     cameraNoFloatingOrigin[3] = glm::vec4(-currentCamera.position, 1);
     auto proj = currentCamera.GetProj(Window::Get().Aspect());
     ShaderProgram::SetCameraUniforms(proj * camera, proj * cameraNoFloatingOrigin, glm::identity<glm::mat4x4>()); // TODO: orthro???
