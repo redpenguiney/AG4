@@ -20,7 +20,7 @@ public:
 		AABB bounds;
 		glm::dvec3 splitPoint;
 		std::vector<StoredT> stored;
-		std::array<std::unique_ptr<Node>, 27> children;
+		std::array<std::unique_ptr<Node>, 27> children; // some may be nullptr
 		bool empty = true;
 		bool split = false;
 	};
@@ -44,6 +44,9 @@ public:
 		splitPoint = meanPosition / (double)objects.size();
 
 		// create child nodes
+		for (auto& obj : n->stored) {
+			int index = 0;
+		}
 	}
 };
 
