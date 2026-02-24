@@ -1,6 +1,8 @@
 #pragma once
 #include <memory>
 #include "physics_mesh.hpp"
+#include "aabb_tree.hpp"
+#include <bitset>
 
 class Gameobject;
 
@@ -11,6 +13,11 @@ public:
 	~Collider();
 	const std::shared_ptr<BasePhysicsMesh> physicsMesh;
 	Gameobject* object;
+	std::bitset<32> collisionLayers = 1u;
 private:
+	friend class AABBTree;
+	AABBTree::Node* node; // non-owning
+	AABB aabb;
+	void UpdateAABB();
 };
 
