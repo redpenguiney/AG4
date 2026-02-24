@@ -23,16 +23,25 @@ public:
 		// each collider stores a reference to the node it's stored in, be careful
 		std::vector<Collider*> stored;
 		std::array<std::unique_ptr<Node>, 27> children; // some may be nullptr
-		bool empty = true;
+		//bool empty = true;
 		bool split = false;
+		// indicates that the node's bounding box is bigger than it needs to be and should be recalculated
+		bool dirty; 
 	};
+
+	// call every frame so that removed objects don't leave the tree unoptimized
+	void OptimizeTree();
 
 	// Sets value::node to where value is now stored.
 	void Insert(Collider* value);
 
+	// AABB of collider should be updated before you call this.
+	void UpdatePosition(Collider* value);
+	
 	void Remove(Collider* value);
 
 private:
+	void OptimizeDirtyNode(Node* n);
 
 	Node root;
 

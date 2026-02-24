@@ -6,6 +6,10 @@ AABBTree& GameobjectSAS() {
     return sas;
 }
 
+void AABBTree::OptimizeTree() {
+	if (root.dirty) OptimizeDirtyNode(&root);
+}
+
 void AABBTree::Insert(Collider* value) {
 	value->UpdateAABB();
 	const AABB& aabb = value->aabb;
@@ -17,12 +21,78 @@ void AABBTree::Insert(Collider* value) {
 		size_t index = InsertHeuristic(aabb, *currentNode);
 		if (index == 27) {
 			value->node = currentNode;
+			currentNode->stored.push_back(value);
 			break;
 		}
 		else {
 			currentNode = currentNode->children[index].get();
 		}
 	}
+}
+
+void AABBTree::UpdatePosition(Collider* value) {
+	// Go up the tree from the collider's current node to find the first node that fully envelopes the collider.
+	// (if collider's current node still envelops the collider, this will do nothing)
+	Node* oldNode = value->node;
+	Node* currentNode = oldNode;
+	while (currentNode->parent) {
+		if (currentNode->bounds.TestEnvelopes(value->aabb)) {
+			break;
+		}
+		currentNode = currentNode->parent;
+	}
+
+	// find child to insert node into
+	while (true) {
+		currentNode->bounds.Grow(value->aabb);
+		size_t index = InsertHeuristic(value->aabb, *currentNode);
+		if (index == 27) {
+			break;
+		}
+		else {
+			currentNode = currentNode->children[index].get();
+		}
+	}
+
+	if (oldNode != currentNode) {
+		// remove object from prior node
+		for (unsigned i = 0; i < oldNode->stored.size(); i++) {
+			if (oldNode->stored[i] == value) {
+				oldNode->stored[i] = oldNode->stored.back();
+				oldNode->stored.pop_back();
+				break;
+			}
+		}
+
+		// add object to new node
+		value->node = currentNode;
+		currentNode->stored.push_back(value);
+	}
+}
+
+void AABBTree::Remove(Collider* value) {
+	Node* currentNode = value->node;
+
+	// remove object from node
+	for (unsigned i = 0; i < currentNode->stored.size(); i++) {
+		if (currentNode->stored[i] == value) {
+			currentNode->stored[i] = currentNode->stored.back();
+			currentNode->stored.pop_back();
+			break;
+		}
+	}
+	
+	// mark the node and its ancestry for resizing/trimming if neccesary
+	while (!currentNode->dirty) {
+		currentNode->dirty = true;
+		currentNode = currentNode->parent;
+	}
+
+	value->node = nullptr;
+}
+
+void AABBTree::OptimizeDirtyNode(Node* n) {
+	
 }
 
 void AABBTree::TrySplitNode(AABBTree::Node* n) {
@@ -65,7 +135,7 @@ void AABBTree::TrySplitNode(AABBTree::Node* n) {
 				n->children[index] = std::make_unique<Node>();
 				n->children[index]->parent = n;
 				n->children[index]->bounds = obj->aabb;
-				n->children[index]->empty = false;
+				//n->children[index]->empty = false;
 				n->children[index]->split = false;
 			}
 			else {
