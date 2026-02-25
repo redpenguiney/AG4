@@ -4,6 +4,7 @@
 #include "graphics_engine.hpp"
 #include "window.hpp"
 #include "physics_engine.hpp"
+#include "aabb_tree.hpp"
 
 Mainloop& Mainloop::Get() {
 	static Mainloop m;
@@ -17,8 +18,8 @@ void Mainloop::Run() {
 		double currentTime = Time();
 		double elapsedTime = currentTime - previousTime;
 		previousTime = currentTime;
+		
 		if (!physicsPaused) physicsLag += elapsedTime; // time has passed and thus the simulation is behind
-
 		unsigned tries = 0;
 		while (physicsLag > simulationTimestep && tries++ < 2) {
 			prePhysics->Fire(simulationTimestep);
@@ -31,6 +32,8 @@ void Mainloop::Run() {
 		if (physicsLag > simulationTimestep) {
 			DebugLogInfo("Simulation is ", physicsLag, " seconds behind (", elapsedTime, "s since last frame).");
 		}
+
+		GameobjectSAS().OptimizeTree();
 
 		preRender->Fire(elapsedTime);
 		BaseEvent::FlushEventQueue();

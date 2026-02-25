@@ -5,7 +5,10 @@
 #include "aabb.hpp"
 #include "assert.hpp"
 
+#define DEBUG_AABBTREE_VISUALIZATION
+
 class Collider;
+class Gameobject;
 
 // A 27-tree (icoseptre) based spatial acceleration structure.
 class AABBTree {
@@ -16,17 +19,22 @@ public:
 	~AABBTree();
 
 	struct Node {
-		Node* parent;
-
+		Node* parent = nullptr;
 		AABB bounds;
 		glm::dvec3 splitPoint;
 		// each collider stores a reference to the node it's stored in, be careful
 		std::vector<Collider*> stored;
 		std::array<std::unique_ptr<Node>, 27> children; // some may be nullptr
-		//bool empty = true;
+		// true if bounds/splitPoint are undefined
+		bool empty = true;
 		bool split = false;
 		// indicates that the node's bounding box is bigger than it needs to be and should be recalculated
-		bool dirty; 
+		bool dirty = false; 
+#ifdef  DEBUG_AABBTREE_VISUALIZATION
+		std::unique_ptr<Gameobject> visualizer;
+#endif //  DEBUG_AABBTREE_VISUALIZATION
+
+
 	};
 
 	// call every frame so that removed objects don't leave the tree unoptimized
@@ -41,7 +49,8 @@ public:
 	void Remove(Collider* value);
 
 private:
-	void OptimizeDirtyNode(Node* n);
+	// returns true if the node is empty and can be removed
+	bool OptimizeDirtyNode(Node* n);
 
 	Node root;
 

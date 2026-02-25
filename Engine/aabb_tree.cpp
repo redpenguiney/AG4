@@ -1,10 +1,29 @@
 #include "aabb_tree.hpp"
 #include "collider.hpp"
+#ifdef  DEBUG_AABBTREE_VISUALIZATION
+#include "gameobject.hpp"
+#include "debug_prefabs.hpp"
+#endif
 
 AABBTree& GameobjectSAS() {
     static AABBTree sas;
     return sas;
 }
+
+AABBTree::AABBTree() {
+
+}
+
+AABBTree::~AABBTree() {
+
+}
+
+#ifdef  DEBUG_AABBTREE_VISUALIZATION
+std::unique_ptr<Gameobject> GetVisualizerObject() {
+	GameobjectCreateParams params;
+	params.mesh = GetCubeMesh();
+}
+#endif
 
 void AABBTree::OptimizeTree() {
 	if (root.dirty) OptimizeDirtyNode(&root);
@@ -16,7 +35,16 @@ void AABBTree::Insert(Collider* value) {
 
 	Node* currentNode = &root;
 	while (true) {
-		currentNode->bounds.Grow(aabb);
+		if (currentNode->empty) {
+			currentNode->bounds = aabb;
+		}
+		else {
+			currentNode->bounds.Grow(aabb);
+#ifdef  DEBUG_AABBTREE_VISUALIZATION
+			currentNode->visualizer->SetScale(currentNode->bounds.max - currentNode->bounds.min);
+#endif
+
+		}
 
 		size_t index = InsertHeuristic(aabb, *currentNode);
 		if (index == 27) {
@@ -45,6 +73,9 @@ void AABBTree::UpdatePosition(Collider* value) {
 	// find child to insert node into
 	while (true) {
 		currentNode->bounds.Grow(value->aabb);
+#ifdef  DEBUG_AABBTREE_VISUALIZATION
+		currentNode->visualizer->SetScale(currentNode->bounds.max - currentNode->bounds.min);
+#endif
 		size_t index = InsertHeuristic(value->aabb, *currentNode);
 		if (index == 27) {
 			break;
@@ -81,6 +112,8 @@ void AABBTree::Remove(Collider* value) {
 			break;
 		}
 	}
+
+	// we do NOT set currentNode->empty because it still has a valid AABB.
 	
 	// mark the node and its ancestry for resizing/trimming if neccesary
 	while (!currentNode->dirty) {
@@ -91,8 +124,48 @@ void AABBTree::Remove(Collider* value) {
 	value->node = nullptr;
 }
 
-void AABBTree::OptimizeDirtyNode(Node* n) {
-	
+bool AABBTree::OptimizeDirtyNode(Node* n) {
+	n->dirty = false;
+
+	bool isLeafNode = true; // TOOD: Node::split exists?
+	for (auto& child : n->children) { 
+		if (OptimizeDirtyNode(child.get())) {
+			child = nullptr;
+		}
+		else if (isLeafNode) {
+			isLeafNode = false;
+			n->bounds = child->bounds;
+		}
+		else {
+			n->bounds.Grow(child->bounds);
+		}
+	}
+
+	if (isLeafNode) {
+		if (n->stored.empty()) {
+			return true;
+		}
+		else {
+			n->bounds = n->stored[0]->aabb;
+			for (size_t i = 1; i < n->stored.size(); i++) {
+				n->bounds.Grow(n->stored[i]->aabb);
+			}
+#ifdef  DEBUG_AABBTREE_VISUALIZATION
+			n->visualizer->SetScale(n->bounds.max - n->bounds.min);
+#endif
+			return false;
+		}
+	}
+	else {
+		for (size_t i = 0; i < n->stored.size(); i++) {
+			n->bounds.Grow(n->stored[i]->aabb);
+		}
+#ifdef  DEBUG_AABBTREE_VISUALIZATION
+		n->visualizer->SetScale(n->bounds.max - n->bounds.min);
+#endif
+		return false;
+	}
+
 }
 
 void AABBTree::TrySplitNode(AABBTree::Node* n) {
@@ -135,7 +208,7 @@ void AABBTree::TrySplitNode(AABBTree::Node* n) {
 				n->children[index] = std::make_unique<Node>();
 				n->children[index]->parent = n;
 				n->children[index]->bounds = obj->aabb;
-				//n->children[index]->empty = false;
+				n->children[index]->empty = false;
 				n->children[index]->split = false;
 			}
 			else {

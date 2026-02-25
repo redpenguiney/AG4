@@ -7,12 +7,14 @@
 #include "utility.hpp"
 #include <algorithm>
 #include "shader_program.hpp"
+#include "aabb_tree.hpp"
 
 int main() {
 	std::vector<std::shared_ptr<Gameobject>> objects;
 
 	Window::Get();
 	GraphicsEngine::Get();
+	GameobjectSAS();
 
 	{
 		

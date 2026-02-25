@@ -17,7 +17,12 @@ union VertexScalar;
 
 struct GameobjectCreateParams {
 	std::vector<std::shared_ptr<DrawPass>> renderPasses = GraphicsEngine::Get().defaultDrawingPasses;
-	std::shared_ptr<Mesh> mesh;
+	
+	// if not provided, the gameobject won't be rendered
+	std::shared_ptr<Mesh> mesh;	
+
+	// if not provided, the gameobject won't have collisions
+	std::shared_ptr<BasePhysicsMesh> physicsMesh;
 };
 
 class Gameobject {
@@ -66,12 +71,13 @@ protected:
 	// Used by MemoryPool. Not the first member in order to A. exploit otherwise wasted padding bytes and B. avoid interfering with free list
 	bool live;
 	// indicates that the object's AABB in the AABB tree is outdated and must be updated.
-	bool aabbDirty;
+	//bool aabbDirty;
 	
 	unsigned drawInstanceIndex; // undefined if not being drawn
 	Meshpool* meshpool; // nullptr if not being drawn
 	RenderGroup* renderGroup; // undefined if not being drawn
 
+	// may be nullptr if no collisions
 	std::unique_ptr<Collider> collider;
 
 	friend class Pool;

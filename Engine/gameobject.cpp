@@ -17,7 +17,16 @@ Gameobject::Gameobject(const GameobjectCreateParams& params) {
     scale = { 1, 1, 1 };
     rotSclDirty = true;
 
-    RenderGroup::FindRendergroupForGameobject(*this, params);
+    if (params.mesh) {
+        RenderGroup::FindRendergroupForGameobject(*this, params);
+    }
+    else {
+        meshpool = nullptr;
+    }
+
+    if (params.physicsMesh) {
+        collider = std::make_unique<Collider>(params.physicsMesh, this);
+    }
 }
 
 Gameobject::~Gameobject() {
@@ -43,18 +52,29 @@ const glm::quat& Gameobject::Rotation() const {
 
 void Gameobject::SetPosition(const glm::dvec3& p) {
     position = p;
+    if (collider) {
+        collider->UpdateAABB();
+    }
 }
 
 void Gameobject::SetScale(const glm::vec3& s) {
     scale = s;
     rotSclDirty = true;
     normalMatDirty = true;
+
+    if (collider) {
+        collider->UpdateAABB();
+    }
 }
 
 void Gameobject::SetRotation(const glm::quat& r) {
     rotation = r;
     rotSclDirty = true;
     normalMatDirty = true;
+
+    if (collider) {
+        collider->UpdateAABB();
+    }
 }
 
 void Gameobject::SetInstanceAttribute(const VertexAttribute& attrib, VertexScalar* value) {

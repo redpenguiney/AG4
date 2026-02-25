@@ -146,6 +146,7 @@
     <ClCompile Include="collider.cpp" />
     <ClCompile Include="compute_shader_program.cpp" />
     <ClCompile Include="cursor.cpp" />
+    <ClCompile Include="debug_prefabs.cpp" />
     <ClCompile Include="framebuffer.cpp" />
     <ClCompile Include="gameobject.cpp" />
     <ClCompile Include="gl_error_handler.cpp" />
@@ -192,6 +193,7 @@
     <ClInclude Include="collider.hpp" />
     <ClInclude Include="compute_shader_program.hpp" />
     <ClInclude Include="cursor.hpp" />
+    <ClInclude Include="debug_prefabs.hpp" />
     <ClInclude Include="event.hpp" />
     <ClInclude Include="framebuffer.hpp" />
     <ClInclude Include="gameobject.hpp" />
