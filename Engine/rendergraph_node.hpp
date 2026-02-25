@@ -151,6 +151,11 @@ enum class FaceCulling {
 	None
 };
 
+enum class PolygonFillMode {
+	Fill = GL_FILL,
+	Lines = GL_LINE // wireframe
+};
+
 struct RenderingParameters {
 	std::shared_ptr<ShaderProgram> shader;
 
@@ -160,6 +165,7 @@ struct RenderingParameters {
 
 	DepthTestMode depthTestMode = DepthTestMode::LEqual;
 	bool writeDepthBuffer = true; // (depth mask)
+	PolygonFillMode polygonFillMode = PolygonFillMode::Fill;
 
 	// Scissor test
 	bool scissoringEnabled = false;

@@ -83,6 +83,8 @@ void RenderGraph::Render() {
 				glCullFace(p.params.cullMode == FaceCulling::Frontface ? GL_FRONT : GL_BACK);
 			}
 
+			glPolygonMode(GL_FRONT_AND_BACK, static_cast<GLenum>(p.params.polygonFillMode));
+				
 			int activeTexture = 0;
 			for (auto& f : p.textures) {
 				p.params.shader->Uniform(f.shaderSamplerName, activeTexture);

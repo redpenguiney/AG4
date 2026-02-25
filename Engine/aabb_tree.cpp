@@ -3,6 +3,19 @@
 #ifdef  DEBUG_AABBTREE_VISUALIZATION
 #include "gameobject.hpp"
 #include "debug_prefabs.hpp"
+#include "mesh.hpp"
+#endif
+
+#ifdef  DEBUG_AABBTREE_VISUALIZATION
+std::unique_ptr<Gameobject> GetVisualizerObject() {
+	GameobjectCreateParams params;
+	params.mesh = GetCubeMesh();
+	params.renderPasses = { GetDebugWireframePass(), };
+
+	auto obj = std::unique_ptr<Gameobject>(Gameobject::New(params));
+	obj->SetInstanceAttribute(*params.mesh->format.GetAttribute("color"), { 1, 0, 0, 1 });
+	return obj;
+}
 #endif
 
 AABBTree& GameobjectSAS() {
@@ -11,22 +24,22 @@ AABBTree& GameobjectSAS() {
 }
 
 AABBTree::AABBTree() {
-
+	root.empty = true;
+#ifdef  DEBUG_AABBTREE_VISUALIZATION
+	root.visualizer = GetVisualizerObject();
+#endif
 }
 
 AABBTree::~AABBTree() {
 
 }
 
-#ifdef  DEBUG_AABBTREE_VISUALIZATION
-std::unique_ptr<Gameobject> GetVisualizerObject() {
-	GameobjectCreateParams params;
-	params.mesh = GetCubeMesh();
-}
-#endif
+
 
 void AABBTree::OptimizeTree() {
 	if (root.dirty) OptimizeDirtyNode(&root);
+
+	//TrySplitNode(&root);
 }
 
 void AABBTree::Insert(Collider* value) {
@@ -36,11 +49,17 @@ void AABBTree::Insert(Collider* value) {
 	Node* currentNode = &root;
 	while (true) {
 		if (currentNode->empty) {
+			currentNode->empty = false;
 			currentNode->bounds = aabb;
+#ifdef  DEBUG_AABBTREE_VISUALIZATION
+			currentNode->visualizer->SetPosition(currentNode->bounds.Center());
+			currentNode->visualizer->SetScale(currentNode->bounds.max - currentNode->bounds.min);
+#endif
 		}
 		else {
 			currentNode->bounds.Grow(aabb);
 #ifdef  DEBUG_AABBTREE_VISUALIZATION
+			currentNode->visualizer->SetPosition(currentNode->bounds.Center());
 			currentNode->visualizer->SetScale(currentNode->bounds.max - currentNode->bounds.min);
 #endif
 
@@ -74,6 +93,7 @@ void AABBTree::UpdatePosition(Collider* value) {
 	while (true) {
 		currentNode->bounds.Grow(value->aabb);
 #ifdef  DEBUG_AABBTREE_VISUALIZATION
+		currentNode->visualizer->SetPosition(currentNode->bounds.Center());
 		currentNode->visualizer->SetScale(currentNode->bounds.max - currentNode->bounds.min);
 #endif
 		size_t index = InsertHeuristic(value->aabb, *currentNode);
@@ -116,7 +136,7 @@ void AABBTree::Remove(Collider* value) {
 	// we do NOT set currentNode->empty because it still has a valid AABB.
 	
 	// mark the node and its ancestry for resizing/trimming if neccesary
-	while (!currentNode->dirty) {
+	while (currentNode && !currentNode->dirty) {
 		currentNode->dirty = true;
 		currentNode = currentNode->parent;
 	}
@@ -152,6 +172,7 @@ bool AABBTree::OptimizeDirtyNode(Node* n) {
 			}
 #ifdef  DEBUG_AABBTREE_VISUALIZATION
 			n->visualizer->SetScale(n->bounds.max - n->bounds.min);
+			n->visualizer->SetPosition(n->bounds.Center());
 #endif
 			return false;
 		}
@@ -162,6 +183,7 @@ bool AABBTree::OptimizeDirtyNode(Node* n) {
 		}
 #ifdef  DEBUG_AABBTREE_VISUALIZATION
 		n->visualizer->SetScale(n->bounds.max - n->bounds.min);
+		n->visualizer->SetPosition(n->bounds.Center());
 #endif
 		return false;
 	}
@@ -210,9 +232,18 @@ void AABBTree::TrySplitNode(AABBTree::Node* n) {
 				n->children[index]->bounds = obj->aabb;
 				n->children[index]->empty = false;
 				n->children[index]->split = false;
+#ifdef  DEBUG_AABBTREE_VISUALIZATION
+				n->children[index]->visualizer = GetVisualizerObject();
+				n->children[index]->visualizer->SetPosition(n->children[index]->bounds.Center());
+				n->children[index]->visualizer->SetScale(n->children[index]->bounds.max - n->children[index]->bounds.min);
+#endif
 			}
 			else {
 				n->children[index]->bounds.Grow(obj->aabb);
+#ifdef  DEBUG_AABBTREE_VISUALIZATION
+				n->children[index]->visualizer->SetPosition(n->children[index]->bounds.Center());
+				n->children[index]->visualizer->SetScale(n->children[index]->bounds.max - n->children[index]->bounds.min);
+#endif
 			}
 			n->children[index]->stored.push_back(obj);
 			obj->node = n->children[index].get();

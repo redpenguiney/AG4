@@ -2,39 +2,43 @@
 #include <memory>
 #include <vector>
 
-class BasePhysicsMesh {
+class Mesh;
+
+class BasePhysicsGeometry {
 public:
-	BasePhysicsMesh() = default;
-	virtual ~BasePhysicsMesh() = default;
+	BasePhysicsGeometry() = default;
+	virtual ~BasePhysicsGeometry() = default;
 };
 
-class ConvexPhysicsMesh : public BasePhysicsMesh {
+class ConvexPhysicsGeometry : public BasePhysicsGeometry {
 public:
-	ConvexPhysicsMesh() = default;
-	virtual ~ConvexPhysicsMesh() = default;
+
+	ConvexPhysicsGeometry() = default;
+	virtual ~ConvexPhysicsGeometry() = default;
 };
 
 // Singleton because there's only one kind of sphere, and scaling is done on the gameobject level.
-class SpherePhysicsMesh : public ConvexPhysicsMesh {
+class SpherePhysicsGeometry : public ConvexPhysicsGeometry {
 public:
-	std::shared_ptr<SpherePhysicsMesh> Get();
+	static std::shared_ptr<SpherePhysicsGeometry> Get();
 };
 
 // Standard issue collider for cubes/anything convex that has no curves
-class ConvexMeshCollider : public ConvexPhysicsMesh {
+class ConvexMeshPhysicsGeometry : public ConvexPhysicsGeometry {
 public:
+	static std::shared_ptr<ConvexMeshPhysicsGeometry> FromMesh(const std::shared_ptr<Mesh>& m);
 
 };
 
 // Collisions can be done precisely betwen the boundary of a concave mesh and a convex physics mesh via many triangle-convex collisions.
 // Triangles are stored in a spatial acceleration structure.
-class ConcaveMeshCollider : public BasePhysicsMesh {
+class ConcaveMeshPhysicsCollider : public BasePhysicsGeometry {
 public:
 
 };
 
 //// A collider made up of multiple convex colliders
-class ConvexMeshDecompositionCollider : public BasePhysicsMesh {
-	std::vector<std::shared_ptr<ConvexMeshCollider>> colliders;
+class ConvexMeshDecompositionPhysicsGeometry : public BasePhysicsGeometry {
+	std::vector<std::shared_ptr<ConvexMeshPhysicsGeometry>> colliders;
 
 };

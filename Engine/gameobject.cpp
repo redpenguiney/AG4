@@ -54,6 +54,7 @@ void Gameobject::SetPosition(const glm::dvec3& p) {
     position = p;
     if (collider) {
         collider->UpdateAABB();
+        GameobjectSAS().UpdatePosition(collider.get());
     }
 }
 
@@ -64,6 +65,7 @@ void Gameobject::SetScale(const glm::vec3& s) {
 
     if (collider) {
         collider->UpdateAABB();
+        GameobjectSAS().UpdatePosition(collider.get());
     }
 }
 
@@ -74,6 +76,7 @@ void Gameobject::SetRotation(const glm::quat& r) {
 
     if (collider) {
         collider->UpdateAABB();
+        GameobjectSAS().UpdatePosition(collider.get());
     }
 }
 

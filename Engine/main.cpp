@@ -8,6 +8,7 @@
 #include <algorithm>
 #include "shader_program.hpp"
 #include "aabb_tree.hpp"
+#include "debug_prefabs.hpp"
 
 int main() {
 	std::vector<std::shared_ptr<Gameobject>> objects;
@@ -67,6 +68,7 @@ int main() {
 			.textureUsageLocation = "screenTextureColor"
 		});
 		postprocPass->outputs.push_back(WINDOW_RESOURCE_NAME);
+		postprocPass->outputs.push_back("POST_PROC");
 		postprocPass->params.depthTestMode = DepthTestMode::Disabled;
 		postprocPass->params.cullMode = FaceCulling::Backface;
 		postprocPass->params.shader = ShaderProgram::New("../shaders/postproc_vertex.glsl", "../shaders/postproc_fragment.glsl");
@@ -79,21 +81,19 @@ int main() {
 	
 
 	DebugLogInfo("Main function reached successfully.");
-	auto mparams = MeshCreateParams::Default();
-	mparams.LoadObj("../models/rainbowcube.obj");
-
-	auto squareMesh = Mesh::New(std::move(mparams));
+	
 
 	GameobjectCreateParams p;
-	p.mesh = squareMesh;
+	p.mesh = GetCubeMesh();
+	p.physicsMesh = GetCubeCollisions();
 
 	{
 		Gameobject* gameObj = Gameobject::New(p);
 		gameObj->SetPosition({ 0, -5, 0 });
 		gameObj->SetScale({ 10, 1, 10 });
 		glm::vec4 color(0, 1, 0, 1);
-		gameObj->SetInstanceAttribute(*squareMesh->format.GetAttribute("color"), color);
-		gameObj->SetInstanceAttribute(*squareMesh->format.GetAttribute(SpecialVertexAttributeNames::AUTOMATIC_TEXTURE_ARRAY_SELECTION), -1.0f);
+		gameObj->SetInstanceAttribute(*p.mesh->format.GetAttribute("color"), color);
+		gameObj->SetInstanceAttribute(*p.mesh->format.GetAttribute(SpecialVertexAttributeNames::AUTOMATIC_TEXTURE_ARRAY_SELECTION), -1.0f);
 
 		std::shared_ptr<Gameobject> unique(gameObj);
 		objects.push_back(unique);
@@ -104,8 +104,8 @@ int main() {
 		gameObj->SetPosition({ i, 0, -3 - i });
 		gameObj->SetScale({ 0.8, 0.8, 0.8 });
 		glm::vec4 color(1, 0, 1, 1);
-		gameObj->SetInstanceAttribute(*squareMesh->format.GetAttribute("color"), color);
-		gameObj->SetInstanceAttribute(*squareMesh->format.GetAttribute(SpecialVertexAttributeNames::AUTOMATIC_TEXTURE_ARRAY_SELECTION), -1.0f);
+		gameObj->SetInstanceAttribute(*p.mesh->format.GetAttribute("color"), color);
+		gameObj->SetInstanceAttribute(*p.mesh->format.GetAttribute(SpecialVertexAttributeNames::AUTOMATIC_TEXTURE_ARRAY_SELECTION), -1.0f);
 
 		std::shared_ptr<Gameobject> unique(gameObj);
 		objects.push_back(unique);

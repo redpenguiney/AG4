@@ -9,9 +9,9 @@ class Gameobject;
 // Stores the collision data for a specific gameobject, namely its PhysicsMesh and its spatial acceleration structure data.
 class Collider {
 public:
-	Collider(std::shared_ptr<BasePhysicsMesh> m, Gameobject* obj);
+	Collider(std::shared_ptr<BasePhysicsGeometry> m, Gameobject* obj);
 	~Collider();
-	const std::shared_ptr<BasePhysicsMesh> physicsMesh;
+	const std::shared_ptr<BasePhysicsGeometry> physicsMesh;
 	Gameobject* object;
 	std::bitset<32> collisionLayers = 1u;
 private:

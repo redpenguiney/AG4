@@ -22,7 +22,7 @@ struct GameobjectCreateParams {
 	std::shared_ptr<Mesh> mesh;	
 
 	// if not provided, the gameobject won't have collisions
-	std::shared_ptr<BasePhysicsMesh> physicsMesh;
+	std::shared_ptr<BasePhysicsGeometry> physicsMesh;
 };
 
 class Gameobject {

@@ -1,11 +1,12 @@
 #include "collider.hpp"
 #include "gameobject.hpp"
 
-Collider::Collider(std::shared_ptr<BasePhysicsMesh> m, Gameobject* obj):
+Collider::Collider(std::shared_ptr<BasePhysicsGeometry> m, Gameobject* obj):
 physicsMesh(m),
 object(obj)
 {
     GameobjectSAS().Insert(this);
+    Assert(node);
 }
 
 Collider::~Collider() {
@@ -30,5 +31,5 @@ void Collider::UpdateAABB() {
     aabb.min = min;
     aabb.max = max;
 
-    GameobjectSAS().UpdatePosition(this);
+    //GameobjectSAS().UpdatePosition(this);
 }

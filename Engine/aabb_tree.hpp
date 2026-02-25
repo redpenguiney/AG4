@@ -5,7 +5,7 @@
 #include "aabb.hpp"
 #include "assert.hpp"
 
-#define DEBUG_AABBTREE_VISUALIZATION
+#define DEBUG_AABBTREE_VISUALIZATION 1
 
 class Collider;
 class Gameobject;
