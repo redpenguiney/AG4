@@ -1,6 +1,14 @@
 #include "physics_mesh.hpp"
 #include "mesh.hpp"
 
+RaycastResult ConvexMeshPhysicsGeometry::Raycast(glm::dvec3 origin, glm::dvec3 inverseDirection, glm::mat3x3 objectRotScl, glm::dvec3 objectOrigin) {
+    size_t triIndex;
+    double dist = 9999999999999999999999999999999999999999.0;
+    for (size_t i = 0; i < triangles.size(); i++) {
+
+    }
+}
+
 std::shared_ptr<ConvexMeshPhysicsGeometry> ConvexMeshPhysicsGeometry::FromMesh(const std::shared_ptr<Mesh>& m) {
     auto posAttribute = m->format.GetAttribute(SpecialVertexAttributeNames::VERTEX_POSITION);
     Assert(posAttribute != nullptr);

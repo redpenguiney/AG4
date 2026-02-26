@@ -3,6 +3,7 @@
 #include <vector>
 #include <array>
 #include "glm/vec3.hpp"
+#include "raycast.hpp"
 
 class Mesh;
 
@@ -11,7 +12,7 @@ public:
 	BasePhysicsGeometry() = default;
 	virtual ~BasePhysicsGeometry() = default;
 
-	virtual RaycastResult Raycast(glm::dvec3 origin, glm::dvec3 inverseDirection, glm::mat3x3 objectRotScl, glm::dvec3 objectOrigin);
+	virtual RaycastResult Raycast(glm::dvec3 origin, glm::dvec3 inverseDirection, glm::mat3x3 objectRotScl, glm::dvec3 objectOrigin) = 0;
 };
 
 class ConvexPhysicsGeometry : public BasePhysicsGeometry {
@@ -31,6 +32,8 @@ public:
 // TODO: version with octree or something for faster raycasting
 class ConvexMeshPhysicsGeometry : public ConvexPhysicsGeometry {
 public:
+	RaycastResult Raycast(glm::dvec3 origin, glm::dvec3 inverseDirection, glm::mat3x3 objectRotScl, glm::dvec3 objectOrigin) override;
+
 	std::vector<std::array<glm::vec3, 3>> triangles;
 	static std::shared_ptr<ConvexMeshPhysicsGeometry> FromMesh(const std::shared_ptr<Mesh>& m);
 
