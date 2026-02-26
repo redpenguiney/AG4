@@ -41,18 +41,15 @@ struct AABB {
     inline bool TestIntersection(const glm::dvec3& origin, const glm::dvec3& direction_inverse) const {
         //std::printf("Testing AABB going from %f %f %f to %f %f %f\n.", min.x, min.y, min.z, max.x, max.y, max.z);
 
-        double t1 = (min[0] - origin[0]) * direction_inverse[0];
-        double t2 = (max[0] - origin[0]) * direction_inverse[0];
+        glm::dvec3 t1 = (min - origin) * direction_inverse;
+        glm::dvec3 t2 = (max - origin) * direction_inverse;
 
-        double tmin = std::min(t1, t2);
-        double tmax = std::max(t1, t2);
+        double tmin = std::min(t1[0], t2[0]);
+        double tmax = std::max(t1[0], t2[0]);
 
         for (int i = 1; i < 3; ++i) {
-            t1 = (min[i] - origin[i]) * direction_inverse[i];
-            t2 = (max[i] - origin[i]) * direction_inverse[i];
-
-            tmin = std::min(std::max(t1, tmin), std::max(t2, tmin));
-            tmax = std::max(std::min(t1, tmax), std::min(t2, tmax));
+            tmin = std::max(tmin, std::min(t1[i], t2[i]));
+            tmax = std::min(tmax, std::max(t1[i], t2[i]));
         }
 
         return tmax > std::max(tmin, 0.0);

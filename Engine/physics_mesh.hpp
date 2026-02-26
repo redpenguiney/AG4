@@ -1,6 +1,8 @@
 #pragma once
 #include <memory>
 #include <vector>
+#include <array>
+#include "glm/vec3.hpp"
 
 class Mesh;
 
@@ -8,6 +10,8 @@ class BasePhysicsGeometry {
 public:
 	BasePhysicsGeometry() = default;
 	virtual ~BasePhysicsGeometry() = default;
+
+	virtual RaycastResult Raycast(glm::dvec3 origin, glm::dvec3 inverseDirection, glm::mat3x3 objectRotScl, glm::dvec3 objectOrigin);
 };
 
 class ConvexPhysicsGeometry : public BasePhysicsGeometry {
@@ -24,10 +28,14 @@ public:
 };
 
 // Standard issue collider for cubes/anything convex that has no curves
+// TODO: version with octree or something for faster raycasting
 class ConvexMeshPhysicsGeometry : public ConvexPhysicsGeometry {
 public:
+	std::vector<std::array<glm::vec3, 3>> triangles;
 	static std::shared_ptr<ConvexMeshPhysicsGeometry> FromMesh(const std::shared_ptr<Mesh>& m);
 
+private:
+	ConvexMeshPhysicsGeometry(std::vector<std::array<glm::vec3, 3>> tris);
 };
 
 // Collisions can be done precisely betwen the boundary of a concave mesh and a convex physics mesh via many triangle-convex collisions.

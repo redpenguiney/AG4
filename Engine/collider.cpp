@@ -28,8 +28,8 @@ void Collider::UpdateAABB() {
 
     min *= object->Scale();
     glm::vec3 max = -min;
-    aabb.min = min;
-    aabb.max = max;
+    aabb.min = glm::dvec3(min) + object->Position();
+    aabb.max = glm::dvec3(max) + object->Position();
 
     //GameobjectSAS().UpdatePosition(this);
 }

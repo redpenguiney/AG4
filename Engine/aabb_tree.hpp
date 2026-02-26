@@ -5,7 +5,7 @@
 #include "aabb.hpp"
 #include "assert.hpp"
 
-#define DEBUG_AABBTREE_VISUALIZATION 1
+//#define DEBUG_AABBTREE_VISUALIZATION 1
 
 class Collider;
 class Gameobject;
@@ -37,6 +37,12 @@ public:
 
 	};
 
+	// Returns list of colliders whose AABBs intersect the given ray.
+	std::vector<Collider*> QueryRay(glm::dvec3 direction, glm::dvec3 origin);
+
+	// Returns list of colliders whose AABBs intersect the given AABB.
+	std::vector<Collider*> QueryAABB(const AABB& aabb);
+
 	// call every frame so that removed objects don't leave the tree unoptimized
 	void OptimizeTree();
 
@@ -49,6 +55,9 @@ public:
 	void Remove(Collider* value);
 
 private:
+	void CollectRayIntersections(std::vector<Collider*>& list, Node* n, const glm::dvec3 inverseDirection, const glm::dvec3 origin);
+	void CollectAABBIntersections(std::vector<Collider*>& list, Node* n, const AABB& aabb);
+
 	// returns true if the node is empty and can be removed
 	bool OptimizeDirtyNode(Node* n);
 

@@ -36,7 +36,23 @@ AABBTree::~AABBTree() {
 
 
 
+std::vector<Collider*> AABBTree::QueryRay(glm::dvec3 direction, glm::dvec3 origin)
+{
+	std::vector<Collider*> list;
+
+	CollectRayIntersections(list, &root, 1.0/(direction), origin);
+	return list;
+}
+
+std::vector<Collider*> AABBTree::QueryAABB(const AABB& aabb)
+{
+	std::vector<Collider*> list;
+	CollectAABBIntersections(list, &root, aabb);
+	return list;
+}
+
 void AABBTree::OptimizeTree() {
+
 	if (root.dirty) OptimizeDirtyNode(&root);
 
 	//TrySplitNode(&root);
@@ -90,6 +106,7 @@ void AABBTree::UpdatePosition(Collider* value) {
 	}
 
 	// find child to insert node into
+	Assert(currentNode);
 	while (true) {
 		currentNode->bounds.Grow(value->aabb);
 #ifdef  DEBUG_AABBTREE_VISUALIZATION
@@ -101,7 +118,20 @@ void AABBTree::UpdatePosition(Collider* value) {
 			break;
 		}
 		else {
+			if (currentNode->children[index] == nullptr) {
+				currentNode->children[index] = std::make_unique<Node>();
+				currentNode->children[index]->parent = currentNode;
+				currentNode->children[index]->bounds = value->aabb;
+				currentNode->children[index]->empty = false;
+				currentNode->children[index]->split = false;
+#ifdef  DEBUG_AABBTREE_VISUALIZATION
+				currentNode->children[index]->visualizer = GetVisualizerObject();
+				currentNode->children[index]->visualizer->SetPosition(currentNode->children[index]->bounds.Center());
+				currentNode->children[index]->visualizer->SetScale(currentNode->children[index]->bounds.max - currentNode->children[index]->bounds.min);
+#endif
+			}
 			currentNode = currentNode->children[index].get();
+			
 		}
 	}
 
@@ -142,6 +172,38 @@ void AABBTree::Remove(Collider* value) {
 	}
 
 	value->node = nullptr;
+}
+
+void AABBTree::CollectRayIntersections(std::vector<Collider*>& list, Node* n, const glm::dvec3 inverseDirection, const glm::dvec3 origin) {
+	if (n->stored.size() > NODE_SPLIT_THRESHOLD) {
+		TrySplitNode(n);
+	}
+	if (n->bounds.TestIntersection(origin, inverseDirection)) {
+		for (auto& stored : n->stored) {
+			if (stored->aabb.TestIntersection(origin, inverseDirection)) {
+				list.push_back(stored);
+			}
+		}
+		for (auto& child : n->children) {
+			if (child != nullptr) CollectRayIntersections(list, child.get(), inverseDirection, origin);
+		}
+	}
+}
+
+void AABBTree::CollectAABBIntersections(std::vector<Collider*>& list, Node* n, const AABB& aabb) {
+	if (n->stored.size() > NODE_SPLIT_THRESHOLD) {
+		TrySplitNode(n);
+	}
+	if (n->bounds.TestIntersection(aabb)) {
+		for (auto& stored : n->stored) {
+			if (stored->aabb.TestIntersection(aabb)) {
+				list.push_back(stored);
+			}
+		}
+		for (auto& child : n->children) {
+			if (child != nullptr) CollectAABBIntersections(list, child.get(), aabb);
+		}
+	}
 }
 
 bool AABBTree::OptimizeDirtyNode(Node* n) {

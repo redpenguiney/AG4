@@ -209,6 +209,7 @@
     <ClInclude Include="mesh_format.hpp" />
     <ClInclude Include="physics_engine.hpp" />
     <ClInclude Include="physics_mesh.hpp" />
+    <ClInclude Include="raycast.hpp" />
     <ClInclude Include="renderbuffer.hpp" />
     <ClInclude Include="rendergroup.hpp" />
     <ClInclude Include="static_meshpool.hpp" />

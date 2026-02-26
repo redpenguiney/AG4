@@ -99,7 +99,7 @@ int main() {
 		objects.push_back(unique);
 	}
 
-	for (int i = 0; i < 5; i++) {
+	for (int i = 0; i < 50; i++) {
 		Physobject* gameObj = Physobject::New(p);
 		gameObj->SetPosition({ i, 0, -3 - i });
 		gameObj->SetScale({ 0.8, 0.8, 0.8 });
