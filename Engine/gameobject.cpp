@@ -110,6 +110,10 @@ bool Gameobject::Live() {
     return live;
 }
 
+const Collider* const Gameobject::GetCollider() const {
+    return collider.get();
+}
+
 Physobject::Physobject(const PhysobjectCreateParams& params): Gameobject(params) {
     velocity = { 0, 0, 0 };
     rotVelocity = { 0, 0, 0 };

@@ -138,8 +138,19 @@ int main() {
 		});
 
 	Mainloop::Get().physicsPaused = true;
-	Window::Get().inputUp->Connect([](InputObject input) {
+	Window::Get().inputUp->Connect([&pitch, &yaw](InputObject input) {
 		if (input.input == InputObject::Space) Mainloop::Get().physicsPaused = !Mainloop::Get().physicsPaused;
+
+		if (input.input == InputObject::LMB) {
+			auto result = Raycast(GraphicsEngine::Get().currentCamera.position, LookVector(pitch, yaw), RaycastParams());
+			if (result.object) {
+				DebugLogInfo("Result ", result.distance, " ", result.hitNormal, " ", result.hitPos, " ", result.object);
+			}
+			else {
+				DebugLogInfo("Result missed.");
+			}
+		}
+
 		});
 	Mainloop::Get().Run();
 	// TODO cleanup?

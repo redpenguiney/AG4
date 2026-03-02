@@ -144,6 +144,7 @@
     <ClCompile Include="camera.cpp" />
     <ClCompile Include="checked_uint.cpp" />
     <ClCompile Include="collider.cpp" />
+    <ClCompile Include="collision_detection.cpp" />
     <ClCompile Include="compute_shader_program.cpp" />
     <ClCompile Include="cursor.cpp" />
     <ClCompile Include="debug_prefabs.cpp" />
@@ -165,6 +166,7 @@
     <ClCompile Include="mesh_voxels.cpp" />
     <ClCompile Include="physics_engine.cpp" />
     <ClCompile Include="physics_mesh.cpp" />
+    <ClCompile Include="raycast.cpp" />
     <ClCompile Include="renderbuffer.cpp" />
     <ClCompile Include="rendergraph.cpp" />
     <ClCompile Include="rendergroup.cpp" />
@@ -192,6 +194,7 @@
     <ClInclude Include="checked_uint.hpp" />
     <ClInclude Include="clustered_lighting.hpp" />
     <ClInclude Include="collider.hpp" />
+    <ClInclude Include="collision_detection.hpp" />
     <ClInclude Include="compute_shader_program.hpp" />
     <ClInclude Include="cursor.hpp" />
     <ClInclude Include="debug_prefabs.hpp" />

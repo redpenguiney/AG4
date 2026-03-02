@@ -57,6 +57,8 @@ public:
 
 	using Pool = MemoryPool<Gameobject, const GameobjectCreateParams&>;
 
+	const Collider* const GetCollider() const;
+
 protected:
 
 	Gameobject(const GameobjectCreateParams& params);
