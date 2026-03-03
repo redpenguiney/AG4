@@ -21,17 +21,24 @@ public:
 class ConvexPhysicsGeometry : public BasePhysicsGeometry {
 public:
 	virtual RaycastResult Raycast(glm::dvec3 origin, glm::dvec3 direction, Gameobject* object) = 0;
+
+	// returns furthest point on surface in that direction, used for collision detection
+	virtual glm::vec3 Support(glm::vec3 direction) const = 0;
 	ConvexPhysicsGeometry() = default;
 	virtual ~ConvexPhysicsGeometry() = default;
 };
 
 // Singleton because there's only one kind of sphere, and scaling is done on the gameobject level.
 // Doesn't support non-uniform scaling because then it's not a sphere.
+// radius is 0.5f
 class SpherePhysicsGeometry : public ConvexPhysicsGeometry {
 public:
 	static std::shared_ptr<SpherePhysicsGeometry> Get();
 	
 	RaycastResult Raycast(glm::dvec3 origin, glm::dvec3 direction, Gameobject* object) override;
+
+	virtual glm::vec3 Support(glm::vec3 direction) const override;
+
 private:
 	SpherePhysicsGeometry();
 };
@@ -42,11 +49,18 @@ class ConvexMeshPhysicsGeometry : public ConvexPhysicsGeometry {
 public:
 	RaycastResult Raycast(glm::dvec3 origin, glm::dvec3 direction, Gameobject* object) override;
 
-	std::vector<std::array<glm::vec3, 3>> triangles;
+	const std::vector<std::array<glm::vec3, 3>> triangles;
+
+	// vertices are divided into 8 quadrants
+	// index from searchDirection: +4 if nonnegative x, +2 if nonnegative y, +1 in nonnegative z 
+	// this structure makes support function 8 times faster
+	const std::array<std::vector<glm::vec3>, 8> supportVertices;
 	static std::shared_ptr<ConvexMeshPhysicsGeometry> FromMesh(const std::shared_ptr<Mesh>& m);
 
+	virtual glm::vec3 Support(glm::vec3 direction) const override;
+
 private:
-	ConvexMeshPhysicsGeometry(std::vector<std::array<glm::vec3, 3>> tris);
+	ConvexMeshPhysicsGeometry(std::vector<std::array<glm::vec3, 3>> tris, std::array<std::vector<glm::vec3>, 8> supportVerts);
 };
 
 // Collisions can be done precisely betwen the boundary of a concave mesh and a convex physics mesh via many triangle-convex collisions.

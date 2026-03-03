@@ -196,6 +196,7 @@
     <ClInclude Include="collider.hpp" />
     <ClInclude Include="collision_detection.hpp" />
     <ClInclude Include="compute_shader_program.hpp" />
+    <ClInclude Include="constraint.hpp" />
     <ClInclude Include="cursor.hpp" />
     <ClInclude Include="debug_prefabs.hpp" />
     <ClInclude Include="event.hpp" />

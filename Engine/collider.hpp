@@ -17,6 +17,8 @@ public:
 private:
 	friend class Gameobject;
 	friend class AABBTree;
+	friend class PhysicsEngine;
+
 	AABBTree::Node* node; // non-owning
 	AABB aabb;
 	void UpdateAABB();

@@ -47,14 +47,10 @@ RaycastResult ConvexMeshPhysicsGeometry::Raycast(glm::dvec3 rayOrigin, glm::dvec
         {
             glm::vec3 hitLocalPoint = rayRelPos + rayRelDir * t;
             glm::dvec3 hitPoint = glm::dvec3(object->GetRotSclMatrix() * hitLocalPoint) + object->Position();
-            normal = glm::normalize(
-                normal.x / object->Scale().x * object->GetRotSclMatrix()[0] +
-                normal.y / object->Scale().y * object->GetRotSclMatrix()[1] +
-                normal.z / object->Scale().z * object->GetRotSclMatrix()[2]
-            );
+            
             return RaycastResult{
                 .hitPos = hitPoint,
-                .hitNormal = normal,
+                .hitNormal = object->ObjectNormalToWorld(normal),
                 .distance = glm::length2(hitPoint - rayOrigin),
                 .object = object
             };
@@ -86,10 +82,60 @@ std::shared_ptr<ConvexMeshPhysicsGeometry> ConvexMeshPhysicsGeometry::FromMesh(c
         }  
     }
 
-    return std::shared_ptr<ConvexMeshPhysicsGeometry>(new ConvexMeshPhysicsGeometry(triangles));
+    std::array<std::vector<glm::vec3>, 8> supportVerts;
+    for (size_t vertI = 0; vertI < srcVerts.size() / m->format.ScalarsPerVertex(); vertI++) {
+        glm::vec3 vert;
+        vert.x = srcVerts[vertI * m->format.ScalarsPerVertex() + posAttribute->offset / 4].f;
+        vert.y = srcVerts[vertI * m->format.ScalarsPerVertex() + posAttribute->offset / 4 + 1].f;
+        vert.z = srcVerts[vertI * m->format.ScalarsPerVertex() + posAttribute->offset / 4 + 2].f;
+        
+        size_t index = 0;
+        if (vert.x >= 0) index += 4;
+        if (vert.y >= 0) index += 2;
+        if (vert.z >= 0) index += 1;
+
+        supportVerts[index].push_back(vert);
+    }
+
+    return std::shared_ptr<ConvexMeshPhysicsGeometry>(new ConvexMeshPhysicsGeometry(triangles, supportVerts));
 }
 
-ConvexMeshPhysicsGeometry::ConvexMeshPhysicsGeometry(std::vector<std::array<glm::vec3, 3>> tris): triangles(tris) {
+glm::vec3 ConvexMeshPhysicsGeometry::Support(glm::vec3 direction) const {
+    size_t index = 0;
+    if (direction.x >= 0) index += 4;
+    if (direction.y >= 0) index += 2;
+    if (direction.z >= 0) index += 1;
+
+    // Weird meshes could potentially have this array be empty, in which case we have to iterate through all 8 arrays.
+    if (!supportVertices[index].empty()) {
+        glm::vec3 currentBest = supportVertices[index][0];
+        float bestDot = glm::dot(direction, currentBest);
+        for (size_t i = 1; i < supportVertices[index].size(); i++) {
+            float dot = glm::dot(direction, supportVertices[index][i]);
+            if (dot > bestDot) {
+                bestDot = dot;
+                currentBest = supportVertices[index][i];
+            }
+        }
+        return currentBest;
+    }
+    else {
+        float bestDot = -INFINITY;
+        glm::vec3 currentBest;
+        for (auto& arr : supportVertices) {
+            for (auto& v : arr) {
+                float dot = glm::dot(direction, v);
+                if (dot > bestDot) {
+                    bestDot = dot;
+                    currentBest = v;
+                }
+            }
+        }
+        return currentBest;
+    }
+}
+
+ConvexMeshPhysicsGeometry::ConvexMeshPhysicsGeometry(std::vector<std::array<glm::vec3, 3>> tris, std::array<std::vector<glm::vec3>, 8> support): triangles(tris), supportVertices(support) {
 
 }
 
@@ -135,4 +181,8 @@ RaycastResult SpherePhysicsGeometry::Raycast(glm::dvec3 rayOrigin, glm::dvec3 ra
     }
     
     return RaycastResult();
+}
+
+glm::vec3 SpherePhysicsGeometry::Support(glm::vec3 direction) const {
+    return direction * 0.5f; // radius is 0.5
 }

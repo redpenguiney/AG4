@@ -1,5 +1,6 @@
 #include "physics_engine.hpp"
 #include "gameobject.hpp"
+#include "collision_detection.hpp"
 
 PhysicsEngine& PhysicsEngine::Get() {
 	static PhysicsEngine PE;
@@ -8,6 +9,7 @@ PhysicsEngine& PhysicsEngine::Get() {
 
 void PhysicsEngine::StepSimulation(double timestep) {
 	auto simulate = [&](auto iterable) mutable {
+
 		for (auto& page : iterable) {
 			for (unsigned i = 0; i < POOL_OBJECTS_PER_PAGE; i++) {
 				Physobject& obj = page[i].obj;
@@ -17,6 +19,16 @@ void PhysicsEngine::StepSimulation(double timestep) {
 
 				obj.nextPos = obj.lastPos + glm::dvec3(obj.velocity) * timestep + gravity * 0.5 * timestep * timestep;
 				obj.nextRot = obj.lastRot + 0.5f * glm::quat(0, obj.rotVelocity);
+
+				if (obj.collider) {
+					auto potentiallyColliding = GameobjectSAS().QueryAABB(obj.collider->aabb);
+					for (auto other : potentiallyColliding) {
+						auto result = NarrowphaseCollisionDetection(&obj, other->object);
+						if (result) {
+							DebugLogInfo("YES COLLISION: ", result->collisionNormal);
+						}
+					}
+				}
 			}
 		}
 

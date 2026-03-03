@@ -58,6 +58,7 @@ public:
 	using Pool = MemoryPool<Gameobject, const GameobjectCreateParams&>;
 
 	const Collider* const GetCollider() const;
+	glm::vec3 ObjectNormalToWorld(glm::vec3 objectNormal);
 
 protected:
 

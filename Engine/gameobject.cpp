@@ -114,6 +114,15 @@ const Collider* const Gameobject::GetCollider() const {
     return collider.get();
 }
 
+glm::vec3 Gameobject::ObjectNormalToWorld(glm::vec3 normal) {
+    const auto& rotscl = GetRotSclMatrix();
+    return glm::normalize(
+        normal.x / Scale().x * rotscl[0] +
+        normal.y / Scale().y * rotscl[1] +
+        normal.z / Scale().z * rotscl[2]
+    );
+}
+
 Physobject::Physobject(const PhysobjectCreateParams& params): Gameobject(params) {
     velocity = { 0, 0, 0 };
     rotVelocity = { 0, 0, 0 };

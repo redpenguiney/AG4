@@ -11,6 +11,7 @@ public:
 
 	glm::dvec3 gravity = { 0.0, -1.81, 0.0 };
 
+
 private:
 	PhysicsEngine();
 	~PhysicsEngine();
