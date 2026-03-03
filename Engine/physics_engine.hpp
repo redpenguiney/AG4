@@ -1,5 +1,6 @@
 #pragma once
 #include "glm/vec3.hpp"
+#include "constraint.hpp"
 
 class PhysicsEngine {
 public:
@@ -13,6 +14,8 @@ public:
 
 
 private:
+	std::vector<std::unique_ptr<Constraint>> constraints;
+
 	PhysicsEngine();
 	~PhysicsEngine();
 };

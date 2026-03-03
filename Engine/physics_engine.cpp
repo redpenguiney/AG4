@@ -10,6 +10,8 @@ PhysicsEngine& PhysicsEngine::Get() {
 void PhysicsEngine::StepSimulation(double timestep) {
 	auto simulate = [&](auto iterable) mutable {
 
+		std::unordered_map<std::pair<Gameobject*, Gameobject*>, CollisionConstraint*> collisions;
+
 		for (auto& page : iterable) {
 			for (unsigned i = 0; i < POOL_OBJECTS_PER_PAGE; i++) {
 				Physobject& obj = page[i].obj;
@@ -23,9 +25,14 @@ void PhysicsEngine::StepSimulation(double timestep) {
 				if (obj.collider) {
 					auto potentiallyColliding = GameobjectSAS().QueryAABB(obj.collider->aabb);
 					for (auto other : potentiallyColliding) {
-						auto result = NarrowphaseCollisionDetection(&obj, other->object);
-						if (result) {
-							DebugLogInfo("YES COLLISION: ", result->collisionNormal);
+						if (collisions.contains({ &obj, other->object }) || collisions.contains({ other->object, &obj })) {
+							continue;
+						}	
+						else {
+							auto result = NarrowphaseCollisionDetection(&obj, other->object);
+							if (result) {
+								DebugLogInfo("YES COLLISION: ", result->collisionNormal);
+							}
 						}
 					}
 				}
