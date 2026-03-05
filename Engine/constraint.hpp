@@ -1,20 +1,26 @@
 #pragma once
 #include "glm/vec3.hpp"
 class Gameobject;
+class Physobject;
 
-struct Constraint {
-	const float inverseStiffness = 0; // in m/N; 0 for infinitely stiff constraints
-	float lagrangeMultiplier = 0;
-
-	virtual void Update() = 0;
-};
-
-struct CollisionConstraint: public Constraint {
-	Gameobject* a;
-	Gameobject* b;
-	glm::dvec3 collisionNormal;
+// physobject-gameobject collision
+struct StaticCollisionConstraint {
 	glm::vec3 r1;
 	glm::vec3 r2;
+	Physobject* a;
+	Gameobject* b;
 
-	void Update() override;
+	// B to A
+	glm::vec3 collisionNormal;
+};
+
+// physobject-physobject collision
+struct DynamicCollisionConstraint {
+	glm::vec3 r1;
+	glm::vec3 r2;
+	Physobject* a;
+	Physobject* b;
+
+	// B to A
+	glm::vec3 collisionNormal;
 };

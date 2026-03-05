@@ -14,8 +14,13 @@ public:
 	BasePhysicsGeometry() = default;
 	virtual ~BasePhysicsGeometry() = default;
 
+	glm::mat3x3 GetMomentOfInertia(glm::vec3 objectScale, float objectMass);
+
 	// Returned distance is actually distance squared
 	virtual RaycastResult Raycast(glm::dvec3 origin, glm::dvec3 direction, Gameobject* object) = 0;
+
+	virtual void AddLocalMomentOfInertiaContribution(glm::vec3& centerOfMass, float& Ia, float& Ib, float& Ic, float& Iap, float& Ibp, float& Icp, glm::vec3 objectScale, float density) = 0;
+	virtual float Volume(glm::vec3 objectScale) = 0;
 };
 
 class ConvexPhysicsGeometry : public BasePhysicsGeometry {
@@ -26,6 +31,9 @@ public:
 	virtual glm::vec3 Support(glm::vec3 direction) const = 0;
 	ConvexPhysicsGeometry() = default;
 	virtual ~ConvexPhysicsGeometry() = default;
+
+	virtual void AddLocalMomentOfInertiaContribution(glm::vec3& centerOfMass, float& Ia, float& Ib, float& Ic, float& Iap, float& Ibp, float& Icp, glm::vec3 objectScale, float density) = 0;
+	virtual float Volume(glm::vec3 objectScale) = 0;
 };
 
 // Singleton because there's only one kind of sphere, and scaling is done on the gameobject level.
@@ -38,7 +46,8 @@ public:
 	RaycastResult Raycast(glm::dvec3 origin, glm::dvec3 direction, Gameobject* object) override;
 
 	virtual glm::vec3 Support(glm::vec3 direction) const override;
-
+	virtual void AddLocalMomentOfInertiaContribution(glm::vec3& centerOfMass, float& Ia, float& Ib, float& Ic, float& Iap, float& Ibp, float& Icp, glm::vec3 objectScale, float density) override;
+	virtual float Volume(glm::vec3 objectScale) override;
 private:
 	SpherePhysicsGeometry();
 };
@@ -57,7 +66,9 @@ public:
 	const std::array<std::vector<glm::vec3>, 8> supportVertices;
 	static std::shared_ptr<ConvexMeshPhysicsGeometry> FromMesh(const std::shared_ptr<Mesh>& m);
 
+	virtual float Volume(glm::vec3 objectScale) override;
 	virtual glm::vec3 Support(glm::vec3 direction) const override;
+	virtual void AddLocalMomentOfInertiaContribution(glm::vec3& centerOfMass, float& Ia, float& Ib, float& Ic, float& Iap, float& Ibp, float& Icp, glm::vec3 objectScale, float density) override;
 
 private:
 	ConvexMeshPhysicsGeometry(std::vector<std::array<glm::vec3, 3>> tris, std::array<std::vector<glm::vec3>, 8> supportVerts);

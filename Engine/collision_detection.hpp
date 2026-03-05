@@ -4,13 +4,10 @@
 #include "glm/vec3.hpp"
 
 struct Collision {
-	// in space of objectA
-	std::vector<glm::vec3> collisionPointsA;
+	// in space of objectA and objectB
+	std::vector<std::pair<glm::vec3, glm::vec3>> collisionPoints;
 
-	// in space of objectB
-	std::vector<glm::vec3> collisionPointsB;
-
-	// A to B
+	// B to 
 	glm::vec3 collisionNormal;
 };
 class Gameobject;

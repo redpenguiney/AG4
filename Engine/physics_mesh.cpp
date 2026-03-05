@@ -100,6 +100,30 @@ std::shared_ptr<ConvexMeshPhysicsGeometry> ConvexMeshPhysicsGeometry::FromMesh(c
     return std::shared_ptr<ConvexMeshPhysicsGeometry>(new ConvexMeshPhysicsGeometry(triangles, supportVerts));
 }
 
+float ConvexMeshPhysicsGeometry::Volume(glm::vec3 objectScale) {
+    float volume = 0;
+    for (const auto& triangle : triangles) {
+        glm::vec3 p1 = triangle[0] * objectScale;
+        glm::vec3 p2 = triangle[1] * objectScale;
+        glm::vec3 p3 = triangle[2] * objectScale;
+
+        glm::vec3 triangleNormal = glm::cross(p2 - p1, p3 - p1);
+
+        glm::vec3 triangleCentroid = (p1 + p2 + p3) / 3.0f;
+
+        float tetrahedronVolume = TetrahedronVolume(p1, p2, p3, { 1.0, 1.0, 1.0 });
+
+        float dot = glm::dot(triangleNormal, triangleCentroid); // We're checking if the triangle normal points towards the origin.
+        if (dot > 0.0) { // then the triangle's normal points away from the origin. 
+            volume += tetrahedronVolume;
+        }
+        else { // then the triangle normal points towards the origin (because mesh has concave bits) and we gotta negate all the values it calculates.
+            volume -= tetrahedronVolume;
+        }
+    }
+    return volume;
+}
+
 glm::vec3 ConvexMeshPhysicsGeometry::Support(glm::vec3 direction) const {
     size_t index = 0;
     if (direction.x >= 0) index += 4;
@@ -132,6 +156,62 @@ glm::vec3 ConvexMeshPhysicsGeometry::Support(glm::vec3 direction) const {
             }
         }
         return currentBest;
+    }
+}
+
+static float TetrahedronVolume(glm::vec3 a, glm::vec3 b, glm::vec3 c, glm::vec3 d) {
+    return glm::dot(a, glm::cross(b, c)) / 6.0f;
+}
+
+// helper function for CalculateLocalMomentOfInertia(). i is matrix x, j is matrix y.
+static float ComputeInertiaProduct(const glm::vec3& p1, const glm::vec3& p2, const glm::vec3& p3, unsigned int i, unsigned int j) {
+    return (
+        2.0 * p1[i] * p1[j] + p2[i] * p3[j] + p3[i] * p2[j] +
+        2.0 * p2[i] * p2[j] + p1[i] * p3[j] + p3[i] * p1[j] +
+        2.0 * p3[i] * p3[j] + p1[i] * p2[j] + p2[i] * p1[j]
+        );
+}
+
+// helper function for CalculateLocalMomentOfInertia(). i is the matrix x-coordinate.
+static float ComputeInertiaMoment(const glm::vec3& p1, const glm::vec3& p2, const glm::vec3& p3, unsigned int i) {
+    return (
+        pow(p1[i], 2.0f) + p2[i] * p3[i] +
+        pow(p2[i], 2.0f) + p1[i] * p3[i] +
+        pow(p3[i], 2.0f) + p1[i] * p2[i]
+        );
+}
+
+void ConvexMeshPhysicsGeometry::AddLocalMomentOfInertiaContribution(glm::vec3& centerOfMass, float& Ia, float& Ib, float& Ic, float& Iap, float& Ibp, float& Icp, glm::vec3 objectScale, float density) {
+    for (const auto& triangle : triangles) {
+        glm::vec3 p1 = triangle[0] * objectScale;
+        glm::vec3 p2 = triangle[1] * objectScale;
+        glm::vec3 p3 = triangle[2] * objectScale;
+
+        glm::vec3 triangleNormal = glm::cross(p2 - p1, p3 - p1);
+
+        glm::vec3 triangleCentroid = (p1 + p2 + p3) / 3.0f;
+        glm::vec3 tetrahedronCenterOfMass = (p1 + p2 + p3) / 4.0f; // not bothering to add the origin for obvious reasons
+
+        // volume calc from https://math.stackexchange.com/questions/3616760/how-to-calculate-the-volume-of-tetrahedron-given-by-4-points
+        float tetrahedronVolume = TetrahedronVolume(p1, p2, p3, { 1.0, 1.0, 1.0 });
+
+        float tetrahedronMass = tetrahedronVolume * density;
+
+        float dot = glm::dot(triangleNormal, triangleCentroid); // We're checking if the triangle normal points towards the origin.
+        if (dot < 0.0) { // then the triangle's normal points towards the origin and must be negated. 
+            tetrahedronMass *= -1;
+            tetrahedronVolume *= -1;
+        }
+
+        centerOfMass += tetrahedronCenterOfMass * tetrahedronMass; // we'll divide it to get actual average at the end
+
+        // from 23:00 in the video i mentioned above
+        Ia += 6.0f * tetrahedronVolume * (ComputeInertiaMoment(p1, p2, p3, 1) + ComputeInertiaMoment(p1, p2, p3, 2));
+        Ib += 6.0f * tetrahedronVolume * (ComputeInertiaMoment(p1, p2, p3, 0) + ComputeInertiaMoment(p1, p2, p3, 2));
+        Ic += 6.0f * tetrahedronVolume * (ComputeInertiaMoment(p1, p2, p3, 0) + ComputeInertiaMoment(p1, p2, p3, 1));
+        Iap += 6.0f * tetrahedronVolume * ComputeInertiaProduct(p1, p2, p3, 1, 2);
+        Ibp += 6.0f * tetrahedronVolume * ComputeInertiaProduct(p1, p2, p3, 0, 1);
+        Icp += 6.0f * tetrahedronVolume * ComputeInertiaProduct(p1, p2, p3, 0, 2);
     }
 }
 
@@ -185,4 +265,51 @@ RaycastResult SpherePhysicsGeometry::Raycast(glm::dvec3 rayOrigin, glm::dvec3 ra
 
 glm::vec3 SpherePhysicsGeometry::Support(glm::vec3 direction) const {
     return direction * 0.5f; // radius is 0.5
+}
+
+void SpherePhysicsGeometry::AddLocalMomentOfInertiaContribution(glm::vec3& centerOfMass, float& Ia, float& Ib, float& Ic, float& Iap, float& Ibp, float& Icp, glm::vec3 objectScale, float density) {
+    float mass = Volume(objectScale) * density;
+    float radiusSquared = 0.25f * objectScale.x * objectScale.x;
+    Ia += mass * radiusSquared * 0.4f;
+    Ib += mass * radiusSquared * 0.4f;
+    Ic += mass * radiusSquared * 0.4f;
+}
+
+float SpherePhysicsGeometry::Volume(glm::vec3 objectScale) {
+    return 4.0f / 3.0f * 3.1415926f * objectScale.x * objectScale.x * objectScale.x;
+}
+
+glm::mat3x3 BasePhysicsGeometry::GetMomentOfInertia(glm::vec3 objectScale, float objectMass) {
+    Assert(objectMass > 0);
+    Assert(objectScale.x > 0 && objectScale.y > 0 && objectScale.z > 0);
+
+    // From http://number-none.com/blow/inertia/body_i.html and https://stackoverflow.com/questions/809832/how-can-i-compute-the-mass-and-moment-of-inertia-of-a-polyhedron 
+    // and most especially https://www.youtube.com/watch?v=GYc99lMdcFE
+
+    float volume = Volume();
+    Assert(volume > 0);
+
+    float density = objectMass / volume;
+
+    glm::vec3 objectCenterOfMass = { 0, 0, 0 };
+    float Ia = 0.0, Ib = 0.0, Ic = 0.0, Iap = 0.0, Ibp = 0.0, Icp = 0.0; // components of inertia tensor. i think.
+
+    AddLocalMomentOfInertiaContribution(objectCenterOfMass, Ia, Ib, Ic, Iap, Ibp, Icp, objectScale, objectMass);
+
+    objectCenterOfMass /= objectMass;
+    Ia *= density / 60.0f;
+    Ib *= density / 60.0f;
+    Ic *= density / 60.0f;
+    Iap *= density / 120.0f;
+    Iap *= density / 120.0f;
+    Iap *= density / 120.0f;
+
+    // We just calculated inertia tensor with respect to the origin. Since all meshes are transformed to be centered on the origin, we're done here.
+    glm::mat3x3 inertiaTensor{
+        Ia, -Ibp, -Icp,
+        -Ibp, Ib, -Iap,
+        -Icp, -Iap, Ic
+    };
+
+    return inertiaTensor;
 }

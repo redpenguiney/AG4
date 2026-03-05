@@ -128,6 +128,10 @@ Physobject::Physobject(const PhysobjectCreateParams& params): Gameobject(params)
     rotVelocity = { 0, 0, 0 };
 }
 
+void Physobject::UpdateMass() {
+
+}
+
 Physobject* Physobject::New(const PhysobjectCreateParams& params)
 {
     return MemoryPool<Physobject, const PhysobjectCreateParams&>::Get().New(params);
@@ -139,4 +143,8 @@ void Physobject::operator delete(void* obj) {
 
 Physobject::~Physobject() {
 
+}
+
+void Physobject::SetScale(const glm::vec3&) {
+    UpdateMass();
 }

@@ -1,6 +1,9 @@
 #pragma once
 #include "glm/vec3.hpp"
 #include "constraint.hpp"
+#include <vector>
+
+class Gameobject;
 
 class PhysicsEngine {
 public:
@@ -10,11 +13,12 @@ public:
 
 	PhysicsEngine(const PhysicsEngine&) = delete;
 
-	glm::dvec3 gravity = { 0.0, -1.81, 0.0 };
+	glm::dvec3 gravity = { 0.0, -9.81, 0.0 };
 
 
 private:
-	std::vector<std::unique_ptr<Constraint>> constraints;
+	std::vector<DynamicCollisionConstraint> dynamicCollisions;
+	std::vector<StaticCollisionConstraint> staticCollisions;
 
 	PhysicsEngine();
 	~PhysicsEngine();

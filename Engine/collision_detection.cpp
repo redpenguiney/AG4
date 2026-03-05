@@ -317,8 +317,7 @@ static std::optional<Collision> CollideGJKEPA(Gameobject* a, Gameobject* b) {
         glm::vec3 pointForObj2 = (pA[2] * u) + (pB[2] * v) + (pC[2] * w);
 
         return Collision{
-            .collisionPointsA = {pointForObj1,},
-            .collisionPointsB = {pointForObj2,},
+            .collisionPoints = {{pointForObj1, pointForObj2},},
             .collisionNormal = a->ObjectNormalToWorld(minNormal),
         };
         };

@@ -69,3 +69,14 @@ namespace hash_tuple{
     };
 
 }
+
+namespace hash_pair {
+    template <typename T1, typename T2>
+    struct hash {
+        size_t operator()(std::pair<T1, T2> const& tt) const {
+            size_t a = std::hash<T1>()(tt.first);
+            a ^= std::hash<T2>()(tt.second) + 0x9e3779b9 + (a << 6) + (a >> 2);
+            return a;
+        }
+    };
+}

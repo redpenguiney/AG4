@@ -41,7 +41,7 @@ public:
 	const glm::quat& Rotation() const;
 
 	void SetPosition(const glm::dvec3&);
-	void SetScale(const glm::vec3&);
+	virtual void SetScale(const glm::vec3&);
 	void SetRotation(const glm::quat&);
 
 	// attrib and value better match up, or you'll be lucky if you get a segfault
@@ -86,6 +86,7 @@ protected:
 	friend class Pool;
 	friend class RenderGroup;
 	friend class GraphicsEngine;
+	friend class PhysicsEngine; 
 
 private:
 
@@ -103,14 +104,16 @@ public:
 
 	using Pool = MemoryPool<Physobject, const PhysobjectCreateParams&>;
 
+	virtual void SetScale(const glm::vec3&) override;
+
 protected:
 
 	Physobject(const PhysobjectCreateParams& params);
 
 	glm::dvec3 lastPos;
-	glm::dvec3 nextPos;
+	//glm::dvec3 nextPos;
 	glm::quat lastRot;
-	glm::quat nextRot;
+	//glm::quat nextRot;
 
 	glm::vec3 velocity;
 	glm::vec3 rotVelocity;
@@ -123,4 +126,7 @@ protected:
 
 	friend class Pool;
 	friend class PhysicsEngine;
+
+private:
+	void UpdateMass();
 };
