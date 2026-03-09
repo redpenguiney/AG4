@@ -5,6 +5,7 @@
 #include "glm/vec3.hpp"
 #include "glm/ext/quaternion_float.hpp"
 #include "let_me_hash_a_tuple.hpp"
+#include "debug_prefabs.hpp"
 
 PhysicsEngine& PhysicsEngine::Get() {
 	static PhysicsEngine PE;
@@ -45,6 +46,7 @@ void PhysicsEngine::StepSimulation(double timestep) {
 					// 
 					auto potentiallyColliding = GameobjectSAS().QueryAABB(obj.collider->aabb);
 					for (auto other : potentiallyColliding) {
+						if (other == obj.collider.get()) continue;
 						if (alreadyCheckedCollisions.contains({ &obj, other->object }) || alreadyCheckedCollisions.contains({ other->object, &obj })) {
 							continue;
 						}
@@ -60,6 +62,7 @@ void PhysicsEngine::StepSimulation(double timestep) {
 											.a = &obj,
 											.b = otherPhys,
 											.collisionNormal = result->collisionNormal,
+											.nerf = 1.0f/(float)result->collisionPoints.size()
 											});
 									}
 									else {
@@ -69,6 +72,7 @@ void PhysicsEngine::StepSimulation(double timestep) {
 											.a = &obj,
 											.b = other->object,
 											.collisionNormal = result->collisionNormal,
+											.nerf = 1.0f / (float)result->collisionPoints.size()
 											});
 									}
 								}
@@ -85,6 +89,11 @@ void PhysicsEngine::StepSimulation(double timestep) {
 				// todo: could maybe evaluate these in A's object space and then use floats?
 				glm::dvec3 r1 = glm::dvec3(collision.a->GetRotSclMatrix() * collision.r1) + collision.a->Position();
 				glm::dvec3 r2 = glm::dvec3(collision.b->GetRotSclMatrix() * collision.r2) + collision.b->Position();
+				DebugPoint(collision.r1, {1, 0, 0});
+				DebugPoint(collision.r2, {0, 1, 0});
+				
+				DebugPoint(r1);
+				DebugPoint(r2);
 				glm::dvec3 dnormal = glm::dvec3(collision.collisionNormal);
 				double penetration = glm::dot(r1 - r2, dnormal);
 				if (penetration < 0) continue;
@@ -93,7 +102,7 @@ void PhysicsEngine::StepSimulation(double timestep) {
 				// TODO: untested
 				float reducedInverseMass1 = collision.a->inverseMass + glm::dot(torqueAxis1, collision.a->inverseInertiaTensor * torqueAxis1);
 			
-				float lagrange = - penetration / reducedInverseMass1;
+				float lagrange = penetration / reducedInverseMass1;// * collision.nerf;
 				glm::vec3 impulse = collision.collisionNormal * lagrange;
 				glm::dvec3 displacement = impulse * reducedInverseMass1;
 				collision.a->SetPosition(collision.a->Position() + displacement);

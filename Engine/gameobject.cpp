@@ -126,10 +126,24 @@ glm::vec3 Gameobject::ObjectNormalToWorld(glm::vec3 normal) {
 Physobject::Physobject(const PhysobjectCreateParams& params): Gameobject(params) {
     velocity = { 0, 0, 0 };
     rotVelocity = { 0, 0, 0 };
+    friction = 0.5;
+    elasticity = 0.5;
+    inverseMass = 1;
+    UpdateMass();
 }
 
 void Physobject::UpdateMass() {
-
+    float mass = 1 / inverseMass;
+    if (collider) {
+        inverseInertiaTensor = glm::inverse(collider->physicsMesh->GetMomentOfInertia(Scale(), mass));
+    }
+    else {
+        inverseInertiaTensor = { // todo: questionable physical accuracy
+            inverseMass, 0, 0,
+            0, inverseMass, 0,
+            0, 0, inverseMass
+        };
+    }
 }
 
 Physobject* Physobject::New(const PhysobjectCreateParams& params)
@@ -145,6 +159,11 @@ Physobject::~Physobject() {
 
 }
 
-void Physobject::SetScale(const glm::vec3&) {
+void Physobject::SetScale(const glm::vec3& scl) {
+    Gameobject::SetScale(scl);
     UpdateMass();
+}
+
+void Physobject::SetMass(float mass) {
+    inverseMass = 1 / mass;
 }

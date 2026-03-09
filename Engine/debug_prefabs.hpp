@@ -1,10 +1,15 @@
 #pragma once
 #include <memory>
+#include "glm/vec3.hpp"
 
 class Mesh;
 class DrawPass;
 class ConvexMeshPhysicsGeometry;
+class Gameobject;
 
 std::shared_ptr<Mesh> GetCubeMesh();
 std::shared_ptr<DrawPass> GetDebugWireframePass();
+std::shared_ptr<DrawPass> GetDebugSolidPass();
 std::shared_ptr<ConvexMeshPhysicsGeometry> GetCubeCollisions();
+
+Gameobject* DebugPoint(glm::dvec3 pos, glm::vec3 color = {1, 1, 1});

@@ -100,29 +100,7 @@ std::shared_ptr<ConvexMeshPhysicsGeometry> ConvexMeshPhysicsGeometry::FromMesh(c
     return std::shared_ptr<ConvexMeshPhysicsGeometry>(new ConvexMeshPhysicsGeometry(triangles, supportVerts));
 }
 
-float ConvexMeshPhysicsGeometry::Volume(glm::vec3 objectScale) {
-    float volume = 0;
-    for (const auto& triangle : triangles) {
-        glm::vec3 p1 = triangle[0] * objectScale;
-        glm::vec3 p2 = triangle[1] * objectScale;
-        glm::vec3 p3 = triangle[2] * objectScale;
 
-        glm::vec3 triangleNormal = glm::cross(p2 - p1, p3 - p1);
-
-        glm::vec3 triangleCentroid = (p1 + p2 + p3) / 3.0f;
-
-        float tetrahedronVolume = TetrahedronVolume(p1, p2, p3, { 1.0, 1.0, 1.0 });
-
-        float dot = glm::dot(triangleNormal, triangleCentroid); // We're checking if the triangle normal points towards the origin.
-        if (dot > 0.0) { // then the triangle's normal points away from the origin. 
-            volume += tetrahedronVolume;
-        }
-        else { // then the triangle normal points towards the origin (because mesh has concave bits) and we gotta negate all the values it calculates.
-            volume -= tetrahedronVolume;
-        }
-    }
-    return volume;
-}
 
 glm::vec3 ConvexMeshPhysicsGeometry::Support(glm::vec3 direction) const {
     size_t index = 0;
@@ -179,6 +157,30 @@ static float ComputeInertiaMoment(const glm::vec3& p1, const glm::vec3& p2, cons
         pow(p2[i], 2.0f) + p1[i] * p3[i] +
         pow(p3[i], 2.0f) + p1[i] * p2[i]
         );
+}
+
+float ConvexMeshPhysicsGeometry::Volume(glm::vec3 objectScale) {
+    float volume = 0;
+    for (const auto& triangle : triangles) {
+        glm::vec3 p1 = triangle[0] * objectScale;
+        glm::vec3 p2 = triangle[1] * objectScale;
+        glm::vec3 p3 = triangle[2] * objectScale;
+
+        glm::vec3 triangleNormal = glm::cross(p2 - p1, p3 - p1);
+
+        glm::vec3 triangleCentroid = (p1 + p2 + p3) / 3.0f;
+
+        float tetrahedronVolume = TetrahedronVolume(p1, p2, p3, { 1.0, 1.0, 1.0 });
+
+        float dot = glm::dot(triangleNormal, triangleCentroid); // We're checking if the triangle normal points towards the origin.
+        if (dot > 0.0) { // then the triangle's normal points away from the origin. 
+            volume += tetrahedronVolume;
+        }
+        else { // then the triangle normal points towards the origin (because mesh has concave bits) and we gotta negate all the values it calculates.
+            volume -= tetrahedronVolume;
+        }
+    }
+    return volume;
 }
 
 void ConvexMeshPhysicsGeometry::AddLocalMomentOfInertiaContribution(glm::vec3& centerOfMass, float& Ia, float& Ib, float& Ic, float& Iap, float& Ibp, float& Icp, glm::vec3 objectScale, float density) {
@@ -286,7 +288,7 @@ glm::mat3x3 BasePhysicsGeometry::GetMomentOfInertia(glm::vec3 objectScale, float
     // From http://number-none.com/blow/inertia/body_i.html and https://stackoverflow.com/questions/809832/how-can-i-compute-the-mass-and-moment-of-inertia-of-a-polyhedron 
     // and most especially https://www.youtube.com/watch?v=GYc99lMdcFE
 
-    float volume = Volume();
+    float volume = Volume(objectScale);
     Assert(volume > 0);
 
     float density = objectMass / volume;

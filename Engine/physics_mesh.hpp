@@ -14,6 +14,7 @@ public:
 	BasePhysicsGeometry() = default;
 	virtual ~BasePhysicsGeometry() = default;
 
+	// todo: very expensive function. cache so that if multiple rigidbodies with same BasePhysicsGeometry and size are made, they can reuse the same calculation
 	glm::mat3x3 GetMomentOfInertia(glm::vec3 objectScale, float objectMass);
 
 	// Returned distance is actually distance squared

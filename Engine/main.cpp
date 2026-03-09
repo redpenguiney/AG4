@@ -87,10 +87,16 @@ int main() {
 	p.mesh = GetCubeMesh();
 	p.physicsMesh = GetCubeCollisions();
 
+	DebugPoint({ 0, 0, 0 }, { 1, 1, 1 });
+	DebugPoint({ 0.4, 0, 0 }, { 1, 0, 0 });
+	DebugPoint({ 0, 0.4, 0 }, { 0, 1, 0 });
+	DebugPoint({ 0, 0, 0.4 }, { 0, 0, 1 });
+
+
 	{
 		Gameobject* gameObj = Gameobject::New(p);
-		gameObj->SetPosition({ 0, -5, 0 });
-		gameObj->SetScale({ 10, 1, 10 });
+		gameObj->SetPosition({ 0, -2, 0 });
+		gameObj->SetScale({ 1, 1, 1 });
 		glm::vec4 color(0, 1, 0, 1);
 		gameObj->SetInstanceAttribute(*p.mesh->format.GetAttribute("color"), color);
 		gameObj->SetInstanceAttribute(*p.mesh->format.GetAttribute(SpecialVertexAttributeNames::AUTOMATIC_TEXTURE_ARRAY_SELECTION), -1.0f);
@@ -99,10 +105,10 @@ int main() {
 		objects.push_back(unique);
 	}
 
-	for (int i = 0; i < 50; i++) {
+	for (int i = 0; i < 1; i++) {
 		Physobject* gameObj = Physobject::New(p);
-		gameObj->SetPosition({ i, 0, -3 - i });
-		gameObj->SetScale({ 0.8, 0.8, 0.8 });
+		gameObj->SetPosition({ i, 0, 0 - i });
+		//gameObj->SetScale({ 0.8, 0.8, 0.8 });
 		glm::vec4 color(1, 0, 1, 1);
 		gameObj->SetInstanceAttribute(*p.mesh->format.GetAttribute("color"), color);
 		gameObj->SetInstanceAttribute(*p.mesh->format.GetAttribute(SpecialVertexAttributeNames::AUTOMATIC_TEXTURE_ARRAY_SELECTION), -1.0f);
@@ -112,7 +118,7 @@ int main() {
 
 	}
 	
-	//GraphicsEngine::Get().currentCamera.far
+	GraphicsEngine::Get().currentCamera.position = { 0, 0, 5 };
 
 	// Freecam
 	float pitch = 0, yaw = 0, speed = 0;

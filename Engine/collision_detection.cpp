@@ -48,6 +48,9 @@ static std::pair<std::vector<std::pair<glm::vec3, float>>, size_t> GetFaceNormal
     return { tnormals, minTriangle };
 };
 
+static void ValidateVector(glm::vec3 vec) {
+    Assert(!std::isnan(vec.x) && !std::isnan(vec.y) && !std::isnan(vec.z));
+}
 
 static std::optional<Collision> CollideGJKEPA(Gameobject* a, Gameobject* b) {
     auto pmA = std::dynamic_pointer_cast<ConvexPhysicsGeometry>(a->GetCollider()->physicsMesh);
@@ -57,7 +60,6 @@ static std::optional<Collision> CollideGJKEPA(Gameobject* a, Gameobject* b) {
     glm::mat3x3 worldToB = glm::inverse(b->GetRotSclMatrix());
     glm::vec3 bToARelPos = a->Position() - b->Position();
     glm::mat3x3 worldToA = glm::inverse(a->GetRotSclMatrix());
-
     //glm::mat3x4 bToA = bToWorld;
     //bToWorld[3] = bToARelPos;
     
@@ -70,13 +72,16 @@ static std::optional<Collision> CollideGJKEPA(Gameobject* a, Gameobject* b) {
     // HELPER FUNCTION DEFINITIONS
 
     auto NewSimplexPoint = [&](glm::vec3 direction) -> std::array<glm::vec3, 3> {
+        ValidateVector(direction);
         glm::vec3 supportA = pmA->Support(direction);
-        glm::vec3 supportB = pmB->Support(-direction);
+        glm::vec3 directionInBSpace = worldToB * a->GetRotSclMatrix() * direction;
+
+        glm::vec3 supportB = pmB->Support(-directionInBSpace);
         glm::vec3 bInASpace = worldToA * ((b->GetRotSclMatrix() * supportB) + bToARelPos);
         return { supportA - bInASpace, supportA, supportB };
         };
 
-    auto LineCase = [&]() {
+    auto LineCase = [&]() -> bool {
         auto& a = simplex[0];
         auto& b = simplex[1];
 
@@ -86,15 +91,20 @@ static std::optional<Collision> CollideGJKEPA(Gameobject* a, Gameobject* b) {
         // https://www.youtube.com/watch?app=desktop&v=MDusDn8oTSE 5:43 has a nice picture to illustrate this
         // in this case, the 2 points of the simplex describe 2 parallel planes whose volume contain the origin if the vector between the 2 points is within 90 degrees of the vector from one of the points to to the origin
         if (glm::dot(ab, ao) >= 0) {
-            // make search direction go towards origin again
-
-            // std::cout << "\tPassed line case.\n";
-            searchDirection = glm::normalize(glm::cross(glm::cross(ab, ao), ab));
+            glm::vec3 cross = glm::cross(ab, ao);
+            if (glm::length2(cross) > 0) {
+                // make search direction go towards origin again
+                searchDirection = glm::normalize(glm::cross(glm::cross(ab, ao), ab));
+                return false;
+            }
+            else { // ab and ao are the same direction. the segment ab contains the origin and a collision occurred.
+                Assert(false); // TODO
+            }
         }
         else { // if the condition failed, the 1st point is between 2nd point and the origin and thus the 2nd point won't help determine whether simplex contains the origin
-            // std::cout << "\tFailed line case.\n";
             simplex = { a };
             searchDirection = ao;
+            return false;
         }
         };
 
@@ -323,7 +333,7 @@ static std::optional<Collision> CollideGJKEPA(Gameobject* a, Gameobject* b) {
         };
 
     // initial simplex/search direction
-    simplex.push_back(NewSimplexPoint({ 1, 1, 1 })); // arbitrary intial search direction
+    simplex.push_back(NewSimplexPoint(glm::normalize(a->Position() - b->Position()))); // arbitrary intial search direction
     searchDirection = glm::normalize(-simplex.back()[0]);
 
 
@@ -355,16 +365,22 @@ static std::optional<Collision> CollideGJKEPA(Gameobject* a, Gameobject* b) {
         // 4. if it doesn't, we have an unneccesary point in the simplex, reduce the simplex to closest/most relevant stuff to origin by doing some dot/cross product stuff, compute new search direction, and go back to beginning of loop to find more points
         switch (simplex.size()) {
         case 2:
-            LineCase();
+            if (LineCase()) {
+                auto collisioninfo = EPA();
+                return collisioninfo;
+            }
+            ValidateVector(searchDirection);
             break;
         case 3:
             TriangleCase();
+            ValidateVector(searchDirection);
             break;
         case 4:
             if (TetrahedronCase()) { // this function is not void like the others, returns true if collision confirmed
                 auto collisioninfo = EPA();
                 return collisioninfo;
             }
+            ValidateVector(searchDirection);
             break;
         default:
             DebugLogError("GJK: WHAT");

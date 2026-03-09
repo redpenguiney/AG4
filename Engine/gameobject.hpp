@@ -106,6 +106,11 @@ public:
 
 	virtual void SetScale(const glm::vec3&) override;
 
+	// pass INFINITY to make object immobile
+	void SetMass(float mass);
+
+	void SetMassFromDensity(float density);
+
 protected:
 
 	Physobject(const PhysobjectCreateParams& params);
