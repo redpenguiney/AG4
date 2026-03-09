@@ -11,7 +11,7 @@
       <AdditionalIncludeDirectories>$(ProjectDir)/../code/src;code/src;src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <WarningLevel>Level3</WarningLevel>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <PreprocessorDefinitions>SOL_ALL_SAFETIES_ON;GLM_ENABLE_EXPERIMENTAL;_CONSOLE;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>SOL_ALL_SAFETIES_ON;GLM_ENABLE_EXPERIMENTAL;_CONSOLE;NDEBUG;_CONSOLE;GLM_CONFIG_XYZW_ONLY;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdclatest</LanguageStandard_C>
       <ExternalWarningLevel>TurnOffAllWarnings</ExternalWarningLevel>

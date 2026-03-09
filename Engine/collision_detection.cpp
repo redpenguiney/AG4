@@ -8,8 +8,16 @@
 #include "glm/mat3x3.hpp"
 #include "glm/mat4x4.hpp"
 
+#ifndef GLM_CONFIG_XYZW_ONLY 
+#error bruh
+#endif
+
 static float SignedDistanceToPlane(glm::vec3 planeNormal, glm::vec3 point, glm::vec3 pointOnPlane) {
     return glm::dot(planeNormal, point - pointOnPlane);
+}
+
+static void ValidateVector(glm::vec3 vec) {
+    Assert(!std::isnan(vec.x) && !std::isnan(vec.y) && !std::isnan(vec.z));
 }
 
 // Helper function to get face normals of the polytope in a's object space.
@@ -35,7 +43,7 @@ static std::pair<std::vector<std::pair<glm::vec3, float>>, size_t> GetFaceNormal
         }
 
         // std::cout << "Pushing back to normals.\n";
-        tnormals.emplace_back(std::make_pair(normal, distance));
+        tnormals.emplace_back(std::make_pair(normal, std::isnan(distance) ? INFINITY : distance));
 
         if (distance < minDistance) {
             minTriangle = i / 3;
@@ -47,10 +55,6 @@ static std::pair<std::vector<std::pair<glm::vec3, float>>, size_t> GetFaceNormal
     Assert(tnormals.size() > 0);
     return { tnormals, minTriangle };
 };
-
-static void ValidateVector(glm::vec3 vec) {
-    Assert(!std::isnan(vec.x) && !std::isnan(vec.y) && !std::isnan(vec.z));
-}
 
 static std::optional<Collision> CollideGJKEPA(Gameobject* a, Gameobject* b) {
     auto pmA = std::dynamic_pointer_cast<ConvexPhysicsGeometry>(a->GetCollider()->physicsMesh);
@@ -94,11 +98,17 @@ static std::optional<Collision> CollideGJKEPA(Gameobject* a, Gameobject* b) {
             glm::vec3 cross = glm::cross(ab, ao);
             if (glm::length2(cross) > 0) {
                 // make search direction go towards origin again
-                searchDirection = glm::normalize(glm::cross(glm::cross(ab, ao), ab));
+                searchDirection = glm::normalize(glm::cross(cross, ab));
                 return false;
             }
-            else { // ab and ao are the same direction. the segment ab contains the origin and a collision occurred.
-                Assert(false); // TODO
+            else { // ab and ao are the same direction (only occurs when collider vertices are all perfectly aligned except on normal axis). 
+                // we'll use the normal of the plane defined by a[1], a[2] in objectA space, and b[1] for our search direction instead.
+                //glm::vec3 aa = a[0] - b[1];
+                //searchDirection = glm::normalize(glm::cross(aa, ab));
+                //ValidateVector(searchDirection);
+                //return false;
+                Assert(glm::length2(ab) >= glm::length2(ao));
+                return true;
             }
         }
         else { // if the condition failed, the 1st point is between 2nd point and the origin and thus the 2nd point won't help determine whether simplex contains the origin
@@ -182,6 +192,17 @@ static std::optional<Collision> CollideGJKEPA(Gameobject* a, Gameobject* b) {
         }
 
         return true;
+        };
+
+    auto ContactFromLineCase = [&]() -> std::optional<Collision> {
+        Assert(simplex.size() == 2);
+        glm::vec3 normal = glm::normalize(simplex[1][0] - simplex[0][0]);
+        ValidateVector(normal);
+
+        return Collision{
+            .collisionPoints = {{normal * -0.5f, normal * 0.5f},},
+            .collisionNormal = normal,
+        };
         };
 
     auto EPA = [&]() -> std::optional<Collision> {
@@ -351,6 +372,7 @@ static std::optional<Collision> CollideGJKEPA(Gameobject* a, Gameobject* b) {
         auto newSimplexPoint = NewSimplexPoint(searchDirection);
 
         // this is the farthest point in this direction, so if it didn't get past the origin, then origin is gonna be outside the minoski difference meaning no collision.
+        // TODO: maybe try other technique (see if distance has decreased)
         if (glm::dot(newSimplexPoint[0], searchDirection) <= 0) {
             return std::nullopt;
         }
@@ -366,7 +388,7 @@ static std::optional<Collision> CollideGJKEPA(Gameobject* a, Gameobject* b) {
         switch (simplex.size()) {
         case 2:
             if (LineCase()) {
-                auto collisioninfo = EPA();
+                auto collisioninfo = ContactFromLineCase();
                 return collisioninfo;
             }
             ValidateVector(searchDirection);

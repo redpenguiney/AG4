@@ -108,7 +108,7 @@ int main() {
 	for (int i = 0; i < 1; i++) {
 		Physobject* gameObj = Physobject::New(p);
 		gameObj->SetPosition({ i, 0, 0 - i });
-		//gameObj->SetScale({ 0.8, 0.8, 0.8 });
+		gameObj->SetScale({ 0.8, 0.8, 0.8 });
 		glm::vec4 color(1, 0, 1, 1);
 		gameObj->SetInstanceAttribute(*p.mesh->format.GetAttribute("color"), color);
 		gameObj->SetInstanceAttribute(*p.mesh->format.GetAttribute(SpecialVertexAttributeNames::AUTOMATIC_TEXTURE_ARRAY_SELECTION), -1.0f);

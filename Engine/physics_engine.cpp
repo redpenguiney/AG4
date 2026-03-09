@@ -89,23 +89,23 @@ void PhysicsEngine::StepSimulation(double timestep) {
 				// todo: could maybe evaluate these in A's object space and then use floats?
 				glm::dvec3 r1 = glm::dvec3(collision.a->GetRotSclMatrix() * collision.r1) + collision.a->Position();
 				glm::dvec3 r2 = glm::dvec3(collision.b->GetRotSclMatrix() * collision.r2) + collision.b->Position();
-				DebugPoint(collision.r1, {1, 0, 0});
-				DebugPoint(collision.r2, {0, 1, 0});
+				//DebugPoint(collision.r1, {1, 0, 0});
+				//DebugPoint(collision.r2, {0, 1, 0});
 				
 				DebugPoint(r1);
 				DebugPoint(r2);
 				glm::dvec3 dnormal = glm::dvec3(collision.collisionNormal);
-				double penetration = glm::dot(r1 - r2, dnormal);
+				double penetration = glm::dot(r2 - r1, dnormal);
 				if (penetration < 0) continue;
 
 				glm::vec3 torqueAxis1 = glm::cross(collision.r1, collision.collisionNormal);
 				// TODO: untested
-				float reducedInverseMass1 = collision.a->inverseMass + glm::dot(torqueAxis1, collision.a->inverseInertiaTensor * torqueAxis1);
+				float reducedInverseMass1 = collision.a->inverseMass +glm::dot(torqueAxis1, collision.a->inverseInertiaTensor * torqueAxis1);
 			
-				float lagrange = penetration / reducedInverseMass1;// * collision.nerf;
+				float lagrange = penetration / reducedInverseMass1 * collision.nerf;
 				glm::vec3 impulse = collision.collisionNormal * lagrange;
 				glm::dvec3 displacement = impulse * reducedInverseMass1;
-				collision.a->SetPosition(collision.a->Position() + displacement);
+ 				collision.a->SetPosition(collision.a->Position() + displacement);
 				collision.a->SetRotation(glm::normalize(collision.a->Rotation() + 0.5f * glm::quat(0, collision.a->inverseInertiaTensor * glm::cross(collision.r1, impulse))));
 			}
 		}
