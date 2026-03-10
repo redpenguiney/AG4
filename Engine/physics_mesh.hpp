@@ -61,6 +61,9 @@ public:
 
 	const std::vector<std::array<glm::vec3, 3>> triangles;
 
+	// polygon faces in the form of <point, normal>
+	const std::vector<std::pair<glm::vec3, glm::vec3>> planes;
+
 	// vertices are divided into 8 quadrants
 	// index from searchDirection: +4 if nonnegative x, +2 if nonnegative y, +1 in nonnegative z 
 	// this structure makes support function 8 times faster

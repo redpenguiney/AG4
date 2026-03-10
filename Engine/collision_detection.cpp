@@ -57,6 +57,8 @@ static std::pair<std::vector<std::pair<glm::vec3, float>>, size_t> GetFaceNormal
 };
 
 static std::optional<Collision> CollideGJKEPA(Gameobject* a, Gameobject* b) {
+    DebugLogInfo("WARNING: sketchy unstable gjk/epa algorithm being used");
+    
     auto pmA = std::dynamic_pointer_cast<ConvexPhysicsGeometry>(a->GetCollider()->physicsMesh);
     auto pmB = std::dynamic_pointer_cast<ConvexPhysicsGeometry>(b->GetCollider()->physicsMesh);
     Assert(pmA && pmB);
@@ -412,13 +414,30 @@ static std::optional<Collision> CollideGJKEPA(Gameobject* a, Gameobject* b) {
     }
 }
 
+static std::optional<Collision> CollideSAT(Gameobject* a, Gameobject* b) {
+    auto pmA = std::dynamic_pointer_cast<ConvexMeshPhysicsGeometry>(a->GetCollider()->physicsMesh);
+    auto pmB = std::dynamic_pointer_cast<ConvexMeshPhysicsGeometry>(b->GetCollider()->physicsMesh);
+    Assert(pmA && pmB);
+
+    glm::mat3x3 worldToB = glm::inverse(b->GetRotSclMatrix());
+    glm::vec3 bToARelPos = a->Position() - b->Position();
+    glm::mat3x3 worldToA = glm::inverse(a->GetRotSclMatrix());
+
+
+}
+
 std::optional<Collision> NarrowphaseCollisionDetection(Gameobject* a, Gameobject* b) {
     auto sphereA = std::dynamic_pointer_cast<SpherePhysicsGeometry>(a->GetCollider()->physicsMesh);
     auto sphereB = std::dynamic_pointer_cast<SpherePhysicsGeometry>(b->GetCollider()->physicsMesh);
     auto convexA = std::dynamic_pointer_cast<ConvexPhysicsGeometry>(a->GetCollider()->physicsMesh);
     auto convexB = std::dynamic_pointer_cast<ConvexPhysicsGeometry>(b->GetCollider()->physicsMesh);
+    auto convexMeshA = std::dynamic_pointer_cast<ConvexMeshPhysicsGeometry>(a->GetCollider()->physicsMesh);
+    auto convexMeshB = std::dynamic_pointer_cast<ConvexMeshPhysicsGeometry>(b->GetCollider()->physicsMesh);
 
-    if (convexA && convexB) {
+    if (convexMeshA && convexMeshB) {
+        return CollideSAT(a, b);
+    }
+    else if (convexA && convexB) {
         return CollideGJKEPA(a , b);
     }
     else {
