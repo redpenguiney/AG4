@@ -423,6 +423,44 @@ static std::optional<Collision> CollideSAT(Gameobject* a, Gameobject* b) {
     glm::vec3 bToARelPos = a->Position() - b->Position();
     glm::mat3x3 worldToA = glm::inverse(a->GetRotSclMatrix());
 
+    float greatestSeperation = -INFINITY;
+    // in A space
+    glm::vec3 collisionNormal;
+      
+    for (auto& planeA : pmA->planes) {
+        glm::vec3 normalInBspace = worldToB * a->GetRotSclMatrix() * planeA.first;
+        glm::vec3 pointB = pmB->Support(-normalInBspace);
+        
+        float distance = SignedDistanceToPlane(planeA.first, pointB, planeA.second);
+        if (distance >= 0) {
+            return std::nullopt;
+        }
+        else if (distance > greatestSeperation) {
+            greatestSeperation = distance;
+            collisionNormal = planeA.first;
+        }
+    }
+
+    for (auto& planeB : pmB->planes) {
+        glm::vec3 normalInAspace = worldToA * b->GetRotSclMatrix() * planeB.first;
+        glm::vec3 pointA = pmB->Support(-normalInAspace);
+
+        float distance = SignedDistanceToPlane(planeB.first, pointA, planeB.second);
+        if (distance >= 0) {
+            return std::nullopt;
+        }
+        else if (distance > greatestSeperation) {
+            greatestSeperation = distance;
+            collisionNormal = normalInAspace;
+        }
+    }
+
+    // handle edge pairs
+    for (auto& edgeA : pmA->edges) {
+        for (auto& edgeB : pmB->edges) {
+
+        }
+    }
 
 }
 

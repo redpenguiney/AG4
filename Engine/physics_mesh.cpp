@@ -3,6 +3,9 @@
 #include <limits>
 #include "gameobject.hpp"
 #include <glm/gtx/projection.hpp>
+#include "let_me_hash_a_tuple.hpp"
+#include <glm/gtx/hash.hpp>
+#include <unordered_set>
 
 RaycastResult ConvexMeshPhysicsGeometry::Raycast(glm::dvec3 rayOrigin, glm::dvec3 direction, Gameobject* object) {
     constexpr float epsilon = std::numeric_limits<float>::epsilon();
@@ -67,12 +70,21 @@ RaycastResult ConvexMeshPhysicsGeometry::Raycast(glm::dvec3 rayOrigin, glm::dvec
 std::shared_ptr<ConvexMeshPhysicsGeometry> ConvexMeshPhysicsGeometry::FromMesh(const std::shared_ptr<Mesh>& m) {
     auto posAttribute = m->format.GetAttribute(SpecialVertexAttributeNames::VERTEX_POSITION);
     Assert(posAttribute != nullptr);
+    // TODO: assert that mesh positions are normalized
 
     std::vector<std::array<glm::vec3, 3>> triangles;
     triangles.resize(m->numIndices / 3);
 
     const auto& srcVerts = m->GetVertices();
     const auto& srcIndices = m->GetIndices();
+
+    // key is normal, value is point
+    std::vector<std::pair<glm::vec3, glm::vec3>> planes; 
+
+    std::vector<std::vector<glm::vec3>> polygons; // correspond to planes
+
+    std::unordered_set<glm::vec3> uniqueEdgeDirections;
+
     for (size_t triI = 0; triI < m->numIndices / 3; triI += 1) {
         for (size_t vI = 0; vI < 3; vI++) {
             for (size_t j = 0; j < 3; j++) {
@@ -80,6 +92,22 @@ std::shared_ptr<ConvexMeshPhysicsGeometry> ConvexMeshPhysicsGeometry::FromMesh(c
                 triangles[triI][vI][j] = srcVerts[index * m->format.ScalarsPerVertex() + posAttribute->offset / 4 + j].f;
             }
         }  
+
+        glm::vec3 normal = glm::normalize(glm::cross(triangles[triI][2] - triangles[triI][0], triangles[triI][1] - triangles[triI][0]));
+        // todo: poor time complexity
+        for (auto& p : planes) {
+            if (glm::all(glm::epsilonEqual(p.first, normal, 0.0001f))) {
+                if (glm::length2(p.second) < glm::length2(triangles[triI][0])) {
+                    p.second = triangles[triI][0];
+                }
+                break;
+            }
+        }
+
+        for (unsigned i = 0; i < 3; i++) {
+            glm::vec3 edge = glm::normalize(triangles[triI][i] - triangles[triI][i == 2 ? 0 : i + 1]);
+            uniqueEdgeDirections.insert(edge);
+        }
     }
 
     std::array<std::vector<glm::vec3>, 8> supportVerts;
@@ -97,7 +125,7 @@ std::shared_ptr<ConvexMeshPhysicsGeometry> ConvexMeshPhysicsGeometry::FromMesh(c
         supportVerts[index].push_back(vert);
     }
 
-    return std::shared_ptr<ConvexMeshPhysicsGeometry>(new ConvexMeshPhysicsGeometry(triangles, supportVerts));
+    return std::shared_ptr<ConvexMeshPhysicsGeometry>(new ConvexMeshPhysicsGeometry(triangles, supportVerts, planes, uniqueEdgeDirections, polygons));
 }
 
 
@@ -217,7 +245,14 @@ void ConvexMeshPhysicsGeometry::AddLocalMomentOfInertiaContribution(glm::vec3& c
     }
 }
 
-ConvexMeshPhysicsGeometry::ConvexMeshPhysicsGeometry(std::vector<std::array<glm::vec3, 3>> tris, std::array<std::vector<glm::vec3>, 8> support): triangles(tris), supportVertices(support) {
+ConvexMeshPhysicsGeometry::ConvexMeshPhysicsGeometry(
+    std::vector<std::array<glm::vec3, 3>> tris, 
+    std::array<std::vector<glm::vec3>, 8> support, 
+    std::vector<std::pair<glm::vec3, glm::vec3>> planes, 
+    std::vector<glm::vec3> edges)
+    : 
+    triangles(tris), supportVertices(support), planes(planes), uniqueEdgeDirections(edges) 
+{
 
 }
 
