@@ -81,7 +81,7 @@ std::shared_ptr<ConvexMeshPhysicsGeometry> ConvexMeshPhysicsGeometry::FromMesh(c
     // key is normal, value is point
     std::vector<std::pair<glm::vec3, glm::vec3>> planes; 
 
-    std::vector<std::vector<glm::vec3>> polygons; // correspond to planes
+    //std::vector<std::vector<glm::vec3>> polygons; // correspond to planes
 
     std::unordered_set<glm::vec3> uniqueEdgeDirections;
 
@@ -125,7 +125,8 @@ std::shared_ptr<ConvexMeshPhysicsGeometry> ConvexMeshPhysicsGeometry::FromMesh(c
         supportVerts[index].push_back(vert);
     }
 
-    return std::shared_ptr<ConvexMeshPhysicsGeometry>(new ConvexMeshPhysicsGeometry(triangles, supportVerts, planes, uniqueEdgeDirections, polygons));
+    std::vector<glm::vec3> edges(uniqueEdgeDirections.begin(), uniqueEdgeDirections.end());
+    return std::shared_ptr<ConvexMeshPhysicsGeometry>(new ConvexMeshPhysicsGeometry(triangles, supportVerts, planes, edges));
 }
 
 

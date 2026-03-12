@@ -56,9 +56,7 @@ static std::pair<std::vector<std::pair<glm::vec3, float>>, size_t> GetFaceNormal
     return { tnormals, minTriangle };
 };
 
-static std::optional<Collision> CollideGJKEPA(Gameobject* a, Gameobject* b) {
-    DebugLogInfo("WARNING: sketchy unstable gjk/epa algorithm being used");
-    
+static std::optional<Collision> CollideGJKEPA(Gameobject* a, Gameobject* b) {    
     auto pmA = std::dynamic_pointer_cast<ConvexPhysicsGeometry>(a->GetCollider()->physicsMesh);
     auto pmB = std::dynamic_pointer_cast<ConvexPhysicsGeometry>(b->GetCollider()->physicsMesh);
     Assert(pmA && pmB);
@@ -131,7 +129,7 @@ static std::optional<Collision> CollideGJKEPA(Gameobject* a, Gameobject* b) {
 
         auto abc = glm::normalize(glm::cross(ab, ac)); // normal of the plane defined by the 3 points of the simplex
 
-        if (glm::dot(glm::cross(abc, ac), ao) >= 0) {
+         if (glm::dot(glm::cross(abc, ac), ao) >= 0) {
             if (glm::dot(ac, ao) >= 0) {
                 simplex = { a, c };
                 searchDirection = glm::normalize(glm::cross(glm::cross(ac, ao), ac));
@@ -208,6 +206,48 @@ static std::optional<Collision> CollideGJKEPA(Gameobject* a, Gameobject* b) {
         };
 
     auto EPA = [&]() -> std::optional<Collision> {
+        // If simplex doesn't already have 4 vertices (possible with some edge cases), we need to add some.
+            // see https://allenchou.net/2013/12/game-physics-contact-generation-epa/
+        if (simplex.size() == 1) {
+            Assert(false);
+        }
+        if (simplex.size() == 2) {
+            constexpr std::array<glm::vec3, 3> axes = {
+                glm::vec3{1, 0, 0}, {0, 1, 0}, {0, 0, 1}
+            };
+            glm::vec3 lineDir = simplex[1][0] - simplex[0][0];
+
+            glm::vec3 searchDir;
+            if (std::abs(lineDir.x) < std::abs(lineDir.y) && std::abs(lineDir.x) < std::abs(lineDir.z)) {
+                searchDir = glm::cross(lineDir, axes[0]);
+            }
+            else if (std::abs(lineDir.y) < std::abs(lineDir.z)) {
+                searchDir = glm::cross(lineDir, axes[1]);
+            }
+            else {
+                searchDir = glm::cross(lineDir, axes[2]);
+            }
+
+            glm::quat rot = glm::angleAxis(glm::pi<float>(), lineDir);
+
+            std::array<glm::vec3, 3> simplexPoint;
+            for (unsigned i = 0; i < 6; i++) {
+                simplexPoint = NewSimplexPoint(searchDir);
+                auto cross = glm::cross(simplexPoint[0] - simplex[0][0], lineDir);
+                if (glm::length2(cross) > 0.0001f) break;
+            }
+            simplex.insert(simplex.begin(), simplexPoint);
+        }
+        if (simplex.size() == 3) {
+            glm::vec3 triNormal = glm::cross(simplex[1][0] - simplex[0][0], simplex[2][0] - simplex[0][0]);
+
+            std::array<glm::vec3, 3> simplexPoint = NewSimplexPoint(triNormal);
+            if (std::abs(SignedDistanceToPlane(triNormal, simplexPoint[0], simplex[0][0])) < 0.0001f) {
+                simplexPoint = NewSimplexPoint(-triNormal);
+            }
+            simplex.insert(simplex.begin(), simplexPoint);
+        }
+
         // Simplex is no longer a simplex and is just a convex polytope (3d polygon) made from (more than 4) points on the Minkoski difference.
         auto& polytope = simplex;
 
@@ -350,7 +390,7 @@ static std::optional<Collision> CollideGJKEPA(Gameobject* a, Gameobject* b) {
         glm::vec3 pointForObj2 = (pA[2] * u) + (pB[2] * v) + (pC[2] * w);
 
         return Collision{
-            .collisionPoints = {{pointForObj1, pointForObj2},},
+            .collisionPoints = {{-pointForObj1, -pointForObj2},},
             .collisionNormal = a->ObjectNormalToWorld(minNormal),
         };
         };
@@ -390,7 +430,7 @@ static std::optional<Collision> CollideGJKEPA(Gameobject* a, Gameobject* b) {
         switch (simplex.size()) {
         case 2:
             if (LineCase()) {
-                auto collisioninfo = ContactFromLineCase();
+                auto collisioninfo = EPA();
                 return collisioninfo;
             }
             ValidateVector(searchDirection);
@@ -456,11 +496,11 @@ static std::optional<Collision> CollideSAT(Gameobject* a, Gameobject* b) {
     }
 
     // handle edge pairs
-    for (auto& edgeA : pmA->edges) {
+    /*for (auto& edgeA : pmA->edges) {
         for (auto& edgeB : pmB->edges) {
 
         }
-    }
+    }*/
 
 }
 
@@ -472,10 +512,10 @@ std::optional<Collision> NarrowphaseCollisionDetection(Gameobject* a, Gameobject
     auto convexMeshA = std::dynamic_pointer_cast<ConvexMeshPhysicsGeometry>(a->GetCollider()->physicsMesh);
     auto convexMeshB = std::dynamic_pointer_cast<ConvexMeshPhysicsGeometry>(b->GetCollider()->physicsMesh);
 
-    if (convexMeshA && convexMeshB) {
-        return CollideSAT(a, b);
-    }
-    else if (convexA && convexB) {
+    //if (convexMeshA && convexMeshB) {
+        //return CollideSAT(a, b);
+    //} else
+    if (convexA && convexB) {
         return CollideGJKEPA(a , b);
     }
     else {

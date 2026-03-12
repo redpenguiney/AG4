@@ -66,7 +66,7 @@ public:
 
 	const std::vector<glm::vec3> uniqueEdgeDirections;
 
-	const std::vector<std::vector<glm::vec3>> polygons;
+	//const std::vector<std::vector<glm::vec3>> polygons;
 
 	// vertices are divided into 8 quadrants
 	// index from searchDirection: +4 if nonnegative x, +2 if nonnegative y, +1 in nonnegative z 
