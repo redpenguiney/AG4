@@ -78,12 +78,7 @@ std::shared_ptr<ConvexMeshPhysicsGeometry> ConvexMeshPhysicsGeometry::FromMesh(c
     const auto& srcVerts = m->GetVertices();
     const auto& srcIndices = m->GetIndices();
 
-    // key is normal, value is point
-    std::vector<std::pair<glm::vec3, glm::vec3>> planes; 
-
-    //std::vector<std::vector<glm::vec3>> polygons; // correspond to planes
-
-    std::unordered_set<glm::vec3> uniqueEdgeDirections;
+    std::vector<Polygon> polygons; 
 
     for (size_t triI = 0; triI < m->numIndices / 3; triI += 1) {
         for (size_t vI = 0; vI < 3; vI++) {
@@ -95,19 +90,27 @@ std::shared_ptr<ConvexMeshPhysicsGeometry> ConvexMeshPhysicsGeometry::FromMesh(c
 
         glm::vec3 normal = glm::normalize(glm::cross(triangles[triI][2] - triangles[triI][0], triangles[triI][1] - triangles[triI][0]));
         // todo: poor time complexity
-        for (auto& p : planes) {
-            if (glm::all(glm::epsilonEqual(p.first, normal, 0.0001f))) {
-                if (glm::length2(p.second) < glm::length2(triangles[triI][0])) {
-                    p.second = triangles[triI][0];
+        for (auto& p : polygons) {
+            if (glm::all(glm::epsilonEqual(p.normal, normal, 0.0001f))) {
+
+                bool alreadyA = false, alreadyB = false, alreadyC = false;
+                for (auto& point : p.points) {
+                    if (point == triangles[triI][0]) alreadyA = true;
+                    if (point == triangles[triI][1]) alreadyB = true;
+                    if (point == triangles[triI][2]) alreadyC = true;
                 }
-                break;
+                if (!alreadyA) p.points.push_back(triangles[triI][0]);
+                if (!alreadyB) p.points.push_back(triangles[triI][1]);
+                if (!alreadyC) p.points.push_back(triangles[triI][2]);
+
+                goto normalAlreadyExists;
             }
         }
-
-        for (unsigned i = 0; i < 3; i++) {
-            glm::vec3 edge = glm::normalize(triangles[triI][i] - triangles[triI][i == 2 ? 0 : i + 1]);
-            uniqueEdgeDirections.insert(edge);
-        }
+        polygons.push_back(Polygon{ 
+            .points = {triangles[triI][0], triangles[triI][1], triangles[triI][2]},
+            .normal = normal
+            }); 
+        normalAlreadyExists:;
     }
 
     std::array<std::vector<glm::vec3>, 8> supportVerts;
@@ -125,8 +128,15 @@ std::shared_ptr<ConvexMeshPhysicsGeometry> ConvexMeshPhysicsGeometry::FromMesh(c
         supportVerts[index].push_back(vert);
     }
 
+    std::unordered_set<glm::vec3> uniqueEdgeDirections;
+    for (auto& p : polygons) {
+        for (unsigned i = 0; i < p.points.size(); i++) {
+            glm::vec3 edge = glm::normalize(p.points[i] - p.points[i + 1 == p.points.size() ? 0 : i + 1]);
+            uniqueEdgeDirections.insert(edge);
+        }
+    }
     std::vector<glm::vec3> edges(uniqueEdgeDirections.begin(), uniqueEdgeDirections.end());
-    return std::shared_ptr<ConvexMeshPhysicsGeometry>(new ConvexMeshPhysicsGeometry(triangles, supportVerts, planes, edges));
+    return std::shared_ptr<ConvexMeshPhysicsGeometry>(new ConvexMeshPhysicsGeometry(triangles, supportVerts, polygons, edges));
 }
 
 
@@ -249,10 +259,10 @@ void ConvexMeshPhysicsGeometry::AddLocalMomentOfInertiaContribution(glm::vec3& c
 ConvexMeshPhysicsGeometry::ConvexMeshPhysicsGeometry(
     std::vector<std::array<glm::vec3, 3>> tris, 
     std::array<std::vector<glm::vec3>, 8> support, 
-    std::vector<std::pair<glm::vec3, glm::vec3>> planes, 
+    std::vector<Polygon> polygons, 
     std::vector<glm::vec3> edges)
     : 
-    triangles(tris), supportVertices(support), planes(planes), uniqueEdgeDirections(edges) 
+    triangles(tris), supportVertices(support), polygons(polygons), uniqueEdgeDirections(edges) 
 {
 
 }

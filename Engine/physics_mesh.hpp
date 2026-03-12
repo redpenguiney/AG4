@@ -53,6 +53,11 @@ private:
 	SpherePhysicsGeometry();
 };
 
+struct Polygon {
+	std::vector<glm::vec3> points;
+	glm::vec3 normal;
+};
+
 // Standard issue collider for cubes/anything convex that has no curves
 // TODO: version with octree or something for faster raycasting
 class ConvexMeshPhysicsGeometry : public ConvexPhysicsGeometry {
@@ -62,11 +67,11 @@ public:
 	const std::vector<std::array<glm::vec3, 3>> triangles;
 
 	// polygon faces in the form of <normal, point>
-	const std::vector<std::pair<glm::vec3, glm::vec3>> planes;
+	//const std::vector<std::pair<glm::vec3, glm::vec3>> planes;
 
 	const std::vector<glm::vec3> uniqueEdgeDirections;
 
-	//const std::vector<std::vector<glm::vec3>> polygons;
+	const std::vector<Polygon> polygons;
 
 	// vertices are divided into 8 quadrants
 	// index from searchDirection: +4 if nonnegative x, +2 if nonnegative y, +1 in nonnegative z 
@@ -79,7 +84,7 @@ public:
 	virtual void AddLocalMomentOfInertiaContribution(glm::vec3& centerOfMass, float& Ia, float& Ib, float& Ic, float& Iap, float& Ibp, float& Icp, glm::vec3 objectScale, float density) override;
 
 private:
-	ConvexMeshPhysicsGeometry(std::vector<std::array<glm::vec3, 3>> tris, std::array<std::vector<glm::vec3>, 8> supportVerts, std::vector<std::pair<glm::vec3, glm::vec3>> planes, std::vector<glm::vec3> edges);
+	ConvexMeshPhysicsGeometry(std::vector<std::array<glm::vec3, 3>> tris, std::array<std::vector<glm::vec3>, 8> supportVerts, std::vector<Polygon> polygons, std::vector<glm::vec3> edges);
 };
 
 // Collisions can be done precisely betwen the boundary of a concave mesh and a convex physics mesh via many triangle-convex collisions.

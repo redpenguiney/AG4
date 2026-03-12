@@ -20,6 +20,10 @@ static void ValidateVector(glm::vec3 vec) {
     Assert(!std::isnan(vec.x) && !std::isnan(vec.y) && !std::isnan(vec.z));
 }
 
+static Polygon ClipFaces() {
+
+}
+
 // Helper function to get face normals of the polytope in a's object space.
     // Returns vector of pair {normal, distance to face} and index of the closest normal.
 static std::pair<std::vector<std::pair<glm::vec3, float>>, size_t> GetFaceNormals(const std::vector<unsigned int>& faces, const std::vector<std::array<glm::vec3, 3>>& polytope) {
@@ -357,42 +361,52 @@ static std::optional<Collision> CollideGJKEPA(Gameobject* a, Gameobject* b) {
             Assert(false);
         }
 
-        // find collision point
-        // get verts of closest triangle to origin
-        auto& pA = polytope[faces[minFace * 3]];
-        auto& pB = polytope[faces[minFace * 3 + 1]];
-        auto& pC = polytope[faces[minFace * 3 + 2]];
+        auto convexMeshA = std::dynamic_pointer_cast<ConvexMeshPhysicsGeometry>(a->GetCollider()->physicsMesh);
+        auto convexMeshB = std::dynamic_pointer_cast<ConvexMeshPhysicsGeometry>(b->GetCollider()->physicsMesh);
+        if (convexMeshA && convexMeshB) { // then we can just clip the faces to extract full contact information
+            return ClipFaces()
+        }
+        else { // use barycentric coords. only get one contact point this way but that'll have to be enough
+            // find collision point
+            // get verts of closest triangle to origin
+            auto& pA = polytope[faces[minFace * 3]];
+            auto& pB = polytope[faces[minFace * 3 + 1]];
+            auto& pC = polytope[faces[minFace * 3 + 2]];
 
-        // Project origin onto plane abc to get point of contact in minkoski space
-        auto planeToOrigin = -pA[0];
-        auto distance = glm::dot(planeToOrigin, minNormal);
-        auto projectedPoint = -minNormal * distance;
+            // Project origin onto plane abc to get point of contact in minkoski space
+            auto planeToOrigin = -pA[0];
+            auto distance = glm::dot(planeToOrigin, minNormal);
+            auto projectedPoint = -minNormal * distance;
 
-        // put that point of contact in barycentric coordinates (meaning its a mix of the triangle vertices), so that we can get out of minkoski space and into world space
-        auto ab = pB[0] - pA[0];
-        auto ac = pC[0] - pA[0];
-        auto ao = projectedPoint - pA[0];
+            // put that point of contact in barycentric coordinates (meaning its a mix of the triangle vertices), so that we can get out of minkoski space and into world space
+            auto ab = pB[0] - pA[0];
+            auto ac = pC[0] - pA[0];
+            auto ao = projectedPoint - pA[0];
 
-        float d00 = glm::dot(ab, ab);
-        float d01 = glm::dot(ab, ac);
-        float d11 = glm::dot(ac, ac);
-        float d20 = glm::dot(ao, ab);
-        float d21 = glm::dot(ao, ac);
-        float denom = d00 * d11 - d01 * d01;
+            float d00 = glm::dot(ab, ab);
+            float d01 = glm::dot(ab, ac);
+            float d11 = glm::dot(ac, ac);
+            float d20 = glm::dot(ao, ab);
+            float d21 = glm::dot(ao, ac);
+            float denom = d00 * d11 - d01 * d01;
 
-        // uvw is barycentric coords aka a mixture of the triangle vertices that averages out to the point we got
-        float v = (d11 * d20 - d01 * d21) / denom;
-        float w = (d00 * d21 - d01 * d20) / denom;
-        float u = 1.0 - v - w;
-        // we use that mixture with the triangle vertices that AREN'T in minkoski space to get the real contact point
-        // std::cout << "We got " << glm::to_string((a[0] * u) + (b[0] * v) + (c[0] * w)) << " vs " << glm::to_string(projectedPoint);
-        glm::vec3 pointForObj1 = (pA[1] * u) + (pB[1] * v) + (pC[1] * w);
-        glm::vec3 pointForObj2 = (pA[2] * u) + (pB[2] * v) + (pC[2] * w);
+            // uvw is barycentric coords aka a mixture of the triangle vertices that averages out to the point we got
+            float v = (d11 * d20 - d01 * d21) / denom;
+            float w = (d00 * d21 - d01 * d20) / denom;
+            float u = 1.0 - v - w;
+            // we use that mixture with the triangle vertices that AREN'T in minkoski space to get the real contact point
+            // std::cout << "We got " << glm::to_string((a[0] * u) + (b[0] * v) + (c[0] * w)) << " vs " << glm::to_string(projectedPoint);
+            glm::vec3 pointForObj1 = (pA[1] * u) + (pB[1] * v) + (pC[1] * w);
+            glm::vec3 pointForObj2 = (pA[2] * u) + (pB[2] * v) + (pC[2] * w);
 
-        return Collision{
-            .collisionPoints = {{-pointForObj1, -pointForObj2},},
-            .collisionNormal = a->ObjectNormalToWorld(minNormal),
-        };
+            return Collision{
+                .collisionPoints = {{-pointForObj1, -pointForObj2},}, // TODO: why does negating them fix it? it shouldn't 
+                .collisionNormal = a->ObjectNormalToWorld(minNormal),
+            };
+        }
+
+
+        
         };
 
     // initial simplex/search direction
