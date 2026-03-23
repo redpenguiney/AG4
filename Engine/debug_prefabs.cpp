@@ -51,6 +51,26 @@ static std::shared_ptr<DrawPass> DebugSolidPass() {
 	return pass;
 }
 
+std::shared_ptr<DrawPass> DebugLinesPass() {
+	auto pass = std::make_shared<DrawPass>();
+	pass->name = "debugLines";
+	auto rt = WindowRenderTargetDescriptor();
+	rt.clearDepth = false;
+	rt.loadPolicy = AttachmentLoadPolicy::Load;
+	pass->renderTarget = rt;
+	pass->dependencies.push_back("POST_PROC");
+	pass->outputs.push_back(WINDOW_RESOURCE_NAME);
+	pass->params.depthTestMode = DepthTestMode::Disabled;
+	pass->params.cullMode = FaceCulling::None;
+	pass->params.shader = ShaderProgram::New("../shaders/debug_simple_vertex.glsl", "../shaders/debug_simple_fragment.glsl");
+	return pass;
+}
+
+std::shared_ptr<DrawPass> GetDebugLinesPass() {
+	static auto pass = DebugLinesPass();
+	return pass;
+}
+
 std::shared_ptr<DrawPass> GetDebugWireframePass() {
 	static auto pass = DebugWireframePass();
 	return pass;
@@ -77,4 +97,67 @@ Gameobject* DebugPoint(glm::dvec3 pos, glm::vec3 color) {
 	gameObj->SetInstanceAttribute(*p.mesh->format.GetAttribute("color"), {color.x, color.y, color.z, 1});
 	gameObj->SetInstanceAttribute(*p.mesh->format.GetAttribute(SpecialVertexAttributeNames::AUTOMATIC_TEXTURE_ARRAY_SELECTION), -1.0f);
 	return gameObj;
+}
+
+Gameobject* DebugLine(glm::dvec3 a, glm::dvec3 b, glm::vec3 color) {
+	MeshCreateParams mparams;
+	mparams.vertices.push_back(static_cast<float>(a.x));
+	mparams.vertices.push_back(static_cast<float>(a.y));
+	mparams.vertices.push_back(static_cast<float>(a.z));
+	mparams.vertices.push_back(static_cast<float>(b.x));
+	mparams.vertices.push_back(static_cast<float>(b.y));
+	mparams.vertices.push_back(static_cast<float>(b.z));
+	mparams.indices = { 0, 1, };
+
+	mparams.meshVertexFormat = MeshVertexFormat({
+		VertexAttribute {.name = SpecialVertexAttributeNames::VERTEX_POSITION, .nComponents = 3, .instanced = false,.type = VertexScalarType::f32},
+		VertexAttribute {.name = "color", .nComponents = 4, .instanced = true,.type = VertexScalarType::f32},
+		VertexAttribute {.name = SpecialVertexAttributeNames::MODEL_MATRIX, .nComponents = 16, .instanced = true,.type = VertexScalarType::f32},
+		VertexAttribute {.name = SpecialVertexAttributeNames::NORMAL_MATRIX, .nComponents = 9, .instanced = true,.type = VertexScalarType::f32}
+		});
+	mparams.normalizeSize = false;
+
+	auto lineMesh = Mesh::New(std::move(mparams));
+
+	GameobjectCreateParams goparams;
+	goparams.renderPasses = { GetDebugLinesPass(), };
+	goparams.mesh = lineMesh;
+	goparams.primitiveType = GL_LINES;
+
+	auto gameobject = Gameobject::New(goparams);
+	gameobject->SetInstanceAttribute(*lineMesh->format.GetAttribute("color"), { color.x, color.y, color.z, 1 });
+	return gameobject;
+}
+
+Gameobject* DebugTriangle(glm::dvec3 a, glm::dvec3 b, glm::dvec3 c, glm::vec3 color) {
+	MeshCreateParams mparams;
+	mparams.vertices.push_back(static_cast<float>(a.x));
+	mparams.vertices.push_back(static_cast<float>(a.y));
+	mparams.vertices.push_back(static_cast<float>(a.z));
+	mparams.vertices.push_back(static_cast<float>(b.x));
+	mparams.vertices.push_back(static_cast<float>(b.y));
+	mparams.vertices.push_back(static_cast<float>(b.z));
+	mparams.vertices.push_back(static_cast<float>(c.x));
+	mparams.vertices.push_back(static_cast<float>(c.y));
+	mparams.vertices.push_back(static_cast<float>(c.z));
+	mparams.indices = { 0, 1, 1, 2, 2, 3 };
+
+	mparams.meshVertexFormat = MeshVertexFormat({
+		VertexAttribute {.name = SpecialVertexAttributeNames::VERTEX_POSITION, .nComponents = 3, .instanced = false,.type = VertexScalarType::f32},
+		VertexAttribute {.name = "color", .nComponents = 4, .instanced = true,.type = VertexScalarType::f32},
+		VertexAttribute {.name = SpecialVertexAttributeNames::MODEL_MATRIX, .nComponents = 16, .instanced = true,.type = VertexScalarType::f32},
+		VertexAttribute {.name = SpecialVertexAttributeNames::NORMAL_MATRIX, .nComponents = 9, .instanced = true,.type = VertexScalarType::f32}
+		});
+	mparams.normalizeSize = false;
+
+	auto lineMesh = Mesh::New(std::move(mparams));
+
+	GameobjectCreateParams goparams;
+	goparams.renderPasses = { GetDebugLinesPass(), };
+	goparams.mesh = lineMesh;
+	goparams.primitiveType = GL_LINES;
+
+	auto gameobject = Gameobject::New(goparams);
+	gameobject->SetInstanceAttribute(*lineMesh->format.GetAttribute("color"), { color.x, color.y, color.z, 1 });
+	return gameobject;
 }

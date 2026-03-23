@@ -69,7 +69,7 @@ void RenderGroup::AddGameobject(Gameobject& obj, const GameobjectCreateParams& p
 	AddDrawCommand(command);
 }
 
-RenderGroup::RenderGroup(std::vector<std::shared_ptr<DrawPass>> renderpasses, std::shared_ptr<Meshpool> meshpool): drawPasses(renderpasses), meshpool(meshpool) {
+RenderGroup::RenderGroup(std::vector<std::shared_ptr<DrawPass>> renderpasses, std::shared_ptr<Meshpool> meshpool, GLenum primitiveType) : primitiveType(primitiveType), drawPasses(renderpasses), meshpool(meshpool) {
 	for (auto& pass : renderpasses) {
 		pass->drawnObjects.push_back(this);
 		if (!drawPassNumUsers.contains(pass.get())) {
@@ -102,7 +102,7 @@ void RenderGroup::FindRendergroupForGameobject(Gameobject& obj, const Gameobject
 	if (renderGroupsByMeshpool.contains(params.mesh->pool.get())) {
 		for (auto& [_, vec] : renderGroupsByMeshpool) {
 			for (auto& g : vec) {
-				if (g->drawPasses == params.renderPasses) {
+				if (g->primitiveType == params.primitiveType && g->drawPasses == params.renderPasses) {
 					group = g.get();
 					break;
 				}
@@ -111,7 +111,7 @@ void RenderGroup::FindRendergroupForGameobject(Gameobject& obj, const Gameobject
 	}
 
 	if (!group) {
-		group = new RenderGroup(params.renderPasses, params.mesh->pool);
+		group = new RenderGroup(params.renderPasses, params.mesh->pool, params.primitiveType);
 		renderGroupsByMeshpool[params.mesh->pool.get()].push_back(std::shared_ptr<RenderGroup>(group));
 	}
 

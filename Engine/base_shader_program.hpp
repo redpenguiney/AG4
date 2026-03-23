@@ -40,13 +40,15 @@ struct ShaderUniformInfo {
 
 // Uniform buffers store a fairly large (16KB guaranteed) amount of readonly data for shader usage.
 struct ShaderUniformBufferInfo {
-
+    std::string name; // as given in the GLSL shader
+    int index; // used to differentiate buffers when binding multiple to the same shader
 };
 
 // Shader storage buffers have a very large (16MB guaranteed) amount of read/write data for shader usage.
 // They require OpenGL 4.3 and are a little slower than uniform buffers on some hardware.
 struct ShaderStorageBufferInfo {
-
+    std::string name; // as given in the GLSL shader
+    int index; // used to differentiate buffers when binding multiple to the same shader
 };
 
 // Base class that both the normal ShaderProgram (for rendering) and ComputeShaderProgram (for gpu computation) classes derive from.
@@ -93,6 +95,8 @@ protected:
     static void Unload(unsigned int shaderProgramId);
    
     std::unordered_map<std::string, ShaderUniformInfo> shaderUniforms;
+    std::vector<ShaderStorageBufferInfo> shaderSSBOs;
+    std::vector<ShaderUniformBufferInfo> shaderUBOs;
 
 private:
 

@@ -54,6 +54,7 @@ private:
 };
 
 struct Polygon {
+	// sorted in clockwise order about the normal
 	std::vector<glm::vec3> points;
 	glm::vec3 normal;
 };

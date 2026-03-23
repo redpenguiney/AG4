@@ -18,6 +18,8 @@ union VertexScalar;
 struct GameobjectCreateParams {
 	std::vector<std::shared_ptr<DrawPass>> renderPasses = GraphicsEngine::Get().defaultDrawingPasses;
 	
+	GLenum primitiveType = GL_TRIANGLES;
+
 	// if not provided, the gameobject won't be rendered
 	std::shared_ptr<Mesh> mesh;	
 
@@ -111,6 +113,9 @@ public:
 
 	void SetMassFromDensity(float density);
 
+	glm::vec3 velocity;
+	glm::vec3 rotVelocity;
+
 protected:
 
 	Physobject(const PhysobjectCreateParams& params);
@@ -120,8 +125,7 @@ protected:
 	glm::quat lastRot;
 	//glm::quat nextRot;
 
-	glm::vec3 velocity;
-	glm::vec3 rotVelocity;
+	
 
 	glm::mat3x3 inverseInertiaTensor; // the moment of inertia is like mass, but for rotation.
 	

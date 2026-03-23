@@ -11,7 +11,7 @@ struct GameobjectCreateParams;
 
 class RenderGroup {
 public:
-	const GLenum primitiveType = GL_TRIANGLES;
+	const GLenum primitiveType;
 
 	static void FindRendergroupForGameobject(Gameobject& obj, const GameobjectCreateParams& params);
 
@@ -25,7 +25,7 @@ public:
 private:
 	void AddGameobject(Gameobject& obj, const GameobjectCreateParams& params);
 
-	RenderGroup(std::vector<std::shared_ptr<DrawPass>> drawPasses, std::shared_ptr<Meshpool> meshpool);
+	RenderGroup(std::vector<std::shared_ptr<DrawPass>> drawPasses, std::shared_ptr<Meshpool> meshpool, GLenum primitiveType);
 
 	std::shared_ptr<Meshpool> meshpool = nullptr;
 

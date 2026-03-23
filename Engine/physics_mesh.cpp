@@ -89,6 +89,8 @@ std::shared_ptr<ConvexMeshPhysicsGeometry> ConvexMeshPhysicsGeometry::FromMesh(c
         }  
 
         glm::vec3 normal = glm::normalize(glm::cross(triangles[triI][2] - triangles[triI][0], triangles[triI][1] - triangles[triI][0]));
+        if (glm::dot(normal, triangles[triI][0]) < 0) normal = -normal;
+
         // todo: poor time complexity
         for (auto& p : polygons) {
             if (glm::all(glm::epsilonEqual(p.normal, normal, 0.0001f))) {
@@ -130,6 +132,16 @@ std::shared_ptr<ConvexMeshPhysicsGeometry> ConvexMeshPhysicsGeometry::FromMesh(c
 
     std::unordered_set<glm::vec3> uniqueEdgeDirections;
     for (auto& p : polygons) {
+        // sort polygon points into clockwise order about normal
+        glm::vec3 sum(0, 0, 0);
+        for (glm::vec3& point : p.points) sum += point;
+        glm::vec3 centre = sum / static_cast<float>(p.points.size());
+        
+        std::sort(p.points.begin(), p.points.end(), [&](const glm::vec3& v1, const glm::vec3& v2) {
+            return glm::dot(p.normal, glm::cross(v1 - centre, v2 - centre)) > 0;
+            });
+
+        // extract edges
         for (unsigned i = 0; i < p.points.size(); i++) {
             glm::vec3 edge = glm::normalize(p.points[i] - p.points[i + 1 == p.points.size() ? 0 : i + 1]);
             uniqueEdgeDirections.insert(edge);

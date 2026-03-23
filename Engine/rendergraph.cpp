@@ -7,6 +7,8 @@
 #include "compute_shader_program.hpp"
 #include <unordered_set>
 #include <algorithm>
+#include "buffered_buffer.hpp"
+#include <climits>
 
 RenderGraph::RenderGraph() {
 	
@@ -26,6 +28,12 @@ RenderGraph::RenderGraph() {
 
 void RenderGraph::Render() {
 	if (dirty) Compile();
+
+	for (auto& buf : hardwareBuffers) {
+		//if (buf->ubo) {
+			buf->buf.Commit();
+		//}
+	}
 
 	for (auto& pass : renderOrder) {
 		if (std::holds_alternative<ProcessedDrawPass>(pass)) {
@@ -115,6 +123,12 @@ void RenderGraph::Render() {
 			p.shader->Dispatch(p.workgroupSize);
 		}
 	}
+
+	for (auto& buf : hardwareBuffers) {
+		//if (buf->ubo) {
+			buf->buf.Flip();
+		//}
+	}
 }
 
 void RenderGraph::AddPass(std::shared_ptr<RenderPass> pass) {
@@ -136,6 +150,15 @@ void RenderGraph::AddPass(std::shared_ptr<RenderPass> pass) {
 			Assert(false);
 			foundOutput4:;
 		}
+	}
+
+	for (auto& t : pass->uniformBuffers) {
+		Assert(logicalBuffers.contains(t.bufferName) && logicalBuffers[t.bufferName].ubo == true);
+		for (auto& d : pass->dependencies) {
+			if (d == t.bufferName) goto foundOutputAgain;
+		}
+		Assert(false);
+		foundOutputAgain:;
 	}
 
 	// Verify that render target attachments are specified in pass outputs
@@ -222,6 +245,29 @@ void RenderGraph::CreateAttachment(FramebufferAttachmentFormatDescriptor attachm
 	dirty = true;
 }
 
+void RenderGraph::DeclareUniformBuffer(std::string name, size_t size) {
+	LogicalBufferResource rsrc;
+	rsrc.name = name;
+	rsrc.requestedSize = size;
+	rsrc.access.firstWritePassIndex = -1;
+	rsrc.access.lastWritePassIndex = -1;
+	rsrc.access.firstReadPassIndex = 0;
+	rsrc.access.lastReadPassIndex = INT_MAX;
+
+	auto hardwareRsrc = std::make_shared<BackedBufferResource>(BufferedBuffer(GL_UNIFORM_BUFFER, 1, size));
+	hardwareRsrc->accesses.push_back(rsrc.access);
+	rsrc.hardwareResource = hardwareRsrc;
+
+	logicalBuffers.emplace(name, rsrc);
+	hardwareBuffers.push_back(hardwareRsrc);
+}
+
+void RenderGraph::UploadUniformBuffer(std::string uboName, void* data, size_t len, size_t byteOffset) {
+	Assert(logicalBuffers.at(uboName).ubo && logicalBuffers.at(uboName).hardwareResource);
+	Assert(logicalBuffers.at(uboName).hardwareResource->buf.GetSize() <= len + byteOffset);
+	memcpy(logicalBuffers.at(uboName).hardwareResource->buf.Data() + byteOffset, data, len);
+}
+
 void RenderGraph::Compile() {
 	Assert(dirty);
 	dirty = false;
@@ -231,6 +277,16 @@ void RenderGraph::Compile() {
 		f.destroy = true;
 		f.attachmentLocations.clear();
 		f.readableAttachments.clear();
+	}
+
+	for (auto& [n, l] : logicalBuffers) {
+		l.hardwareResource = nullptr;
+	}
+
+	for (auto& f : hardwareBuffers) {
+		if (f->ubo) continue;
+		f->destroy = true;
+		f->accesses.clear();
 	}
 
 	// Use Khan's algorithm to topologically sort our render passes into an order that ensures any node is visited only after its dependencies are.
@@ -365,6 +421,8 @@ void RenderGraph::Compile() {
 		Assert(rsrc.lifetime.lastWritePassIndex < rsrc.lifetime.firstReadPassIndex);
 	}
 
+	
+
 	std::unordered_map<std::string, Texture*> attachmentLocations;
 
 	// Setup render targets
@@ -415,7 +473,7 @@ void RenderGraph::Compile() {
 				pass.bindRenderTarget = [target]() {
 					Framebuffer::Unbind();
 					if (target.loadPolicy == AttachmentLoadPolicy::Clear) {
-						glClearColor(target.clearColor.r, target.clearColor.g, target.clearColor.b, target.clearColor.a);
+						glClearColor(target.clearColor.x, target.clearColor.y, target.clearColor.z, target.clearColor.w);
 						glClear(GL_COLOR_BUFFER_BIT);
 					}
 					glBlendEquation(static_cast<GLenum>(target.blendFunc));
@@ -445,13 +503,53 @@ void RenderGraph::Compile() {
 		}
 	}
 
-	// TODO buffers
+	// Provide hardware buffers
+	for (auto& [name, l] : logicalBuffers) {
+		if (l.ubo) {
+			Assert(l.hardwareResource);
+		}
+		else {
+			for (auto& candidate : hardwareBuffers) {
+				for (auto& access : candidate->accesses) {
+					if (access.firstWritePassIndex < l.access.lastReadPassIndex && access.lastReadPassIndex > l.access.firstWritePassIndex) {
+						goto incompatible;
+					}
+				}
+
+				l.hardwareResource = candidate;
+				l.hardwareResource->accesses.push_back(l.access);
+				l.hardwareResource->destroy = false;
+				break;
+
+				incompatible:;
+			}
+
+			if (!l.hardwareResource) { // create buffer
+				auto buffer = std::make_shared<BackedBufferResource>(BufferedBuffer(GL_SHADER_STORAGE_BUFFER, 2, l.requestedSize));
+				buffer->destroy = false;
+				buffer->ubo = false;
+				buffer->accesses.push_back(l.access);
+
+				l.hardwareResource = buffer;
+				hardwareBuffers.push_back(buffer);
+			}
+		}
+	}
 
 	// destroy unused framebuffers
 	for (unsigned i = 0; i < framebuffers.size(); i++) {
 		if (framebuffers[i].destroy) {
 			framebuffers[i] = framebuffers.back();
 			framebuffers.pop_back();
+			i--;
+		}
+	}
+
+	// destroy unused hardware buffers
+	for (unsigned i = 0; i < hardwareBuffers.size(); i++) {
+		if (hardwareBuffers[i]->destroy) {
+			hardwareBuffers[i] = hardwareBuffers.back();
+			hardwareBuffers.pop_back();
 			i--;
 		}
 	}
@@ -550,4 +648,7 @@ shader(computePass->shader),
 setUniforms(computePass->uniformSupplier)
 {
 
+}
+
+RenderGraph::BackedBufferResource::BackedBufferResource(BufferedBuffer buf): buf(std::move(buf)) {
 }

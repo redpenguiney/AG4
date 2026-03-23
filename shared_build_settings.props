@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ImportGroup Label="PropertySheets" />
-  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Label="UserMacros">
+    <GLM_CONFIG_XYZW_ONLY />
+  </PropertyGroup>
   <PropertyGroup />
   <PropertyGroup Label="Configuration">
     <EnableASAN>true</EnableASAN>
@@ -11,7 +13,7 @@
       <AdditionalIncludeDirectories>$(ProjectDir)/../code/src;code/src;src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <WarningLevel>Level3</WarningLevel>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <PreprocessorDefinitions>SOL_ALL_SAFETIES_ON;GLM_ENABLE_EXPERIMENTAL;_CONSOLE;NDEBUG;_CONSOLE;GLM_CONFIG_XYZW_ONLY;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>SOL_ALL_SAFETIES_ON;GLM_FORCE_XYZW_ONLY;GLM_ENABLE_EXPERIMENTAL;_CONSOLE;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdclatest</LanguageStandard_C>
       <ExternalWarningLevel>TurnOffAllWarnings</ExternalWarningLevel>
@@ -19,5 +21,9 @@
       <FloatingPointModel>Fast</FloatingPointModel>
     </ClCompile>
   </ItemDefinitionGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <BuildMacro Include="GLM_CONFIG_XYZW_ONLY">
+      <Value>$(GLM_CONFIG_XYZW_ONLY)</Value>
+    </BuildMacro>
+  </ItemGroup>
 </Project>

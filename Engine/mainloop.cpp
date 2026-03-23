@@ -22,6 +22,7 @@ void Mainloop::Run() {
 		if (!physicsPaused) physicsLag += elapsedTime; // time has passed and thus the simulation is behind
 		unsigned tries = 0;
 		while (physicsLag > simulationTimestep && tries++ < 2) {
+			//physicsPaused = true;
 			prePhysics->Fire(simulationTimestep);
 			BaseEvent::FlushEventQueue();
 			PhysicsEngine::Get().StepSimulation(simulationTimestep);

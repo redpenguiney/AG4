@@ -18,8 +18,7 @@ int main() {
 	GameobjectSAS();
 
 	{
-		
-	
+		//GraphicsEngine::Get().AddUniformBuffer("lights")
 
 		// normal objects
 		auto newPass = std::make_shared<DrawPass>();
@@ -97,6 +96,7 @@ int main() {
 		Gameobject* gameObj = Gameobject::New(p);
 		gameObj->SetPosition({ 0, -2, 0 });
 		gameObj->SetScale({ 1, 1, 1 });
+		//gameObj->SetRotation(glm::angleAxis(glm::radians(45.0f), glm::normalize(glm::vec3(0, 0, 1))));
 		glm::vec4 color(0, 1, 0, 1);
 		gameObj->SetInstanceAttribute(*p.mesh->format.GetAttribute("color"), color);
 		gameObj->SetInstanceAttribute(*p.mesh->format.GetAttribute(SpecialVertexAttributeNames::AUTOMATIC_TEXTURE_ARRAY_SELECTION), -1.0f);
@@ -107,8 +107,9 @@ int main() {
 
 	for (int i = 0; i < 1; i++) {
 		Physobject* gameObj = Physobject::New(p);
-		gameObj->SetPosition({ i, 0, 0 - i });
-		gameObj->SetScale({ 0.8, 0.8, 0.8 });
+		gameObj->SetPosition({ i, -0.5, 0 - i });
+		//gameObj->SetScale({ 0.8, 0.8, 0.8 });
+		gameObj->SetRotation(glm::angleAxis(glm::radians(60.0f), glm::normalize(glm::vec3(1, 0, 0))));
 		glm::vec4 color(1, 0, 1, 1);
 		gameObj->SetInstanceAttribute(*p.mesh->format.GetAttribute("color"), color);
 		gameObj->SetInstanceAttribute(*p.mesh->format.GetAttribute(SpecialVertexAttributeNames::AUTOMATIC_TEXTURE_ARRAY_SELECTION), -1.0f);
@@ -150,11 +151,18 @@ int main() {
 		if (input.input == InputObject::LMB) {
 			auto result = Raycast(GraphicsEngine::Get().currentCamera.position, LookVector(pitch, yaw), RaycastParams());
 			if (result.object) {
-				DebugLogInfo("Result ", result.distance, " ", result.hitNormal, " ", result.hitPos, " ", result.object);
+				//DebugLogInfo("Result ", result.distance, " ", result.hitNormal, " ", result.hitPos, " ", result.object);
+				if (auto phys = dynamic_cast<Physobject*>(result.object)) {
+					phys->velocity += result.hitNormal;
+				}
 			}
 			else {
-				DebugLogInfo("Result missed.");
+				//DebugLogInfo("Result missed.");
 			}
+		}
+
+		if (input.input == InputObject::Tab) {
+			Window::Get().SetMouseLocked(!Window::Get().IsMouseLocked());
 		}
 
 		});

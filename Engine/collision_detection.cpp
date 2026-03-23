@@ -7,10 +7,16 @@
 #include "glm/vec3.hpp"
 #include "glm/mat3x3.hpp"
 #include "glm/mat4x4.hpp"
+#include "glm/gtx/string_cast.hpp"
+#include <unordered_set>
+#include "glm/gtx/hash.hpp"
 
 #ifndef GLM_CONFIG_XYZW_ONLY 
 #error bruh
 #endif
+#include "debug_prefabs.hpp"
+
+//#define DEBUG_EPA
 
 static float SignedDistanceToPlane(glm::vec3 planeNormal, glm::vec3 point, glm::vec3 pointOnPlane) {
     return glm::dot(planeNormal, point - pointOnPlane);
@@ -20,8 +26,138 @@ static void ValidateVector(glm::vec3 vec) {
     Assert(!std::isnan(vec.x) && !std::isnan(vec.y) && !std::isnan(vec.z));
 }
 
-static Polygon ClipFaces() {
+// used to find contact points for face-face contacts
+// normal in model space of object a
+static std::optional<Collision> ClipFaces(glm::vec3 normal, Gameobject* a, Gameobject* b, const glm::mat3x3& worldToB, const glm::vec3& bToARelPos, const glm::mat3x3& worldToA, const glm::mat3x3& normalAToB) {
+    auto pmA = std::dynamic_pointer_cast<ConvexMeshPhysicsGeometry>(a->GetCollider()->physicsMesh);
+    auto pmB = std::dynamic_pointer_cast<ConvexMeshPhysicsGeometry>(b->GetCollider()->physicsMesh);
+    Assert(pmA && pmB);
 
+    // CLIPPING FACE = A, CONTACT FACE = B
+
+    // find face on a with the normal we got
+        // use -normal because normal points from B to A
+    size_t clippingFace = 0;
+    float bestDot = glm::dot(-normal, pmA->polygons[0].normal);
+    for (unsigned i = 1; i < pmA->polygons.size(); i++) {
+        float dot = glm::dot(-normal, pmA->polygons[i].normal);
+        //Assert(dot <= 1);
+        if (dot > bestDot) {
+            bestDot = dot;
+            clippingFace = i;
+        }
+    }
+
+    glm::vec3 clipFaceCentre(0, 0, 0);
+    for (auto& p : pmA->polygons[clippingFace].points) {
+        clipFaceCentre += p;
+    }
+    clipFaceCentre /= static_cast<float>(pmA->polygons[clippingFace].points.size());
+
+    // Find side planes of clipping face (point, normal) format
+    std::vector<std::pair<glm::vec3, glm::vec3>> sidePlanes;
+    for (unsigned i = 0; i < pmA->polygons[clippingFace].points.size(); i++) {
+        auto v1 = pmA->polygons[clippingFace].points[i];
+        auto v2 = pmA->polygons[clippingFace].points[i + 1 == pmA->polygons[clippingFace].points.size() ? 0 : i + 1];
+        auto sideNormal = glm::cross(v2 - v1, pmA->polygons[clippingFace].normal);
+        if (glm::dot(sideNormal, v1 - clipFaceCentre) < 0) sideNormal *= -1;
+        sidePlanes.push_back(std::make_pair(v1, glm::normalize(sideNormal)));
+    }
+
+    glm::vec3 normalInBSpace = normalAToB * normal;
+
+    // this is seemingly a face-face collision so we'll use the face closest to normal 
+    unsigned contactFace = 0;
+    bestDot = glm::dot(normalInBSpace, pmB->polygons[0].normal);
+    for (unsigned i = 1; i < pmB->polygons.size(); i++) {
+        float dot = glm::dot(normal, pmB->polygons[i].normal);
+        //Assert(dot >= -1);
+        if (dot > bestDot) {
+            bestDot = dot;
+            contactFace = i;
+        }
+    }
+
+    glm::vec3 worldSpaceClippingFaceNormal = a->ObjectNormalToWorld(pmA->polygons[clippingFace].normal);
+    glm::vec3 worldSpaceContactFaceNormal = b->ObjectNormalToWorld(pmB->polygons[contactFace].normal);
+
+    // put contact face in A space
+    std::vector<glm::vec3> contactFacePoints;
+    for (auto& v : pmB->polygons[contactFace].points) {
+        contactFacePoints.push_back(worldToA * (b->GetRotSclMatrix() * v + bToARelPos));
+    }
+
+
+
+    // Sutherland-Hodgman clipping algorithm 
+    for (auto& clippingPlane : sidePlanes) {
+        std::vector<glm::vec3> input = contactFacePoints;
+        //DebugLogInfo("INPUT ", input.size());
+        contactFacePoints.clear();
+
+        for (unsigned int i = 0; i < input.size(); i++) {
+            // get edge
+            auto v1 = input[i];
+            auto v2 = input[(i + 1) % input.size()];
+
+            // find intersection of edge v1v2 and the clippingPlane
+            glm::vec3 intersectionPoint(NAN);
+            glm::vec3 edgeDir = glm::vec3(v2 - v1);
+
+            // do the clipping
+            float distanceToV1 = SignedDistanceToPlane(clippingPlane.second, v1, clippingPlane.first);
+            float distanceToV2 = SignedDistanceToPlane(clippingPlane.second, v2, clippingPlane.first);
+            if (std::abs(glm::dot(clippingPlane.second, edgeDir)) > 0.0001) {
+                float t = (glm::dot(clippingPlane.first, clippingPlane.second) - glm::dot(clippingPlane.second, v1)) / glm::dot(clippingPlane.second, glm::normalize(edgeDir));
+                intersectionPoint = v1 + (glm::normalize(edgeDir) * t);
+                Assert(!std::isnan(intersectionPoint.x));
+            }
+            else {
+                if (distanceToV1 <= 0) {
+                    contactFacePoints.push_back(v1);
+                    //contactPointsInModel2Space.push_back(v2);
+                }
+                continue;
+            }
+
+
+            if (distanceToV1 <= 0) { // then v1 is on the right side of the side plane and should stay
+                contactFacePoints.push_back(v1);
+                if (distanceToV2 > 0) { // then v2 is on the wrong side of the plane and thus the edge v goes through the side plane, we should add the intersection point
+                    contactFacePoints.push_back(intersectionPoint);
+                }
+            }
+            else if (distanceToV2 <= 0) { // then v1 is on wrong side and v2 is on right side, so we should add point of intersection (v2 itself will be added on next iteration)
+                contactFacePoints.push_back(intersectionPoint);
+            }
+            else {
+                //DebugLogInfo("nope");
+            }
+        }
+
+    }
+
+    std::vector<std::pair<glm::vec3, glm::vec3>> finalContactPoints;
+    for (auto& v : contactFacePoints) {
+        float depth = SignedDistanceToPlane(normal, v, pmA->polygons[clippingFace].points[0]);
+        glm::vec3 worldV = a->GetRotSclMatrix() * v + glm::vec3(a->Position());
+        //if (depth > -0.00001) {
+            glm::vec3 otherV = worldToB * (a->GetRotSclMatrix() * v - bToARelPos);
+            finalContactPoints.push_back(std::make_pair(v - normal * depth, otherV));
+        //}
+    }
+
+
+    if (finalContactPoints.size() > 0) {
+        Collision result;
+        result.collisionNormal = a->ObjectNormalToWorld(normal);
+        result.collisionPoints = finalContactPoints;
+        return result;
+    }
+    else {
+        DebugLogError("Found collision, but face clipping could not find contacts.");
+        return std::nullopt;
+    }
 }
 
 // Helper function to get face normals of the polytope in a's object space.
@@ -39,7 +175,7 @@ static std::pair<std::vector<std::pair<glm::vec3, float>>, size_t> GetFaceNormal
         auto& c = polytope[faces[i + 2]];
 
         glm::vec3 normal = glm::normalize(glm::cross(b[0] - a[0], c[0] - a[0]));
-        double distance = glm::dot(normal, a[0]);
+        float distance = glm::dot(normal, a[0]);
 
         if (distance < 0) {
             normal *= -1;
@@ -66,8 +202,12 @@ static std::optional<Collision> CollideGJKEPA(Gameobject* a, Gameobject* b) {
     Assert(pmA && pmB);
     
     glm::mat3x3 worldToB = glm::inverse(b->GetRotSclMatrix());
-    glm::vec3 bToARelPos = a->Position() - b->Position();
+    glm::vec3 aToB = b->Position() - a->Position();
     glm::mat3x3 worldToA = glm::inverse(a->GetRotSclMatrix());
+
+    // TODO: should be actually used in places besides face clipping
+    glm::mat3x3 normalAToB = glm::transpose(b->GetRotSclMatrix()) * glm::inverse(glm::transpose(a->GetRotSclMatrix()));
+
     //glm::mat3x4 bToA = bToWorld;
     //bToWorld[3] = bToARelPos;
     
@@ -85,7 +225,7 @@ static std::optional<Collision> CollideGJKEPA(Gameobject* a, Gameobject* b) {
         glm::vec3 directionInBSpace = worldToB * a->GetRotSclMatrix() * direction;
 
         glm::vec3 supportB = pmB->Support(-directionInBSpace);
-        glm::vec3 bInASpace = worldToA * ((b->GetRotSclMatrix() * supportB) + bToARelPos);
+        glm::vec3 bInASpace = worldToA * ((b->GetRotSclMatrix() * supportB) - aToB);
         return { supportA - bInASpace, supportA, supportB };
         };
 
@@ -262,6 +402,9 @@ static std::optional<Collision> CollideGJKEPA(Gameobject* a, Gameobject* b) {
         auto [normals, minFace] = GetFaceNormals(faces, polytope);
         Assert(normals.size() == 4); // initial simplex should have 4 vertices and 4 faces
 
+        // keep track of returned polytope points so we terminate if we keep getting same point
+        std::unordered_set<glm::vec3> supportPointsUsed;
+
         glm::vec3 minNormal;
         float minDistance = FLT_MAX;
         unsigned nIterations = 0;
@@ -271,15 +414,36 @@ static std::optional<Collision> CollideGJKEPA(Gameobject* a, Gameobject* b) {
             minNormal = normals.at(minFace).first;
             minDistance = normals.at(minFace).second;
 
-            if (nIterations > 64) {
+            if (nIterations > 32) {
                 DebugLogError("EPA failed (iterations exceeded)");
                 break;
             }
 
             auto support = NewSimplexPoint(minNormal);
-            double sDistance = glm::dot(minNormal, support[0]);
 
-            if (abs(sDistance - minDistance) > 0.00001) {
+#ifdef DEBUG_EPA
+            for (unsigned fI = 0; fI < faces.size(); fI += 3) {
+                auto g = DebugTriangle(polytope[faces[fI]][0], polytope[faces[fI+1]][0] , polytope[faces[fI+2]][0], { 1, 1, 0 });
+                g->SetPosition(glm::dvec3(nIterations * 5, 1, 1));
+            }
+
+            DebugPoint(glm::dvec3(nIterations * 5, 1, 1), { 1, 0, 0 });
+            DebugLine({ 0, 0, 0 }, minNormal, { 1, 0, 0 })->SetPosition(glm::dvec3(nIterations * 5, 1, 1));
+            DebugPoint(support[0] + glm::vec3(nIterations * 5, 1, 1), { 0, 0, 1 });
+#endif
+
+            if (supportPointsUsed.contains(support[0])) {
+                //DebugLogError("EPA failed (duplicate support)");
+                if (a->Position() == b->Position()) minNormal = glm::vec3(0, 1, 0);
+                else minNormal = glm::normalize(a->Position() - b->Position());
+
+                break;
+            }
+            supportPointsUsed.insert(support[0]);
+
+            //DebugLogInfo("SUPPORT", glm::to_string(support[0]));
+            float sDistance = glm::dot(minNormal, support[0]);
+            if (abs(sDistance - minDistance) > 0.0001f) {
                 std::vector<std::pair<unsigned int, unsigned int>> uniqueEdges;
 
                 auto AddIfUniqueEdge = [&](unsigned int e1, unsigned int e2) {
@@ -299,7 +463,18 @@ static std::optional<Collision> CollideGJKEPA(Gameobject* a, Gameobject* b) {
                 Assert(normals.size() > 0);
                 Assert(normals.size() * 3 == faces.size());
                 for (unsigned int i = 0; i < normals.size(); i++) {
-                    if (SignedDistanceToPlane(normals[i].first, polytope[faces[i * 3]][0], support[0]) < 0) {
+                   
+#ifdef DEBUG_EPA
+                    auto mid = polytope[faces[i * 3]][0] + polytope[faces[i * 3+1]][0] + polytope[faces[i * 3+2]][0];
+                    mid /= 3.0;
+                    DebugLine(mid, mid + normals[i].first * 0.3f, {1, 0, 1})->SetPosition(glm::dvec3(nIterations * 5, 1, 1));
+#endif
+                    //if (SignedDistanceToPlane(normals[i].first, polytope[faces[i * 3]][0], support[0]) < -0.0001f) {
+                    //if (glm::dot(normals[i].first, support[0]) > 0) {
+                    //if (glm::dot(normals[i].first, support[0]) > glm::dot(normals[i].first, polytope[faces[i * 3]][0])) {
+                    if (glm::dot(normals[i].first, support[0] - polytope[faces[i * 3]][0]) > 0) {
+                        //if (glm::dot(normals[i].first, support[0] - polytope[faces[i * 3]][0]) <= 0) continue;
+
                         unsigned int f = i * 3;
 
                         // For all of the edges of this face, 
@@ -327,6 +502,12 @@ static std::optional<Collision> CollideGJKEPA(Gameobject* a, Gameobject* b) {
                     newFaces.push_back(edgeIndex1);
                     newFaces.push_back(edgeIndex2);
                     newFaces.push_back(polytope.size());
+
+#ifdef DEBUG_EPA
+                    DebugLine(polytope[edgeIndex1][0], polytope[edgeIndex2][0], { 0, 1, 1 })->SetPosition(glm::dvec3(nIterations * 5, 1, 1));
+                    DebugLine(polytope[edgeIndex1][0], support[0], {0, 1, 1})->SetPosition(glm::dvec3(nIterations * 5, 1, 1));
+                    DebugLine(polytope[edgeIndex2][0], support[0], { 0, 1, 1})->SetPosition(glm::dvec3(nIterations * 5, 1, 1));
+#endif     
                 }
 
                 polytope.push_back(support);
@@ -334,7 +515,7 @@ static std::optional<Collision> CollideGJKEPA(Gameobject* a, Gameobject* b) {
                 Assert(newFaces.size() > 0);
                 auto [newNormals, newMinFace] = GetFaceNormals(newFaces, polytope);
 
-                double oldMinDistance = FLT_MAX;
+                float oldMinDistance = FLT_MAX;
                 for (unsigned int i = 0; i < normals.size(); i++) {
                     if (normals[i].second < oldMinDistance) {
                         oldMinDistance = normals[i].second;
@@ -356,17 +537,23 @@ static std::optional<Collision> CollideGJKEPA(Gameobject* a, Gameobject* b) {
 
         Assert(minNormal != glm::vec3(0, 0, 0));
 
+        //DebugLogInfo("N ", minNormal);
+
         if (faces.size() == 0) {
             DebugLogError("EPA failed (faces)");
             Assert(false);
         }
 
+        if (glm::dot(minNormal, aToB) > 0) minNormal *= -1;
+
+        //Assert(minNormal.y > 0.9);
+
         auto convexMeshA = std::dynamic_pointer_cast<ConvexMeshPhysicsGeometry>(a->GetCollider()->physicsMesh);
         auto convexMeshB = std::dynamic_pointer_cast<ConvexMeshPhysicsGeometry>(b->GetCollider()->physicsMesh);
         if (convexMeshA && convexMeshB) { // then we can just clip the faces to extract full contact information
-            return ClipFaces()
+            return ClipFaces(minNormal, a, b, worldToB, aToB, worldToA, normalAToB);
         }
-        else { // use barycentric coords. only get one contact point this way but that'll have to be enough
+        //else { // use barycentric coords. only get one contact point this way but that'll have to be enough
             // find collision point
             // get verts of closest triangle to origin
             auto& pA = polytope[faces[minFace * 3]];
@@ -403,7 +590,7 @@ static std::optional<Collision> CollideGJKEPA(Gameobject* a, Gameobject* b) {
                 .collisionPoints = {{-pointForObj1, -pointForObj2},}, // TODO: why does negating them fix it? it shouldn't 
                 .collisionNormal = a->ObjectNormalToWorld(minNormal),
             };
-        }
+        //}
 
 
         
@@ -476,47 +663,112 @@ static std::optional<Collision> CollideSAT(Gameobject* a, Gameobject* b) {
     glm::mat3x3 worldToB = glm::inverse(b->GetRotSclMatrix());
     glm::vec3 bToARelPos = a->Position() - b->Position();
     glm::mat3x3 worldToA = glm::inverse(a->GetRotSclMatrix());
+    glm::mat3x3 normalAToB = glm::transpose(b->GetRotSclMatrix()) * glm::inverse(glm::transpose(a->GetRotSclMatrix()));
+    glm::mat3x3 normalBToA = glm::transpose(a->GetRotSclMatrix()) * glm::inverse(glm::transpose(b->GetRotSclMatrix()));
 
     float greatestSeperation = -INFINITY;
     // in A space
     glm::vec3 collisionNormal;
       
-    for (auto& planeA : pmA->planes) {
-        glm::vec3 normalInBspace = worldToB * a->GetRotSclMatrix() * planeA.first;
+    for (auto& planeA : pmA->polygons) {
+        glm::vec3 normalInBspace = glm::normalize(normalAToB * planeA.normal);
         glm::vec3 pointB = pmB->Support(-normalInBspace);
-        
-        float distance = SignedDistanceToPlane(planeA.first, pointB, planeA.second);
+        glm::vec3 pointBInASpace = worldToA * (b->GetRotSclMatrix() * pointB - bToARelPos);
+
+        float distance = SignedDistanceToPlane(planeA.normal, pointBInASpace, planeA.points[0]);
         if (distance >= 0) {
             return std::nullopt;
         }
         else if (distance > greatestSeperation) {
             greatestSeperation = distance;
-            collisionNormal = planeA.first;
+            collisionNormal = -planeA.normal;
         }
     }
 
-    for (auto& planeB : pmB->planes) {
-        glm::vec3 normalInAspace = worldToA * b->GetRotSclMatrix() * planeB.first;
-        glm::vec3 pointA = pmB->Support(-normalInAspace);
+    for (auto& planeB : pmB->polygons) {
+        glm::vec3 normalInAspace = glm::normalize(normalBToA * planeB.normal);
+        glm::vec3 pointA = pmA->Support(-normalInAspace);
+        glm::vec3 planePointInASpace = worldToA * (b->GetRotSclMatrix() * planeB.points[0] - bToARelPos);
 
-        float distance = SignedDistanceToPlane(planeB.first, pointA, planeB.second);
+        float distance = SignedDistanceToPlane(normalInAspace, pointA, planePointInASpace);
         if (distance >= 0) {
             return std::nullopt;
         }
         else if (distance > greatestSeperation) {
+
             greatestSeperation = distance;
             collisionNormal = normalInAspace;
         }
     }
 
     // handle edge pairs
-    /*for (auto& edgeA : pmA->edges) {
-        for (auto& edgeB : pmB->edges) {
+    // todo: poorly optimized imo
+    bool edgeCollision = false;
+    struct EdgeInfo {
+        glm::vec3 ePA, eDA, ePB, eDB; // P/D: point/direction. all in A space
+    };
+    EdgeInfo edgeCollisionInfo;
+    for (auto& edgeB : pmB->uniqueEdgeDirections) {
+        glm::vec3 edgeBInASpace = glm::normalize(normalBToA * edgeB);
+        for (auto& edgeA : pmA->uniqueEdgeDirections) {
 
+            // already normalized
+            glm::vec3 edgeNormal = glm::cross(edgeA, edgeBInASpace);
+
+            if (glm::length2(edgeNormal) == 0) continue;
+
+            // ensure edgeNormal points from B to A
+            if (glm::dot(bToARelPos, edgeNormal) < 0) edgeNormal *= -1;
+
+            glm::vec3 pointA = pmA->Support(-edgeNormal);
+            glm::vec3 normalInBspace = glm::normalize(normalAToB * edgeNormal);
+            glm::vec3 pointB = pmB->Support(normalInBspace);
+            glm::vec3 pointBInASpace = worldToA * (b->GetRotSclMatrix() * pointB - bToARelPos);
+            
+            glm::vec3 worldspaceNormal = a->ObjectNormalToWorld(edgeNormal);
+            glm::vec3 realA = a->GetRotSclMatrix() * pointA + glm::vec3(a->Position());
+            glm::vec3 realB = b->GetRotSclMatrix() * pointB + glm::vec3(b->Position());
+
+            float distance = SignedDistanceToPlane(edgeNormal, pointA, pointBInASpace);
+            if (distance >= 0) {
+                return std::nullopt;
+            }
+            else if (distance > greatestSeperation) {
+                greatestSeperation = distance;
+                collisionNormal = edgeNormal;
+                edgeCollision = true;
+                edgeCollisionInfo.ePA = pointA;
+                edgeCollisionInfo.eDA = edgeA;
+                edgeCollisionInfo.ePB = pointBInASpace;
+                edgeCollisionInfo.eDB = edgeBInASpace;
+            }
+            else {
+                //DebugLogInfo("useless edge ", glm::normalize(a->GetRotSclMatrix() * edgeNormal), " ", distance, " vs ", greatestSeperation);
+            }
         }
-    }*/
+    }
 
+    Assert(greatestSeperation < 0 && greatestSeperation != -INFINITY);
+    DebugLogInfo("collision");
+    glm::vec3 worldspaceNormal = a->ObjectNormalToWorld(collisionNormal);
+    if (edgeCollision) {
+        float t1 = glm::dot(glm::cross(edgeCollisionInfo.eDB, collisionNormal), edgeCollisionInfo.ePB - edgeCollisionInfo.ePA);
+        float t2 = glm::dot(glm::cross(edgeCollisionInfo.eDA, collisionNormal), edgeCollisionInfo.ePB - edgeCollisionInfo.ePA);
+        glm::vec3 p1 = edgeCollisionInfo.ePA + edgeCollisionInfo.eDA * t1;
+        glm::vec3 p2 = edgeCollisionInfo.ePB + edgeCollisionInfo.eDB * t2;
+        glm::vec3 p2InB = worldToB * (a->GetRotSclMatrix() * p2 - bToARelPos);
+        return Collision{
+            .collisionPoints = {{p1, p2InB},},
+            .collisionNormal = a->ObjectNormalToWorld(collisionNormal)
+        };
+    }
+    else {
+        return ClipFaces(collisionNormal, a, b, worldToB, -bToARelPos, worldToA, normalAToB);
+    }
 }
+
+// if a ConvexMeshPhysicsGeometry has more triangles than this, we'll use EPA, if not we'll use SAT
+constexpr static size_t SAT_THRESHOLD = 36;
 
 std::optional<Collision> NarrowphaseCollisionDetection(Gameobject* a, Gameobject* b) {
     auto sphereA = std::dynamic_pointer_cast<SpherePhysicsGeometry>(a->GetCollider()->physicsMesh);
@@ -526,9 +778,9 @@ std::optional<Collision> NarrowphaseCollisionDetection(Gameobject* a, Gameobject
     auto convexMeshA = std::dynamic_pointer_cast<ConvexMeshPhysicsGeometry>(a->GetCollider()->physicsMesh);
     auto convexMeshB = std::dynamic_pointer_cast<ConvexMeshPhysicsGeometry>(b->GetCollider()->physicsMesh);
 
-    //if (convexMeshA && convexMeshB) {
-        //return CollideSAT(a, b);
-    //} else
+    if (convexMeshA && convexMeshB && convexMeshA->triangles.size() <= SAT_THRESHOLD && convexMeshB->triangles.size() <= SAT_THRESHOLD) {
+        return CollideSAT(a, b);
+    } else
     if (convexA && convexB) {
         return CollideGJKEPA(a , b);
     }

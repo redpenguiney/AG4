@@ -159,7 +159,7 @@ void BaseShaderProgram::Link()
     glGetProgramiv(shaderProgramId, GL_ACTIVE_UNIFORMS, &numUniforms);
     glGetProgramiv(shaderProgramId, GL_ACTIVE_UNIFORM_MAX_LENGTH, &longestUniformName);
     for (int i = 0; i < numUniforms; i++) {
-        auto nameBuf = new char[longestUniformName+1];
+        auto nameBuf = new char[longestUniformName + 1];
         GLsizei length;
         GLint size;
         GLenum type;
@@ -176,7 +176,37 @@ void BaseShaderProgram::Link()
         delete[] nameBuf;
     }
 
-    
+    GLint numSSBOs, numUBOs, ssboNameLength, uboNameLength;
+    glGetProgramInterfaceiv(shaderProgramId, GL_SHADER_STORAGE_BLOCK, GL_ACTIVE_RESOURCES, &numSSBOs);
+    glGetProgramInterfaceiv(shaderProgramId, GL_UNIFORM_BLOCK, GL_ACTIVE_RESOURCES, &numUBOs);
+    glGetProgramInterfaceiv(shaderProgramId, GL_SHADER_STORAGE_BLOCK, GL_MAX_NAME_LENGTH, &ssboNameLength);
+    glGetProgramInterfaceiv(shaderProgramId, GL_UNIFORM_BLOCK, GL_MAX_NAME_LENGTH, &uboNameLength);
+
+    for (int i = 0; i < numSSBOs; i++) {
+        auto nameBuf = new char[ssboNameLength + 1];
+        GLsizei nameLen;
+        glGetProgramResourceName(shaderProgramId, GL_SHADER_STORAGE_BLOCK, i, ssboNameLength, &nameLen, nameBuf);
+        std::string name(nameBuf, nameLen);
+        delete[] nameBuf;
+
+        shaderSSBOs.push_back(ShaderStorageBufferInfo {
+            .name = name,
+            .index = i
+            });
+    }
+
+    for (int i = 0; i < numUBOs; i++) {
+        auto nameBuf = new char[uboNameLength + 1];
+        GLsizei nameLen;
+        glGetProgramResourceName(shaderProgramId, GL_UNIFORM_BLOCK, i, uboNameLength, &nameLen, nameBuf);
+        std::string name(nameBuf, nameLen);
+        delete[] nameBuf;
+
+        shaderUBOs.push_back(ShaderUniformBufferInfo{
+            .name = name,
+            .index = i,
+            });
+    }
 }
 
 void BaseShaderProgram::Uniform(std::string uniformName, glm::mat4x4 matrix, bool transposeMatrix, bool require) {

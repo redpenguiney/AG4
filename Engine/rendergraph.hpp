@@ -89,6 +89,17 @@ public:
 
 	void CreateAttachment(FramebufferAttachmentFormatDescriptor attachment);
 
+	void DeclareUniformBuffer(std::string name, size_t size);
+
+	// Uploads read-only data to shader uniform block.
+	// Block must have already been declared.
+	// uboName refers to the name of the buffer-backed uniform block in GLSL.
+	void UploadUniformBuffer(std::string uboName, void* data, size_t len, size_t byteOffset = 0);
+
+	// Like UploadUniformBuffer(), but data may not be preserved after the next frame (so that the memory can be aliased or something idk).
+	// Call every frame prior to rendering.
+	// void StreamUniformBuffer(std::string uboName, void* data, size_t len);
+
 	~RenderGraph() = default;
 	RenderGraph(const RenderGraph&) = delete;
 private:
@@ -112,9 +123,30 @@ private:
 		bool destroy;
 	};
 
+	struct BackedBufferResource {
+		BackedBufferResource(BufferedBuffer buf);
+		std::vector<ResourceLifeTime> accesses;
+		BufferedBuffer buf;
+		bool ubo;
+		bool destroy;
+	};
+
+	struct LogicalBufferResource {
+		std::string name;
+
+		size_t requestedSize;
+		// may be nullptr
+		std::shared_ptr<BackedBufferResource> hardwareResource;
+		ResourceLifeTime access;
+		bool ubo;
+	};
+
 	bool Compatible(const FramebufferRenderTargetDescriptor& requirements, const FramebufferResource& resource);
 
 	FramebufferResource& GetFramebuffer(FramebufferRenderTargetDescriptor params);
+
+	std::unordered_map<std::string, LogicalBufferResource> logicalBuffers;
+	std::vector<std::shared_ptr<BackedBufferResource>> hardwareBuffers;
 
 	//BufferedBuffer indirectDrawingCommandBuffer;
 	std::unordered_map<std::string, std::shared_ptr<DrawPass>> drawPasses;

@@ -12,7 +12,8 @@ PhysicsEngine& PhysicsEngine::Get() {
 	return PE;
 }
 
-// Jacobi-solve version of https://matthias-research.github.io/pages/publications/PBDBodies.pdf
+// see https://matthias-research.github.io/pages/publications/PBDBodies.pdf
+	// (Jacobi solve version)
 void PhysicsEngine::StepSimulation(double timestep) {
 	auto simulate = [&](auto iterable) mutable {
 
@@ -26,12 +27,11 @@ void PhysicsEngine::StepSimulation(double timestep) {
 			for (unsigned i = 0; i < POOL_OBJECTS_PER_PAGE; i++) {
 				Physobject& obj = page[i].obj;
 				if (!obj.Live()) continue;
+				
 				obj.lastPos = obj.position;
 				obj.lastRot = obj.rotation;
-
-				obj.SetPosition(obj.lastPos + glm::dvec3(obj.velocity) * timestep + gravity * 0.5 * timestep * timestep);
-				obj.SetRotation(obj.lastRot + 0.5f * glm::quat(0, obj.rotVelocity));
-
+				obj.SetPosition(obj.position + glm::dvec3(obj.velocity) * timestep + gravity * 0.5 * timestep * timestep);
+				obj.SetRotation(glm::normalize(obj.rotation + 0.5f * glm::quat(0, obj.rotVelocity)));
 				
 			}
 		}
@@ -54,7 +54,13 @@ void PhysicsEngine::StepSimulation(double timestep) {
 							auto result = NarrowphaseCollisionDetection(&obj, other->object);
 							if (result) {
 								alreadyCheckedCollisions.insert({ &obj, other->object });
+								// use centroid of contact points
+									// TODO: this is inaccurate centroid calculation; we should decompose it into triangles, then take weighted average of centroids of those triangles
+									// (or just handle each contact point seperately)
+								glm::vec3 r1 = {0, 0, 0}, r2 = {0, 0, 0};
 								for (auto& contactPoint : result->collisionPoints) {
+									//r1 += contactPoint.first;
+									//r2 += contactPoint.second;
 									if (auto otherPhys = dynamic_cast<Physobject*>(other->object)) {
 										dynamicCollisions.push_back(DynamicCollisionConstraint{
 											.r1 = contactPoint.first,
@@ -62,7 +68,7 @@ void PhysicsEngine::StepSimulation(double timestep) {
 											.a = &obj,
 											.b = otherPhys,
 											.collisionNormal = result->collisionNormal,
-											.nerf = 1.0f/(float)result->collisionPoints.size()
+											.nerf = 1.0f / (float)result->collisionPoints.size()
 											});
 									}
 									else {
@@ -76,6 +82,28 @@ void PhysicsEngine::StepSimulation(double timestep) {
 											});
 									}
 								}
+								/*r1 /= static_cast<float>(result->collisionPoints.size());
+								r2 /= static_cast<float>(result->collisionPoints.size());
+								if (auto otherPhys = dynamic_cast<Physobject*>(other->object)) {
+									dynamicCollisions.push_back(DynamicCollisionConstraint{
+										.r1 = r1,
+										.r2 = r2,
+										.a = &obj,
+										.b = otherPhys,
+										.collisionNormal = result->collisionNormal,
+										.nerf = 1.0f / (float)result->collisionPoints.size()
+										});
+								}
+								else {
+									staticCollisions.push_back(StaticCollisionConstraint{
+										.r1 = r1,
+										.r2 = r2,
+										.a = &obj,
+										.b = other->object,
+										.collisionNormal = result->collisionNormal,
+										.nerf = 1.0f / (float)result->collisionPoints.size()
+										});
+								}*/
 							}
 						}
 					}
@@ -83,8 +111,11 @@ void PhysicsEngine::StepSimulation(double timestep) {
 			}
 		}
 
+		//if (!staticCollisions.empty()) DebugLogInfo("SOLVING");
+
 		// todo: REDUNDANT AABBTREE UPDATES
-		for (unsigned posIter = 0; posIter < 1; posIter++) {
+		for (unsigned posIter = 0; posIter < 5; posIter++) {
+
 			for (auto& collision : staticCollisions) {
 				// todo: could maybe evaluate these in A's object space and then use floats?
 				glm::dvec3 r1 = glm::dvec3(collision.a->GetRotSclMatrix() * collision.r1) + collision.a->Position();
@@ -93,20 +124,26 @@ void PhysicsEngine::StepSimulation(double timestep) {
 				//DebugPoint(collision.r2, {0, 1, 0});
 				
 				DebugPoint(r1);
-				DebugPoint(r2);
+				DebugPoint(r2, {0.5, 0.5, 0.5});
 				glm::dvec3 dnormal = glm::dvec3(collision.collisionNormal);
 				double penetration = glm::dot(r2 - r1, dnormal);
 				if (penetration < 0) continue;
 
 				glm::vec3 torqueAxis1 = glm::cross(collision.r1, collision.collisionNormal);
 				// TODO: untested
-				float reducedInverseMass1 = collision.a->inverseMass +glm::dot(torqueAxis1, collision.a->inverseInertiaTensor * torqueAxis1);
+				float reducedInverseMass1 = collision.a->inverseMass;// +glm::dot(torqueAxis1, collision.a->inverseInertiaTensor * torqueAxis1);
 			
-				float lagrange = penetration / reducedInverseMass1 * collision.nerf;
+				float lagrange = penetration * reducedInverseMass1;
 				glm::vec3 impulse = collision.collisionNormal * lagrange;
-				glm::dvec3 displacement = impulse * reducedInverseMass1;
+				glm::dvec3 displacement = impulse * collision.a->inverseMass;
+				glm::quat dRot = glm::quat(0, collision.a->inverseInertiaTensor * glm::cross(collision.r1, impulse));
  				collision.a->SetPosition(collision.a->Position() + displacement);
-				collision.a->SetRotation(glm::normalize(collision.a->Rotation() + 0.5f * glm::quat(0, collision.a->inverseInertiaTensor * glm::cross(collision.r1, impulse))));
+				//collision.a->SetRotation(glm::normalize(collision.a->Rotation() + 0.5f * dRot));
+
+				//glm::dvec3 newR1 = glm::dvec3(collision.a->GetRotSclMatrix() * collision.r1) + collision.a->Position();
+				//double newPenetration = glm::dot(r2 - newR1, dnormal);
+				//DebugLogInfo("DIS ", displacement);
+				//collision.a->SetPosition(collision.a->Position() + dnormal * penetration);
 			}
 		}
 
@@ -116,7 +153,14 @@ void PhysicsEngine::StepSimulation(double timestep) {
 				if (!obj.Live()) continue;
 				
 				obj.velocity = (obj.Position() - obj.lastPos) / timestep;
-				obj.rotVelocity = 2.0f * glm::vec3(obj.rotVelocity.x, obj.rotVelocity.y, obj.rotVelocity.z) / (float)timestep;
+				glm::quat newRot = obj.Rotation();
+				obj.rotVelocity = 2.0f * glm::vec3(
+					obj.lastRot.w * newRot.x - obj.lastRot.x * newRot.w - obj.lastRot.y * newRot.z + obj.lastRot.z * newRot.y,
+					obj.lastRot.w * newRot.y + obj.lastRot.x * newRot.z - obj.lastRot.y * newRot.w - obj.lastRot.z * newRot.x,
+					obj.lastRot.w * newRot.z - obj.lastRot.x * newRot.y + obj.lastRot.y * newRot.x - obj.lastRot.z * newRot.w
+				) / (float)timestep;
+				// prevents numerical precision errors causing rotvelocity to accumulate
+				if (glm::length2(obj.rotVelocity) < 0.0000001) obj.rotVelocity = glm::vec3(0,0,0);
 				//obj.SetPosition(obj.position);
 				//obj.SetRotation(obj.rotation);
 			}

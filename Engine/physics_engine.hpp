@@ -13,7 +13,7 @@ public:
 
 	PhysicsEngine(const PhysicsEngine&) = delete;
 
-	glm::dvec3 gravity = { 0.0, -9.81, 0.0 };
+	glm::dvec3 gravity = { 0.0, -4.81, 0.0 };
 
 
 private:
