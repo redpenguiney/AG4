@@ -1,12 +1,13 @@
 #pragma once
 #include <vector>
 #include <string>
+#include <memory>
 #include "molecule.hpp"
 
 enum class SolutionComponentState {
 	Gas,
 	InSolution, // either as solvent or solute
-	Solid
+	Solid 
 };
 
 struct SolutionComponent {
@@ -22,17 +23,19 @@ public:
 	float temperature; // in kelvin
 	std::vector<SolutionComponent> molecules;
 
-	// for something like a beaker, this would only contain the ChemicalSolution for the room the beaker is in.
 	// for a room, this would contain the ChemicalSolutions of all the solutions/etc. in the room. 
-	std::vector<ChemicalSolution*> neighbors;
+	std::vector<ChemicalSolution*> children;
+
+	// for the contents of a beaker, this would be the atmosphere of the room the beaker is in.
+	ChemicalSolution* parent;
 
 	// does one RK4 timestep
-	ChemicalSolution StepSolution(float timestep);
+	std::unique_ptr<ChemicalSolution> StepSolution(float timestep);
 };
 
 // represents the system at a specific point in time.
 class ChemicalSystem {
 public:
-	std::vector<ChemicalSolution> solutions;
+	std::vector<std::unique_ptr<ChemicalSolution>> solutions;
 	ChemicalSystem StepSystem(float timestep);
 };

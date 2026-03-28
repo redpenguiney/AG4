@@ -78,8 +78,8 @@ static std::optional<Collision> ClipFaces(glm::vec3 normal, Gameobject* a, Gameo
         }
     }
 
-    glm::vec3 worldSpaceClippingFaceNormal = a->ObjectNormalToWorld(pmA->polygons[clippingFace].normal);
-    glm::vec3 worldSpaceContactFaceNormal = b->ObjectNormalToWorld(pmB->polygons[contactFace].normal);
+    //glm::vec3 worldSpaceClippingFaceNormal = a->ObjectNormalToWorld(pmA->polygons[clippingFace].normal);
+    //glm::vec3 worldSpaceContactFaceNormal = b->ObjectNormalToWorld(pmB->polygons[contactFace].normal);
 
     // put contact face in A space
     std::vector<glm::vec3> contactFacePoints;
@@ -134,28 +134,38 @@ static std::optional<Collision> ClipFaces(glm::vec3 normal, Gameobject* a, Gameo
                 //DebugLogInfo("nope");
             }
         }
+    }
 
+    if (contactFacePoints.empty()) {
+        DebugLogError("Found collision, but face clipping eliminated all contacts.");
+        return std::nullopt;
     }
 
     std::vector<std::pair<glm::vec3, glm::vec3>> finalContactPoints;
+    glm::vec3 worldNormal = a->ObjectNormalToWorld(normal);
+    //glm::vec3 clipNormal = a->ObjectNormalToWorld(pmA->polygons[clippingFace].normal);
+    //glm::vec3 contactNormal = b->ObjectNormalToWorld(pmB->polygons[contactFace].normal);
     for (auto& v : contactFacePoints) {
-        float depth = SignedDistanceToPlane(normal, v, pmA->polygons[clippingFace].points[0]);
+        float depth = SignedDistanceToPlane(pmA->polygons[clippingFace].normal, v, pmA->polygons[clippingFace].points[0]);
+        //glm::vec3 worldPlanePoint = a->GetRotSclMatrix() * pmA->polygons[clippingFace].points[0] + glm::vec3(a->Position());
         glm::vec3 worldV = a->GetRotSclMatrix() * v + glm::vec3(a->Position());
-        //if (depth > -0.00001) {
-            glm::vec3 otherV = worldToB * (a->GetRotSclMatrix() * v - bToARelPos);
-            finalContactPoints.push_back(std::make_pair(v - normal * depth, otherV));
-        //}
+        DebugPoint(worldV, { 1, 1, 0 });
+        //float suspectedDepth = SignedDistanceToPlane(clipNormal, worldPlanePoint, worldV);
+        if (depth > -0.00001) {
+            glm::vec3 vInBSpace = worldToA * (b->GetRotSclMatrix() * v - bToARelPos);
+            finalContactPoints.push_back(std::make_pair(v, vInBSpace));
+        }
     }
 
 
     if (finalContactPoints.size() > 0) {
         Collision result;
-        result.collisionNormal = a->ObjectNormalToWorld(normal);
+        result.collisionNormal = worldNormal;
         result.collisionPoints = finalContactPoints;
         return result;
     }
     else {
-        DebugLogError("Found collision, but face clipping could not find contacts.");
+        DebugLogError("Found collision, but all proposed contacts were outside object.");
         return std::nullopt;
     }
 }
