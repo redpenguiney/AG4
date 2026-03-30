@@ -748,7 +748,8 @@ static std::optional<Collision> CollideSAT(Gameobject* a, Gameobject* b) {
             if (distance >= 0) {
                 return std::nullopt;
             }
-            else if (distance > greatestSeperation) {
+            // we make it really hard to have an edge collision because they're hecka glitchy
+            else if (distance - 0.005f > greatestSeperation) { 
                 greatestSeperation = distance;
                 collisionNormal = edgeNormal;
                 edgeCollision = true;
@@ -767,7 +768,7 @@ static std::optional<Collision> CollideSAT(Gameobject* a, Gameobject* b) {
     //DebugLogInfo("collision");
     glm::vec3 worldspaceNormal = a->ObjectNormalToWorld(collisionNormal);
     if (edgeCollision) {
-        DebugLogInfo("Edge collision.");
+        DebugLogInfo("Edge collision, sep=", greatestSeperation);
         float t1 = glm::dot(glm::cross(edgeCollisionInfo.eDB, collisionNormal), edgeCollisionInfo.ePB - edgeCollisionInfo.ePA);
         float t2 = glm::dot(glm::cross(edgeCollisionInfo.eDA, collisionNormal), edgeCollisionInfo.ePB - edgeCollisionInfo.ePA);
         glm::vec3 p1 = edgeCollisionInfo.ePA + edgeCollisionInfo.eDA * t1;

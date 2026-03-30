@@ -105,14 +105,15 @@ int main() {
 	//	objects.push_back(unique);
 	//}
 
-	BuildPit({0, 0, 3}, {6, 6, 6});
+	BuildPit({0, 0, 0}, {6, 6, 6});
 
 	for (int i = 0; i < 1; i++) {
 		Physobject* gameObj = Physobject::New(p);
-		gameObj->SetPosition({ i, -2, 0 - i });
+		gameObj->SetPosition({ i, -1, 0 - i });
 		//gameObj->SetScale({ 2, 2, 2 });
-		//gameObj->SetRotation(glm::angleAxis(glm::radians(60.0f), glm::normalize(glm::vec3(1, 0, 0))));
-		//gameObj->velocity = { 3, 2, 0 };
+		gameObj->SetRotation(glm::angleAxis(glm::radians(60.0f), glm::normalize(glm::vec3(1, 0.2, 1))));
+		//gameObj->velocity = { 0, 10, 0 };
+		//gameObj->rotVelocity = { 1, 0, 0 };
 		glm::vec4 color(1, 0, 1, 1);
 		gameObj->SetInstanceAttribute(*p.mesh->format.GetAttribute("color"), color);
 		gameObj->SetInstanceAttribute(*p.mesh->format.GetAttribute(SpecialVertexAttributeNames::AUTOMATIC_TEXTURE_ARRAY_SELECTION), -1.0f);
@@ -147,7 +148,7 @@ int main() {
 		cam.position += (fDir * forward + rDir * right + upDir * up) * speed;
 		});
 
-	Mainloop::Get().stepPhysics = true;
+	//Mainloop::Get().stepPhysics = true;
 	Mainloop::Get().physicsPaused = true;
 	Window::Get().inputUp->Connect([&pitch, &yaw](InputObject input) {
 		if (input.input == InputObject::Space) Mainloop::Get().physicsPaused = !Mainloop::Get().physicsPaused;
