@@ -92,24 +92,27 @@ int main() {
 	DebugPoint({ 0, 0, 0.4 }, { 0, 0, 1 });
 
 
-	{
-		Gameobject* gameObj = Gameobject::New(p);
-		gameObj->SetPosition({ 0, -2, 0 });
-		gameObj->SetScale({ 1, 1, 1 });
-		//gameObj->SetRotation(glm::angleAxis(glm::radians(45.0f), glm::normalize(glm::vec3(0, 0, 1))));
-		glm::vec4 color(0, 1, 0, 1);
-		gameObj->SetInstanceAttribute(*p.mesh->format.GetAttribute("color"), color);
-		gameObj->SetInstanceAttribute(*p.mesh->format.GetAttribute(SpecialVertexAttributeNames::AUTOMATIC_TEXTURE_ARRAY_SELECTION), -1.0f);
+	//{
+	//	Gameobject* gameObj = Gameobject::New(p);
+	//	gameObj->SetPosition({ 2, -2, 0 });
+	//	gameObj->SetScale({ 1, 1, 1 });
+	//	//gameObj->SetRotation(glm::angleAxis(glm::radians(45.0f), glm::normalize(glm::vec3(0, 0, 1))));
+	//	glm::vec4 color(0, 0, 1, 1);
+	//	gameObj->SetInstanceAttribute(*p.mesh->format.GetAttribute("color"), color);
+	//	gameObj->SetInstanceAttribute(*p.mesh->format.GetAttribute(SpecialVertexAttributeNames::AUTOMATIC_TEXTURE_ARRAY_SELECTION), -1.0f);
 
-		std::shared_ptr<Gameobject> unique(gameObj);
-		objects.push_back(unique);
-	}
+	//	std::shared_ptr<Gameobject> unique(gameObj);
+	//	objects.push_back(unique);
+	//}
+
+	BuildPit({0, 0, 3}, {6, 6, 6});
 
 	for (int i = 0; i < 1; i++) {
 		Physobject* gameObj = Physobject::New(p);
-		gameObj->SetPosition({ i, -0.5, 0 - i });
-		//gameObj->SetScale({ 0.8, 0.8, 0.8 });
-		gameObj->SetRotation(glm::angleAxis(glm::radians(60.0f), glm::normalize(glm::vec3(1, 0, 0))));
+		gameObj->SetPosition({ i, -2, 0 - i });
+		//gameObj->SetScale({ 2, 2, 2 });
+		//gameObj->SetRotation(glm::angleAxis(glm::radians(60.0f), glm::normalize(glm::vec3(1, 0, 0))));
+		//gameObj->velocity = { 3, 2, 0 };
 		glm::vec4 color(1, 0, 1, 1);
 		gameObj->SetInstanceAttribute(*p.mesh->format.GetAttribute("color"), color);
 		gameObj->SetInstanceAttribute(*p.mesh->format.GetAttribute(SpecialVertexAttributeNames::AUTOMATIC_TEXTURE_ARRAY_SELECTION), -1.0f);
@@ -144,6 +147,7 @@ int main() {
 		cam.position += (fDir * forward + rDir * right + upDir * up) * speed;
 		});
 
+	Mainloop::Get().stepPhysics = true;
 	Mainloop::Get().physicsPaused = true;
 	Window::Get().inputUp->Connect([&pitch, &yaw](InputObject input) {
 		if (input.input == InputObject::Space) Mainloop::Get().physicsPaused = !Mainloop::Get().physicsPaused;

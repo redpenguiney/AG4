@@ -123,6 +123,12 @@ glm::vec3 Gameobject::ObjectNormalToWorld(glm::vec3 normal) {
     );
 }
 
+glm::vec3 Gameobject::WorldNormalToObject(glm::vec3 worldNormal)
+{
+    Assert(false);
+    return glm::vec3(0);
+}
+
 Physobject::Physobject(const PhysobjectCreateParams& params): Gameobject(params) {
     velocity = { 0, 0, 0 };
     rotVelocity = { 0, 0, 0 };

@@ -59,9 +59,9 @@ void PhysicsEngine::StepSimulation(double timestep) {
 									// (or just handle each contact point seperately)
 								glm::vec3 r1 = {0, 0, 0}, r2 = {0, 0, 0};
 								for (auto& contactPoint : result->collisionPoints) {
-									//r1 += contactPoint.first;
-									//r2 += contactPoint.second;
-									if (auto otherPhys = dynamic_cast<Physobject*>(other->object)) {
+									r1 += contactPoint.first;
+									r2 += contactPoint.second;
+									/*if (auto otherPhys = dynamic_cast<Physobject*>(other->object)) {
 										dynamicCollisions.push_back(DynamicCollisionConstraint{
 											.r1 = contactPoint.first,
 											.r2 = contactPoint.second,
@@ -80,9 +80,9 @@ void PhysicsEngine::StepSimulation(double timestep) {
 											.collisionNormal = result->collisionNormal,
 											.nerf = 1.0f / (float)result->collisionPoints.size()
 											});
-									}
+									}*/
 								}
-								/*r1 /= static_cast<float>(result->collisionPoints.size());
+								r1 /= static_cast<float>(result->collisionPoints.size());
 								r2 /= static_cast<float>(result->collisionPoints.size());
 								if (auto otherPhys = dynamic_cast<Physobject*>(other->object)) {
 									dynamicCollisions.push_back(DynamicCollisionConstraint{
@@ -103,7 +103,7 @@ void PhysicsEngine::StepSimulation(double timestep) {
 										.collisionNormal = result->collisionNormal,
 										.nerf = 1.0f / (float)result->collisionPoints.size()
 										});
-								}*/
+								}
 							}
 						}
 					}
@@ -114,31 +114,41 @@ void PhysicsEngine::StepSimulation(double timestep) {
 		//if (!staticCollisions.empty()) DebugLogInfo("SOLVING");
 
 		// todo: REDUNDANT AABBTREE UPDATES
-		for (unsigned posIter = 0; posIter < 5; posIter++) {
+		for (unsigned posIter = 0; posIter < 1; posIter++) {
 
 			for (auto& collision : staticCollisions) {
 				// todo: could maybe evaluate these in A's object space and then use floats?
-				glm::dvec3 r1 = glm::dvec3(collision.a->GetRotSclMatrix() * collision.r1) + collision.a->Position();
-				glm::dvec3 r2 = glm::dvec3(collision.b->GetRotSclMatrix() * collision.r2) + collision.b->Position();
+				glm::dvec3 r1 = glm::dvec3(collision.a->GetRotSclMatrix() * collision.r1);// +collision.a->Position();
+				glm::dvec3 r2 = glm::dvec3(collision.b->GetRotSclMatrix() * collision.r2);// +collision.b->Position();
 				//DebugPoint(collision.r1, {1, 0, 0});
 				//DebugPoint(collision.r2, {0, 1, 0});
 				
-				DebugPoint(r1);
-				DebugPoint(r2, {0.5, 0.5, 0.5});
+				DebugPoint(r1 + collision.a->Position());
+				DebugPoint(r2 + collision.b->Position(), {0.5, 0.5, 0.5});
 				glm::dvec3 dnormal = glm::dvec3(collision.collisionNormal);
-				double penetration = glm::dot(r2 - r1, dnormal);
+				double penetration = glm::dot(r2 + collision.b->Position() - r1 - collision.a->Position(), dnormal);
 				if (penetration < 0) continue;
 
 				glm::vec3 torqueAxis1 = glm::cross(collision.r1, collision.collisionNormal);
 				// TODO: untested
-				float reducedInverseMass1 = collision.a->inverseMass;// +glm::dot(torqueAxis1, collision.a->inverseInertiaTensor * torqueAxis1);
+
+				float inertiaAroundTorqueAxis = 0;
+				if (glm::length2(torqueAxis1) != 0) {
+					auto localAxis = glm::inverse(collision.a->Rotation()) * glm::normalize(torqueAxis1);
+					inertiaAroundTorqueAxis = glm::dot(localAxis, collision.a->inverseInertiaTensor * localAxis);
+				}
+				DebugLogInfo("MMOI ", inertiaAroundTorqueAxis, " or ", glm::length2(torqueAxis1) * inertiaAroundTorqueAxis);
+				float reducedInverseMass1 = collision.a->inverseMass + glm::length2(torqueAxis1) * inertiaAroundTorqueAxis;
 			
 				float lagrange = penetration * reducedInverseMass1;
 				glm::vec3 impulse = collision.collisionNormal * lagrange;
 				glm::dvec3 displacement = impulse * collision.a->inverseMass;
-				glm::quat dRot = glm::quat(0, collision.a->inverseInertiaTensor * glm::cross(collision.r1, impulse));
+				glm::vec3 torque = glm::cross(collision.r1, impulse);
+				glm::vec3 dRot = inertiaAroundTorqueAxis * torque;
  				collision.a->SetPosition(collision.a->Position() + displacement);
-				//collision.a->SetRotation(glm::normalize(collision.a->Rotation() + 0.5f * dRot));
+				collision.a->SetRotation(glm::normalize(collision.a->Rotation() + 0.5f * glm::quat(0, dRot.x, dRot.y, dRot.z)));
+
+				DebugLogInfo("TORQUE ", torque)
 
 				//glm::dvec3 newR1 = glm::dvec3(collision.a->GetRotSclMatrix() * collision.r1) + collision.a->Position();
 				//double newPenetration = glm::dot(r2 - newR1, dnormal);
@@ -159,8 +169,9 @@ void PhysicsEngine::StepSimulation(double timestep) {
 					obj.lastRot.w * newRot.y + obj.lastRot.x * newRot.z - obj.lastRot.y * newRot.w - obj.lastRot.z * newRot.x,
 					obj.lastRot.w * newRot.z - obj.lastRot.x * newRot.y + obj.lastRot.y * newRot.x - obj.lastRot.z * newRot.w
 				) / (float)timestep;
+				if ((newRot - obj.lastRot).w >= 0) obj.rotVelocity *= -1; // TODO?
 				// prevents numerical precision errors causing rotvelocity to accumulate
-				if (glm::length2(obj.rotVelocity) < 0.0000001) obj.rotVelocity = glm::vec3(0,0,0);
+				//if (glm::length2(obj.rotVelocity) < 0.0000001) obj.rotVelocity = glm::vec3(0,0,0);
 				//obj.SetPosition(obj.position);
 				//obj.SetRotation(obj.rotation);
 			}

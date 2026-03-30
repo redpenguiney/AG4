@@ -15,6 +15,7 @@
 #error bruh
 #endif
 #include "debug_prefabs.hpp"
+#include <glm/gtc/matrix_inverse.hpp>
 
 //#define DEBUG_EPA
 
@@ -70,7 +71,7 @@ static std::optional<Collision> ClipFaces(glm::vec3 normal, Gameobject* a, Gameo
     unsigned contactFace = 0;
     bestDot = glm::dot(normalInBSpace, pmB->polygons[0].normal);
     for (unsigned i = 1; i < pmB->polygons.size(); i++) {
-        float dot = glm::dot(normal, pmB->polygons[i].normal);
+        float dot = glm::dot(normalInBSpace, pmB->polygons[i].normal);
         //Assert(dot >= -1);
         if (dot > bestDot) {
             bestDot = dot;
@@ -78,8 +79,9 @@ static std::optional<Collision> ClipFaces(glm::vec3 normal, Gameobject* a, Gameo
         }
     }
 
-    //glm::vec3 worldSpaceClippingFaceNormal = a->ObjectNormalToWorld(pmA->polygons[clippingFace].normal);
-    //glm::vec3 worldSpaceContactFaceNormal = b->ObjectNormalToWorld(pmB->polygons[contactFace].normal);
+    glm::vec3 wcn = a->ObjectNormalToWorld(normal);
+    glm::vec3 worldSpaceClippingFaceNormal = a->ObjectNormalToWorld(pmA->polygons[clippingFace].normal);
+    glm::vec3 worldSpaceContactFaceNormal = b->ObjectNormalToWorld(pmB->polygons[contactFace].normal);
 
     // put contact face in A space
     std::vector<glm::vec3> contactFacePoints;
@@ -146,19 +148,21 @@ static std::optional<Collision> ClipFaces(glm::vec3 normal, Gameobject* a, Gameo
     //glm::vec3 clipNormal = a->ObjectNormalToWorld(pmA->polygons[clippingFace].normal);
     //glm::vec3 contactNormal = b->ObjectNormalToWorld(pmB->polygons[contactFace].normal);
     for (auto& v : contactFacePoints) {
-        float depth = SignedDistanceToPlane(pmA->polygons[clippingFace].normal, v, pmA->polygons[clippingFace].points[0]);
+        float depth = SignedDistanceToPlane(pmA->polygons[clippingFace].normal, pmA->polygons[clippingFace].points[0], v);
         //glm::vec3 worldPlanePoint = a->GetRotSclMatrix() * pmA->polygons[clippingFace].points[0] + glm::vec3(a->Position());
         glm::vec3 worldV = a->GetRotSclMatrix() * v + glm::vec3(a->Position());
-        DebugPoint(worldV, { 1, 1, 0 });
         //float suspectedDepth = SignedDistanceToPlane(clipNormal, worldPlanePoint, worldV);
         if (depth > -0.00001) {
-            glm::vec3 vInBSpace = worldToA * (b->GetRotSclMatrix() * v - bToARelPos);
-            finalContactPoints.push_back(std::make_pair(v, vInBSpace));
+            //DebugPoint(worldV, { 1, 1, 0 });
+
+            glm::vec3 vInBSpace = worldToB * (a->GetRotSclMatrix() * v - bToARelPos);
+            finalContactPoints.push_back(std::make_pair(v - normal * depth, vInBSpace));
         }
     }
 
 
     if (finalContactPoints.size() > 0) {
+        DebugLogInfo("Collision with ", finalContactPoints.size());
         Collision result;
         result.collisionNormal = worldNormal;
         result.collisionPoints = finalContactPoints;
@@ -673,8 +677,9 @@ static std::optional<Collision> CollideSAT(Gameobject* a, Gameobject* b) {
     glm::mat3x3 worldToB = glm::inverse(b->GetRotSclMatrix());
     glm::vec3 bToARelPos = a->Position() - b->Position();
     glm::mat3x3 worldToA = glm::inverse(a->GetRotSclMatrix());
-    glm::mat3x3 normalAToB = glm::transpose(b->GetRotSclMatrix()) * glm::inverse(glm::transpose(a->GetRotSclMatrix()));
-    glm::mat3x3 normalBToA = glm::transpose(a->GetRotSclMatrix()) * glm::inverse(glm::transpose(b->GetRotSclMatrix()));
+    // todo: use glm::inverseTranspose()
+    glm::mat3x3 normalAToB = glm::inverse(glm::transpose(glm::inverse(b->GetRotSclMatrix()))) * glm::transpose(glm::inverse(a->GetRotSclMatrix()));
+    glm::mat3x3 normalBToA = glm::inverse(glm::transpose(glm::inverse(a->GetRotSclMatrix()))) * glm::transpose(glm::inverse(b->GetRotSclMatrix()));
 
     float greatestSeperation = -INFINITY;
     // in A space
@@ -722,10 +727,10 @@ static std::optional<Collision> CollideSAT(Gameobject* a, Gameobject* b) {
         glm::vec3 edgeBInASpace = glm::normalize(normalBToA * edgeB);
         for (auto& edgeA : pmA->uniqueEdgeDirections) {
 
-            // already normalized
             glm::vec3 edgeNormal = glm::cross(edgeA, edgeBInASpace);
 
             if (glm::length2(edgeNormal) == 0) continue;
+            edgeNormal = glm::normalize(edgeNormal);
 
             // ensure edgeNormal points from B to A
             if (glm::dot(bToARelPos, edgeNormal) < 0) edgeNormal *= -1;
@@ -759,9 +764,10 @@ static std::optional<Collision> CollideSAT(Gameobject* a, Gameobject* b) {
     }
 
     Assert(greatestSeperation < 0 && greatestSeperation != -INFINITY);
-    DebugLogInfo("collision");
+    //DebugLogInfo("collision");
     glm::vec3 worldspaceNormal = a->ObjectNormalToWorld(collisionNormal);
     if (edgeCollision) {
+        DebugLogInfo("Edge collision.");
         float t1 = glm::dot(glm::cross(edgeCollisionInfo.eDB, collisionNormal), edgeCollisionInfo.ePB - edgeCollisionInfo.ePA);
         float t2 = glm::dot(glm::cross(edgeCollisionInfo.eDA, collisionNormal), edgeCollisionInfo.ePB - edgeCollisionInfo.ePA);
         glm::vec3 p1 = edgeCollisionInfo.ePA + edgeCollisionInfo.eDA * t1;

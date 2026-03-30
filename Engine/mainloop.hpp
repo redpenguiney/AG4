@@ -12,6 +12,9 @@ public:
 	// TODO: find a way to move pausing out of main.cpp
 	bool physicsPaused = false;
 
+	// for debugging
+	bool stepPhysics = false;
+
 	// sets quit = true if Window::Get().ShouldClose() returns true.
 	bool quitIfTryingToCloseWidnow = true;
 

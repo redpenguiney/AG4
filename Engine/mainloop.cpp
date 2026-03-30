@@ -22,13 +22,14 @@ void Mainloop::Run() {
 		if (!physicsPaused) physicsLag += elapsedTime; // time has passed and thus the simulation is behind
 		unsigned tries = 0;
 		while (physicsLag > simulationTimestep && tries++ < 2) {
-			//physicsPaused = true;
+			if (stepPhysics) physicsPaused = true;
 			prePhysics->Fire(simulationTimestep);
 			BaseEvent::FlushEventQueue();
 			PhysicsEngine::Get().StepSimulation(simulationTimestep);
 			postPhysics->Fire(simulationTimestep);
 			BaseEvent::FlushEventQueue();
 			physicsLag -= simulationTimestep;
+			if (stepPhysics) break;
 		}
 		if (physicsLag > simulationTimestep) {
 			DebugLogInfo("Simulation is ", physicsLag, " seconds behind (", elapsedTime, "s since last frame).");

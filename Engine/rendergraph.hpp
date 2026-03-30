@@ -19,6 +19,10 @@ struct CommandSet {
 	unsigned nCommands;
 };
 
+struct AutoArrayTexture {
+
+};
+
 // The conceptual difference between this and DrawPass is:
 // - RenderPass only describes what the user WANTS to happen on that drawing step (like what textures they want to use).
 // - ProcessedRenderPass contains the information needed to actually make that occur (like how those textures are actually stored in texture arrays, the actual framebuffer object being used).

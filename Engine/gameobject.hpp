@@ -61,6 +61,7 @@ public:
 
 	const Collider* const GetCollider() const;
 	glm::vec3 ObjectNormalToWorld(glm::vec3 objectNormal);
+	glm::vec3 WorldNormalToObject(glm::vec3 worldNormal);
 
 protected:
 
