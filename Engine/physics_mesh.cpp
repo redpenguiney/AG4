@@ -31,7 +31,7 @@ RaycastResult ConvexMeshPhysicsGeometry::Raycast(glm::dvec3 rayOrigin, glm::dvec
         if (det > -epsilon && det < epsilon)
             continue;
 
-        float inv_det = 1.0 / det;
+        float inv_det = 1.0f / det;
         glm::vec3 s = rayRelPos - triangles[i][0];
         float u = inv_det * glm::dot(s, rayCrossEdge2);
 
@@ -195,9 +195,9 @@ static float TetrahedronVolume(glm::vec3 a, glm::vec3 b, glm::vec3 c, glm::vec3 
 // helper function for CalculateLocalMomentOfInertia(). i is matrix x, j is matrix y.
 static float ComputeInertiaProduct(const glm::vec3& p1, const glm::vec3& p2, const glm::vec3& p3, unsigned int i, unsigned int j) {
     return (
-        2.0 * p1[i] * p1[j] + p2[i] * p3[j] + p3[i] * p2[j] +
-        2.0 * p2[i] * p2[j] + p1[i] * p3[j] + p3[i] * p1[j] +
-        2.0 * p3[i] * p3[j] + p1[i] * p2[j] + p2[i] * p1[j]
+        2.0f * p1[i] * p1[j] + p2[i] * p3[j] + p3[i] * p2[j] +
+        2.0f * p2[i] * p2[j] + p1[i] * p3[j] + p3[i] * p1[j] +
+        2.0f * p3[i] * p3[j] + p1[i] * p2[j] + p2[i] * p1[j]
         );
 }
 

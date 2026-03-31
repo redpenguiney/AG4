@@ -11,6 +11,8 @@
 #include "debug_prefabs.hpp"
 
 int main() {
+	DebugLogInfo("Reached main() successfully."); // you know it's a bad sign when you need to print this sort of thing
+
 	std::vector<std::shared_ptr<Gameobject>> objects;
 
 	Window::Get();
@@ -109,10 +111,12 @@ int main() {
 
 	for (int i = 0; i < 1; i++) {
 		Physobject* gameObj = Physobject::New(p);
+		gameObj->friction = 1;
+		gameObj->elasticity = 0;
 		gameObj->SetPosition({ i, -1, 0 - i });
 		//gameObj->SetScale({ 2, 2, 2 });
 		//gameObj->SetRotation(glm::angleAxis(glm::radians(60.0f), glm::normalize(glm::vec3(1, 0.2, 1))));
-		//gameObj->velocity = { 0, 10, 0 };
+		//gameObj->velocity = { 1, 0, 0 };
 		//gameObj->rotVelocity = { 1, 0, 0 };
 		glm::vec4 color(1, 0, 1, 1);
 		gameObj->SetInstanceAttribute(*p.mesh->format.GetAttribute("color"), color);

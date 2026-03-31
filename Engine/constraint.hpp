@@ -12,6 +12,7 @@ struct StaticCollisionConstraint {
 
 	// B to A
 	glm::vec3 collisionNormal;
+	glm::vec3 relV;
 	float totalLagrange;
 };
 
@@ -24,5 +25,6 @@ struct DynamicCollisionConstraint {
 
 	// B to A
 	glm::vec3 collisionNormal;
+	glm::vec3 relV;
 	float totalLagrange;
 };

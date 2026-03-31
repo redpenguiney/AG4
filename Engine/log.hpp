@@ -3,43 +3,36 @@
 #include <mutex>
 #include <glm/gtx/io.hpp>
 #include <string.h>
+#include <sstream>
 
 // TODO: / vs \\ will be a problem
 #define __FILENAME__ (strrchr(__FILE__, '\\') ? strrchr(__FILE__, '\\') + 1 : __FILE__)
 
 #if defined(_MSC_VER)
-#include <sstream>
-
-inline std::mutex LOGGING_MUTEX;
-
-// visual studio is dumb and doesn't let you see the result of std::cout unless you use OutputDebugStringA().
-class dbg_stream_for_cout : public std::stringbuf {
-public:
-    dbg_stream_for_cout();
-    ~dbg_stream_for_cout();
-    int sync();
-private:
-
-};
-inline dbg_stream_for_cout dbg_printstream;
-inline std::basic_streambuf<char>* original_cout_buf = std::cout.rdbuf();
+void MSVCDebugStringPrint(const char* c);
 #endif
 
+inline std::mutex LOGGING_MUTEX;
+inline std::stringstream LOGGING_SSTREAM;
 void TestPrint();
 
 template<typename ... Args>
 void _DebugLogInfo_(const char* file, int lineNumber, Args... args) {
     LOGGING_MUTEX.lock();
 #if defined(_MSC_VER)
-    std::cout.rdbuf(&dbg_printstream);
+    LOGGING_SSTREAM << "INFO: (from " << file << ":" << lineNumber << ") ";
+    ((LOGGING_SSTREAM << std::forward<Args>(args)), ...);
+    LOGGING_SSTREAM << "\n";
+    MSVCDebugStringPrint(LOGGING_SSTREAM.str().c_str());
+    LOGGING_SSTREAM.str({});
 #endif
     std::cout << "\x1B[33mINFO: (from " << file << ":" << lineNumber << ")\x1B[37m ";
     ((std::cout << std::forward<Args>(args)), ...);
     std::cout << "\n";
 
     std::cout.flush();
-
     LOGGING_MUTEX.unlock();
+
 }
 
 template<typename ... Args>
@@ -47,15 +40,17 @@ void _DebugLogError_(const char* file, int lineNumber, Args... args) {
     LOGGING_MUTEX.lock();
 
 #if defined(_MSC_VER)
-    std::cout.rdbuf(&dbg_printstream);
+    LOGGING_SSTREAM << "ERROR: (from " << file << ":" << lineNumber << ") ";
+    ((LOGGING_SSTREAM << std::forward<Args>(args)), ...);
+    LOGGING_SSTREAM << "\n";
+    MSVCDebugStringPrint(LOGGING_SSTREAM.str().c_str());
+    LOGGING_SSTREAM.str({});
 #endif
-
     std::cout << "\x1B[31mERROR: (from " << file << ":" << lineNumber << ")\x1B[37m ";
     ((std::cout << std::forward<Args>(args)), ...);
     std::cout << "\n";
 
     std::cout.flush();
-
     LOGGING_MUTEX.unlock();
 }
 

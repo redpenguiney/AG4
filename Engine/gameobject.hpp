@@ -117,6 +117,9 @@ public:
 	glm::vec3 velocity;
 	glm::vec3 rotVelocity;
 
+	float elasticity;
+	float friction;
+
 protected:
 
 	Physobject(const PhysobjectCreateParams& params);
@@ -131,8 +134,6 @@ protected:
 	glm::mat3x3 inverseInertiaTensor; // the moment of inertia is like mass, but for rotation.
 	
 	float inverseMass;
-	float elasticity;
-	float friction;
 
 	friend class Pool;
 	friend class PhysicsEngine;

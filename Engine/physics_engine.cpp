@@ -125,11 +125,15 @@ void PhysicsEngine::StepSimulation(double timestep) {
 		for (unsigned posIter = 0; posIter < 1; posIter++) {
 
 			for (auto& collision : staticCollisions) {
-				glm::vec3 r1 = glm::dvec3(collision.a->GetRotSclMatrix() * collision.r1);// +collision.a->Position();
-				glm::vec3 r2 = glm::dvec3(collision.b->GetRotSclMatrix() * collision.r2);// +collision.b->Position();
+				glm::vec3 r1 = collision.a->GetRotSclMatrix() * collision.r1;// +collision.a->Position();
+				glm::vec3 r2 = collision.b->GetRotSclMatrix() * collision.r2;// +collision.b->Position();
 				
 				//DebugPoint(glm::dvec3(r1) + collision.a->Position());
 				//DebugPoint(glm::dvec3(r2) + collision.b->Position(), {0.5, 0.5, 0.5});
+
+				if (posIter == 0) {
+					collision.relV = collision.a->velocity + r1 * collision.a->rotVelocity;
+				}
 
 				// todo: could maybe evaluate these in A's object space and then use floats?
 				glm::dvec3 dnormal = glm::dvec3(collision.collisionNormal);
@@ -198,19 +202,20 @@ void PhysicsEngine::StepSimulation(double timestep) {
 		// Apply friction/restitution/etc.
 		for (auto& collision : staticCollisions) {
 			glm::vec3 r1 = glm::dvec3(collision.a->GetRotSclMatrix() * collision.r1);
-			glm::vec3 relV = collision.a->velocity + r1 * collision.a->rotVelocity;
-			float normalVelocity = glm::dot(collision.collisionNormal, relV);
-			if (normalVelocity > -0.001) normalVelocity = 0.0f; // prevent jitter and backwards restitution
-			glm::vec3 tangentVelocity = relV - collision.collisionNormal * normalVelocity;
+			glm::vec3 currentRelV = collision.a->velocity + r1 * collision.a->rotVelocity;
+			float currentNormalSpeed = glm::dot(collision.collisionNormal, currentRelV);
+			float priorNormalSpeed = glm::dot(collision.collisionNormal, collision.relV);
+			//if (priorNormalSpeed > -0.001) priorNormalSpeed = 0.0f; // prevent jitter and backwards restitution
+			glm::vec3 tangentVelocity = collision.relV - collision.collisionNormal * priorNormalSpeed;
 			float tangentSpeed = glm::length(tangentVelocity);
 
-			float restitution = 1;// = collision.a->elasticity * 0.5f; // TODO 0.5f should be replaced with property of B
-
+			float restitution = 1;// collision.a->elasticity * 0.5f; // TODO 0.5f should be replaced with property of B
+			float normalForce = collision.totalLagrange / (float)timestep / (float)timestep;
 			float friction = 0;// collision.a->friction * 0.5f; // TODO 0.5f should be replaced with property of B
-			glm::vec3 deltaV = collision.collisionNormal * -normalVelocity * restitution;
+			glm::vec3 deltaV = collision.collisionNormal * (-currentNormalSpeed + std::min(0.0f, -restitution * priorNormalSpeed));
 			if (tangentSpeed != 0) {
 				glm::vec3 frictionDirection = -tangentVelocity / tangentSpeed;
-				deltaV += frictionDirection * glm::min(normalVelocity * (1.0f + restitution) * friction, tangentSpeed);
+				deltaV += frictionDirection * glm::min(normalForce * friction, tangentSpeed);
 			}
 
 			glm::vec3 torqueAxis1 = glm::cross(r1, collision.collisionNormal);
@@ -220,9 +225,9 @@ void PhysicsEngine::StepSimulation(double timestep) {
 				inertiaAroundTorqueAxis = glm::dot(localAxis, collision.a->inverseInertiaTensor * localAxis);
 			}
 			glm::vec3 impulse = deltaV / (collision.a->inverseMass + glm::length2(torqueAxis1) * inertiaAroundTorqueAxis);
-
 			collision.a->velocity += impulse * collision.a->inverseMass;
 			collision.a->rotVelocity += impulse * inertiaAroundTorqueAxis * torqueAxis1;
+
 		}
 		};
 	simulate(Physobject::Pool::Get().GetIterable()); // note: not extendable to subclasses this way. do not copy paste
