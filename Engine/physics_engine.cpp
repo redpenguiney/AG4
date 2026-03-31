@@ -13,7 +13,6 @@ PhysicsEngine& PhysicsEngine::Get() {
 }
 
 // see https://matthias-research.github.io/pages/publications/PBDBodies.pdf
-	// (Jacobi solve version)
 // TODO:
 /*
 - angular velocity gradually declines, probably due to numerical instability
@@ -26,7 +25,7 @@ void PhysicsEngine::StepSimulation(double timestep) {
 		dynamicCollisions.clear();
 		std::unordered_set<std::pair<Gameobject*, Gameobject*>, hash_pair::hash<Gameobject*, Gameobject*>> alreadyCheckedCollisions;
 
-		
+		// Integrate velocities
 		for (auto& page : iterable) {
 			for (unsigned i = 0; i < POOL_OBJECTS_PER_PAGE; i++) {
 				Physobject& obj = page[i].obj;
@@ -117,20 +116,22 @@ void PhysicsEngine::StepSimulation(double timestep) {
 			}
 		}
 
+		// todo: see paper Nonconvex Rigid Bodies with Stacking. Since we aren't doing a Jacobi solve, we could handle contacts in a more stable order 
+
 		//if (!staticCollisions.empty()) DebugLogInfo("SOLVING");
 
 		// todo: REDUNDANT AABBTREE UPDATES
+		// Run physics solver 
 		for (unsigned posIter = 0; posIter < 1; posIter++) {
 
 			for (auto& collision : staticCollisions) {
-				// todo: could maybe evaluate these in A's object space and then use floats?
 				glm::vec3 r1 = glm::dvec3(collision.a->GetRotSclMatrix() * collision.r1);// +collision.a->Position();
 				glm::vec3 r2 = glm::dvec3(collision.b->GetRotSclMatrix() * collision.r2);// +collision.b->Position();
-				//DebugPoint(collision.r1, {1, 0, 0});
-				//DebugPoint(collision.r2, {0, 1, 0});
 				
-				DebugPoint(glm::dvec3(r1) + collision.a->Position());
-				DebugPoint(glm::dvec3(r2) + collision.b->Position(), {0.5, 0.5, 0.5});
+				//DebugPoint(glm::dvec3(r1) + collision.a->Position());
+				//DebugPoint(glm::dvec3(r2) + collision.b->Position(), {0.5, 0.5, 0.5});
+
+				// todo: could maybe evaluate these in A's object space and then use floats?
 				glm::dvec3 dnormal = glm::dvec3(collision.collisionNormal);
 				double penetration = glm::dot(glm::dvec3(r2) + collision.b->Position() - glm::dvec3(r1) - collision.a->Position(), dnormal);
 				if (penetration < 0) continue;
@@ -145,7 +146,7 @@ void PhysicsEngine::StepSimulation(double timestep) {
 					auto localAxis = glm::inverse(collision.a->Rotation()) * glm::normalize(torqueAxis1);
 					inertiaAroundTorqueAxis = glm::dot(localAxis, collision.a->inverseInertiaTensor * localAxis);
 				}
-				DebugLogInfo("MMOI ", inertiaAroundTorqueAxis, " or ", glm::length2(torqueAxis1) * inertiaAroundTorqueAxis);
+				//DebugLogInfo("MMOI ", inertiaAroundTorqueAxis, " or ", glm::length2(torqueAxis1) * inertiaAroundTorqueAxis);
 				float reducedInverseMass1 = collision.a->inverseMass + glm::length2(torqueAxis1) * inertiaAroundTorqueAxis;
 			
 				float lagrange = penetration / reducedInverseMass1;
@@ -159,7 +160,7 @@ void PhysicsEngine::StepSimulation(double timestep) {
  				collision.a->SetPosition(collision.a->Position() + displacement);
 				collision.a->SetRotation(glm::normalize(collision.a->Rotation() + 0.5f * glm::quat(0, dRot.x, dRot.y, dRot.z) * collision.a->Rotation()));
 
-				DebugLogInfo("TORQUE ", torque)
+				//DebugLogInfo("TORQUE ", torque)
 
 				//glm::dvec3 newR1 = glm::dvec3(collision.a->GetRotSclMatrix() * collision.r1) + collision.a->Position();
 				//double newPenetration = glm::dot(r2 - newR1, dnormal);
@@ -168,6 +169,7 @@ void PhysicsEngine::StepSimulation(double timestep) {
 			}
 		}
 
+		// Derive new velocities
 		for (auto& page : iterable) {
 			for (unsigned i = 0; i < POOL_OBJECTS_PER_PAGE; i++) {
 				Physobject& obj = page[i].obj;
@@ -191,6 +193,36 @@ void PhysicsEngine::StepSimulation(double timestep) {
 				//obj.SetPosition(obj.position);
 				//obj.SetRotation(obj.rotation);
 			}
+		}
+
+		// Apply friction/restitution/etc.
+		for (auto& collision : staticCollisions) {
+			glm::vec3 r1 = glm::dvec3(collision.a->GetRotSclMatrix() * collision.r1);
+			glm::vec3 relV = collision.a->velocity + r1 * collision.a->rotVelocity;
+			float normalVelocity = glm::dot(collision.collisionNormal, relV);
+			if (normalVelocity > -0.001) normalVelocity = 0.0f; // prevent jitter and backwards restitution
+			glm::vec3 tangentVelocity = relV - collision.collisionNormal * normalVelocity;
+			float tangentSpeed = glm::length(tangentVelocity);
+
+			float restitution = 1;// = collision.a->elasticity * 0.5f; // TODO 0.5f should be replaced with property of B
+
+			float friction = 0;// collision.a->friction * 0.5f; // TODO 0.5f should be replaced with property of B
+			glm::vec3 deltaV = collision.collisionNormal * -normalVelocity * restitution;
+			if (tangentSpeed != 0) {
+				glm::vec3 frictionDirection = -tangentVelocity / tangentSpeed;
+				deltaV += frictionDirection * glm::min(normalVelocity * (1.0f + restitution) * friction, tangentSpeed);
+			}
+
+			glm::vec3 torqueAxis1 = glm::cross(r1, collision.collisionNormal);
+			float inertiaAroundTorqueAxis = 0;
+			if (glm::length2(torqueAxis1) != 0) {
+				auto localAxis = glm::inverse(collision.a->Rotation()) * glm::normalize(torqueAxis1);
+				inertiaAroundTorqueAxis = glm::dot(localAxis, collision.a->inverseInertiaTensor * localAxis);
+			}
+			glm::vec3 impulse = deltaV / (collision.a->inverseMass + glm::length2(torqueAxis1) * inertiaAroundTorqueAxis);
+
+			collision.a->velocity += impulse * collision.a->inverseMass;
+			collision.a->rotVelocity += impulse * inertiaAroundTorqueAxis * torqueAxis1;
 		}
 		};
 	simulate(Physobject::Pool::Get().GetIterable()); // note: not extendable to subclasses this way. do not copy paste
