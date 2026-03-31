@@ -111,7 +111,7 @@ int main() {
 		Physobject* gameObj = Physobject::New(p);
 		gameObj->SetPosition({ i, -1, 0 - i });
 		//gameObj->SetScale({ 2, 2, 2 });
-		gameObj->SetRotation(glm::angleAxis(glm::radians(60.0f), glm::normalize(glm::vec3(1, 0.2, 1))));
+		//gameObj->SetRotation(glm::angleAxis(glm::radians(60.0f), glm::normalize(glm::vec3(1, 0.2, 1))));
 		//gameObj->velocity = { 0, 10, 0 };
 		//gameObj->rotVelocity = { 1, 0, 0 };
 		glm::vec4 color(1, 0, 1, 1);
