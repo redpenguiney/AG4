@@ -97,7 +97,7 @@ void PhysicsEngine::StepSimulation(double timestep) {
 										.a = &obj,
 										.b = otherPhys,
 										.collisionNormal = result->collisionNormal,
-										.nerf = 1.0f / (float)result->collisionPoints.size()
+										.totalLagrange = 0
 										});
 								}
 								else {
@@ -107,7 +107,7 @@ void PhysicsEngine::StepSimulation(double timestep) {
 										.a = &obj,
 										.b = other->object,
 										.collisionNormal = result->collisionNormal,
-										.nerf = 1.0f / (float)result->collisionPoints.size()
+										.totalLagrange = 0
 										});
 								}
 							}
@@ -149,6 +149,7 @@ void PhysicsEngine::StepSimulation(double timestep) {
 				float reducedInverseMass1 = collision.a->inverseMass + glm::length2(torqueAxis1) * inertiaAroundTorqueAxis;
 			
 				float lagrange = penetration / reducedInverseMass1;
+				collision.totalLagrange += lagrange;
 				glm::vec3 impulse = collision.collisionNormal * lagrange;
 				glm::dvec3 displacement = impulse * collision.a->inverseMass;
 				//DebugLogInfo("Displacement strength ", glm::length(displacement), " against penetration ", penetration);
