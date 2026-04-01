@@ -220,7 +220,7 @@ void PhysicsEngine::StepSimulation(double timestep) {
 				deltaV += frictionDirection * glm::min(normalForce * friction, tangentSpeed);
 			}
 
-			glm::vec3 torqueAxis1 = glm::cross(r1, collision.collisionNormal);
+			glm::vec3 torqueAxis1 = glm::cross(r1, deltaV); //glm::cross(r1, collision.collisionNormal);
 			float inertiaAroundTorqueAxis = 0;
 			if (glm::length2(torqueAxis1) != 0) {
 				auto localAxis = glm::inverse(collision.a->Rotation()) * glm::normalize(torqueAxis1);

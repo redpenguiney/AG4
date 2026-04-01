@@ -107,11 +107,11 @@ int main() {
 	//	objects.push_back(unique);
 	//}
 
-	BuildPit({0, 0, 0}, {6, 6, 6});
+	BuildPit({0, 0, 0}, {100, 6, 6});
 
 	for (int i = 0; i < 1; i++) {
 		Physobject* gameObj = Physobject::New(p);
-		gameObj->friction = 0.01;
+		gameObj->friction = 1.0f;
 		gameObj->elasticity = 0;
 		gameObj->SetPosition({ i, -1, 0 - i });
 		//gameObj->SetScale({ 2, 2, 2 });
