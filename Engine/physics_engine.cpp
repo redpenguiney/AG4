@@ -209,10 +209,12 @@ void PhysicsEngine::StepSimulation(double timestep) {
 			glm::vec3 tangentVelocity = collision.relV - collision.collisionNormal * priorNormalSpeed;
 			float tangentSpeed = glm::length(tangentVelocity);
 
-			float restitution = 1;// collision.a->elasticity * 0.5f; // TODO 0.5f should be replaced with property of B
+			float restitution = collision.a->elasticity * 0.5f; // TODO 0.5f should be replaced with property of B
 			float normalForce = collision.totalLagrange / (float)timestep / (float)timestep;
-			float friction = 0;// collision.a->friction * 0.5f; // TODO 0.5f should be replaced with property of B
-			glm::vec3 deltaV = collision.collisionNormal * (-currentNormalSpeed + std::min(0.0f, -restitution * priorNormalSpeed));
+			float friction = collision.a->friction * 0.5f; // TODO 0.5f should be replaced with property of B
+			float desiredNormalSpeed =  -restitution * priorNormalSpeed;
+			float neededDv = desiredNormalSpeed - currentNormalSpeed;
+			glm::vec3 deltaV = collision.collisionNormal * (-currentNormalSpeed - restitution * priorNormalSpeed);
 			if (tangentSpeed != 0) {
 				glm::vec3 frictionDirection = -tangentVelocity / tangentSpeed;
 				deltaV += frictionDirection * glm::min(normalForce * friction, tangentSpeed);
