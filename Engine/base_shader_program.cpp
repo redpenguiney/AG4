@@ -166,12 +166,15 @@ void BaseShaderProgram::Link()
         glGetActiveUniform(shaderProgramId, i, longestUniformName, &length, &size, &type, nameBuf);
         std::string name(nameBuf);
         Assert(size == 1); // TODO: should probably support array uniforms
+        auto location = glGetUniformLocation(shaderProgramId, nameBuf);
+        if (location)
         shaderUniforms[name] = ShaderUniformInfo{
             .name = name,
-            .uniformLocation = glGetUniformLocation(shaderProgramId, nameBuf),
+            .uniformLocation = location,
             .type = type
         };
-        Assert(shaderUniforms[name].uniformLocation != -1);
+        // doesn't work because UBO members were being treated as uniforms
+        //Assert(shaderUniforms[name].uniformLocation != -1);
 
         delete[] nameBuf;
     }
