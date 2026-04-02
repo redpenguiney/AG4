@@ -162,7 +162,7 @@ static std::optional<Collision> ClipFaces(glm::vec3 normal, Gameobject* a, Gameo
 
 
     if (finalContactPoints.size() > 0) {
-        DebugLogInfo("Collision with ", finalContactPoints.size());
+        //DebugLogInfo("Collision with ", finalContactPoints.size());
         Collision result;
         result.collisionNormal = worldNormal;
         result.collisionPoints = finalContactPoints;
@@ -748,8 +748,9 @@ static std::optional<Collision> CollideSAT(Gameobject* a, Gameobject* b) {
             if (distance >= 0) {
                 return std::nullopt;
             }
+            //else {
             // we make it really hard to have an edge collision because they're hecka glitchy
-            else if (distance - 0.005f > greatestSeperation) { 
+            else if (distance - 0.001f > greatestSeperation) { 
                 greatestSeperation = distance;
                 collisionNormal = edgeNormal;
                 edgeCollision = true;
@@ -757,8 +758,8 @@ static std::optional<Collision> CollideSAT(Gameobject* a, Gameobject* b) {
                 edgeCollisionInfo.eDA = edgeA;
                 edgeCollisionInfo.ePB = pointBInASpace;
                 edgeCollisionInfo.eDB = edgeBInASpace;
-            }
-            else {
+            //}
+            //else {
                 //DebugLogInfo("useless edge ", glm::normalize(a->GetRotSclMatrix() * edgeNormal), " ", distance, " vs ", greatestSeperation);
             }
         }
@@ -768,15 +769,21 @@ static std::optional<Collision> CollideSAT(Gameobject* a, Gameobject* b) {
     //DebugLogInfo("collision");
     glm::vec3 worldspaceNormal = a->ObjectNormalToWorld(collisionNormal);
     if (edgeCollision) {
-        DebugLogInfo("Edge collision, sep=", greatestSeperation);
+        //DebugLogInfo("Edge collision, sep=", greatestSeperation, " n ", worldspaceNormal);
         float t1 = glm::dot(glm::cross(edgeCollisionInfo.eDB, collisionNormal), edgeCollisionInfo.ePB - edgeCollisionInfo.ePA);
         float t2 = glm::dot(glm::cross(edgeCollisionInfo.eDA, collisionNormal), edgeCollisionInfo.ePB - edgeCollisionInfo.ePA);
         glm::vec3 p1 = edgeCollisionInfo.ePA + edgeCollisionInfo.eDA * t1;
         glm::vec3 p2 = edgeCollisionInfo.ePB + edgeCollisionInfo.eDB * t2;
-        glm::vec3 p2InB = worldToB * (a->GetRotSclMatrix() * p2 - bToARelPos);
+        glm::vec3 p2InB = worldToB * (a->GetRotSclMatrix() * p2 + bToARelPos);
+
+        //glm::dvec3 worldP1 = glm::dvec3(a->GetRotSclMatrix() * p1) + a->Position();
+        //glm::dvec3 worldP2 = glm::dvec3(b->GetRotSclMatrix() * p2InB) + b->Position();
+        //DebugPoint(worldP1);
+        //DebugPoint(worldP2, {1, 0, 0});
+
         return Collision{
             .collisionPoints = {{p1, p2InB},},
-            .collisionNormal = a->ObjectNormalToWorld(collisionNormal)
+            .collisionNormal = worldspaceNormal
         };
     }
     else {

@@ -62,18 +62,18 @@ void PhysicsEngine::StepSimulation(double timestep) {
 								// use centroid of contact points
 									// TODO: this is inaccurate centroid calculation; we should decompose it into triangles, then take weighted average of centroids of those triangles
 									// (or just handle each contact point seperately)
-								glm::vec3 r1 = {0, 0, 0}, r2 = {0, 0, 0};
+								//glm::vec3 r1 = {0, 0, 0}, r2 = {0, 0, 0};
 								for (auto& contactPoint : result->collisionPoints) {
-									r1 += contactPoint.first;
-									r2 += contactPoint.second;
-									/*if (auto otherPhys = dynamic_cast<Physobject*>(other->object)) {
+									//r1 += contactPoint.first;
+									//r2 += contactPoint.second;
+									if (auto otherPhys = dynamic_cast<Physobject*>(other->object)) {
 										dynamicCollisions.push_back(DynamicCollisionConstraint{
 											.r1 = contactPoint.first,
 											.r2 = contactPoint.second,
 											.a = &obj,
 											.b = otherPhys,
 											.collisionNormal = result->collisionNormal,
-											.nerf = 1.0f / (float)result->collisionPoints.size()
+											.totalLagrange = 0
 											});
 									}
 									else {
@@ -83,11 +83,11 @@ void PhysicsEngine::StepSimulation(double timestep) {
 											.a = &obj,
 											.b = other->object,
 											.collisionNormal = result->collisionNormal,
-											.nerf = 1.0f / (float)result->collisionPoints.size()
+											.totalLagrange = 0
 											});
-									}*/
+									}
 								}
-								r1 /= static_cast<float>(result->collisionPoints.size());
+								/*r1 /= static_cast<float>(result->collisionPoints.size());
 								r2 /= static_cast<float>(result->collisionPoints.size());
 								if (auto otherPhys = dynamic_cast<Physobject*>(other->object)) {
 									dynamicCollisions.push_back(DynamicCollisionConstraint{
@@ -108,7 +108,7 @@ void PhysicsEngine::StepSimulation(double timestep) {
 										.collisionNormal = result->collisionNormal,
 										.totalLagrange = 0
 										});
-								}
+								}*/
 							}
 						}
 					}
@@ -143,7 +143,7 @@ void PhysicsEngine::StepSimulation(double timestep) {
 				glm::vec3 torqueAxis1 = glm::cross(r1, collision.collisionNormal);
 				// TODO: untested
 
-				DebugLogInfo("N ", dnormal, " R1 ", r1);
+				//DebugLogInfo("N ", dnormal, " R1 ", r1);
 
 				float inertiaAroundTorqueAxis = 0;
 				if (glm::length2(torqueAxis1) != 0) {
@@ -210,11 +210,12 @@ void PhysicsEngine::StepSimulation(double timestep) {
 			float tangentSpeed = glm::length(tangentVelocity);
 
 			float restitution = collision.a->elasticity * 0.5f; // TODO 0.5f should be replaced with property of B
-			float normalForce = collision.totalLagrange / (float)timestep / (float)timestep;
+			float normalForce = collision.totalLagrange / (float)timestep;
 			float friction = collision.a->friction * 0.5f; // TODO 0.5f should be replaced with property of B
 			float desiredNormalSpeed =  -restitution * priorNormalSpeed;
 			float neededDv = desiredNormalSpeed - currentNormalSpeed;
-			glm::vec3 deltaV = collision.collisionNormal * (-currentNormalSpeed - restitution * priorNormalSpeed);
+			// std::min prevents funky behavior when the two objects were intersecting before the frame started
+			glm::vec3 deltaV = collision.collisionNormal * (-currentNormalSpeed - std::min(0.0f, restitution * priorNormalSpeed));
 			if (tangentSpeed != 0) {
 				glm::vec3 frictionDirection = -tangentVelocity / tangentSpeed;
 				deltaV += frictionDirection * glm::min(normalForce * friction, tangentSpeed);

@@ -255,16 +255,17 @@ void RenderGraph::DeclareUniformBuffer(std::string name, size_t size) {
 	rsrc.access.lastReadPassIndex = INT_MAX;
 
 	auto hardwareRsrc = std::make_shared<BackedBufferResource>(BufferedBuffer(GL_UNIFORM_BUFFER, 1, size));
+	hardwareRsrc->ubo = true;
 	hardwareRsrc->accesses.push_back(rsrc.access);
 	rsrc.hardwareResource = hardwareRsrc;
 
 	logicalBuffers.emplace(name, rsrc);
-	hardwareBuffers.push_back(hardwareRsrc);
+ 	hardwareBuffers.push_back(hardwareRsrc);
 }
 
 void RenderGraph::UploadUniformBuffer(std::string uboName, void* data, size_t len, size_t byteOffset) {
 	Assert(logicalBuffers.at(uboName).ubo && logicalBuffers.at(uboName).hardwareResource);
-	Assert(logicalBuffers.at(uboName).hardwareResource->buf.GetSize() <= len + byteOffset);
+	Assert(logicalBuffers.at(uboName).hardwareResource->buf.GetSize() >= len + byteOffset);
 	memcpy(logicalBuffers.at(uboName).hardwareResource->buf.Data() + byteOffset, data, len);
 }
 
@@ -280,7 +281,8 @@ void RenderGraph::Compile() {
 	}
 
 	for (auto& [n, l] : logicalBuffers) {
-		l.hardwareResource = nullptr;
+		// ubos are persistent
+		if (!l.ubo) l.hardwareResource = nullptr;
 	}
 
 	for (auto& f : hardwareBuffers) {

@@ -4,28 +4,14 @@ uniform float envLightDiffuse;
 uniform float envLightAmbient;
 uniform float envLightSpecular;
 
-uniform uint pointLightCount;
-uniform uint spotLightCount;
-uniform uint pointLightOffset;
-uniform uint spotLightOffset;
-
-struct pointLight {
-    vec4 colorAndRange; // w-coord is range, xyz is rgb
-    vec4 rel_pos; // w-coord is padding
+struct Light {
+    vec4 relPosAndIntensity; // w-coord is intensity/range, xyz is pos
+    vec4 colorAndAngle; // xyz is color, w-coord is spotlight angle
+    vec4 directionAndLightType; // xyz is direction, w-coord is  0.0f (no more lights, stop iterating), 1.0f (pointlight), 2.0f (spotlight), or 3.0f (environmental light)
 };
 
-layout(std430, binding = 0) buffer pointLightSSBO {
-    pointLight pointLights[];
-};
-
-struct spotLight {
-    vec4 colorAndRange; // w-coord is range, xyz is rgb
-    vec4 relPosAndInnerAngle; // w-coord is cos(inner angle)
-    vec4 directionAndOuterAngle; // w-coord is cos(outer angle)
-};
-
-layout(std430, binding = 1) buffer spotLightSSBO {
-    spotLight spotLights[];
+layout (std140) uniform lights {
+    Light Lights[1024];
 };
 
 vec3 CalculateEnvLightInfluence( float specularStrength, vec3 normal) {
@@ -86,15 +72,12 @@ vec3 CalculateLightInfluence(vec3 lightColor, vec3 rel_pos, float range, float s
 
 vec3 CalculateLighting(float specularStrength, vec3 normal) {
     vec3 light = vec3(0, 0, 0);
-    for (uint i = pointLightOffset; i < pointLightOffset + pointLightCount; i++) {
-        light += CalculateLightInfluence(pointLights[i].colorAndRange.xyz, pointLights[i].rel_pos.xyz, pointLights[i].colorAndRange.w, specularStrength, normal);
+    for (uint i = 0; i < 1024; i++) {
+        if (Lights[i].directionAndLightType.w == 0.0f) return light;
+        else if (Lights[i].directionAndLightType.w == 1.0f) {
+            light += CalculateLightInfluence(Lights[i].colorAndAngle.xyz, Lights[i].relPosAndIntensity.xyz, Lights[i].relPosAndIntensity.w, specularStrength, normal);
+        }
     }
-    for (uint i = spotLightOffset; i < spotLightOffset + spotLightCount; i++) {
-        light += CalculateSpotlightInfluence(spotLights[i].colorAndRange.xyz, spotLights[i].relPosAndInnerAngle.xyz, spotLights[i].colorAndRange.w, spotLights[i].relPosAndInnerAngle.w, spotLights[i].directionAndOuterAngle.w, spotLights[i].directionAndOuterAngle.xyz, specularStrength, normal);
-    }
-    light += CalculateEnvLightInfluence(specularStrength, normal);
-
 
     return light;
-    //return vec3(1, 1, 1);
 }

@@ -40,6 +40,18 @@ void GraphicsEngine::RemoveComputePass(std::shared_ptr<ComputePass> node) {
     renderGraph->RemovePass(node);
 }
 
+void GraphicsEngine::AddUniformBuffer(std::string name, size_t size) {
+    renderGraph->DeclareUniformBuffer(name, size);
+}
+
+void GraphicsEngine::DeleteUniformBuffer(std::string name) {
+    Assert(false); // TODO
+}
+
+void GraphicsEngine::UploadToUniformBuffer(std::string name, void* data, size_t len, size_t destOffset) {
+    renderGraph->UploadUniformBuffer(name, data, len, destOffset);
+}
+
 void GraphicsEngine::AddAttachment(FramebufferAttachmentFormatDescriptor attachment) {
     renderGraph->CreateAttachment(attachment);
 }

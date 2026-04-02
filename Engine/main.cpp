@@ -9,6 +9,7 @@
 #include "shader_program.hpp"
 #include "aabb_tree.hpp"
 #include "debug_prefabs.hpp"
+#include "light.hpp"
 
 int main() {
 	DebugLogInfo("Reached main() successfully."); // you know it's a bad sign when you need to print this sort of thing
@@ -20,7 +21,15 @@ int main() {
 	GameobjectSAS();
 
 	{
-		//GraphicsEngine::Get().AddUniformBuffer("lights")
+		GraphicsEngine::Get().AddUniformBuffer("lights", sizeof(Light) * 4096);
+		Light light;
+		light.lightType = 1;
+		light.color = { 1, 1, 1 };
+		light.intensity = 1000;
+		light.pos = { 30, 100, 0 };
+		GraphicsEngine::Get().UploadToUniformBuffer("lights", &light, sizeof(light), 0);
+		light.lightType = 0;
+		GraphicsEngine::Get().UploadToUniformBuffer("lights", &light, sizeof(light), sizeof(light));
 
 		// normal objects
 		auto newPass = std::make_shared<DrawPass>();
@@ -94,29 +103,29 @@ int main() {
 	DebugPoint({ 0, 0, 0.4 }, { 0, 0, 1 });
 
 
-	//{
-	//	Gameobject* gameObj = Gameobject::New(p);
-	//	gameObj->SetPosition({ 2, -2, 0 });
-	//	gameObj->SetScale({ 1, 1, 1 });
-	//	//gameObj->SetRotation(glm::angleAxis(glm::radians(45.0f), glm::normalize(glm::vec3(0, 0, 1))));
-	//	glm::vec4 color(0, 0, 1, 1);
-	//	gameObj->SetInstanceAttribute(*p.mesh->format.GetAttribute("color"), color);
-	//	gameObj->SetInstanceAttribute(*p.mesh->format.GetAttribute(SpecialVertexAttributeNames::AUTOMATIC_TEXTURE_ARRAY_SELECTION), -1.0f);
+	/*{
+		Gameobject* gameObj = Gameobject::New(p);
+		gameObj->SetPosition({ 0, -3, 0 });
+		gameObj->SetScale({ 1, 1, 1 });
+		gameObj->SetRotation(glm::angleAxis(glm::radians(45.0f), glm::normalize(glm::vec3(0, 0, 1))));
+		glm::vec4 color(0, 0, 1, 1);
+		gameObj->SetInstanceAttribute(*p.mesh->format.GetAttribute("color"), color);
+		gameObj->SetInstanceAttribute(*p.mesh->format.GetAttribute(SpecialVertexAttributeNames::AUTOMATIC_TEXTURE_ARRAY_SELECTION), -1.0f);
 
-	//	std::shared_ptr<Gameobject> unique(gameObj);
-	//	objects.push_back(unique);
-	//}
+		std::shared_ptr<Gameobject> unique(gameObj);
+		objects.push_back(unique);
+	}*/
 
-	BuildPit({0, 0, 0}, {100, 6, 6});
+	BuildPit({0, 0, 0}, {6, 6, 6});
 
 	for (int i = 0; i < 1; i++) {
 		Physobject* gameObj = Physobject::New(p);
-		gameObj->friction = 1.0f;
-		gameObj->elasticity = 0;
-		gameObj->SetPosition({ i, -1, 0 - i });
-		//gameObj->SetScale({ 2, 2, 2 });
-		//gameObj->SetRotation(glm::angleAxis(glm::radians(60.0f), glm::normalize(glm::vec3(1, 0.2, 1))));
-		//gameObj->velocity = { 1, 0, 0 };
+		gameObj->friction = 3.0f;
+		gameObj->elasticity = 0.0f;
+		gameObj->SetPosition({ i, -0.0f, 0 - i });
+		gameObj->SetScale({ 1, 5, 1 });
+		//gameObj->SetRotation(glm::angleAxis(glm::radians(45.0f), glm::normalize(glm::vec3(1, 0, 0))));
+		gameObj->velocity = { 0, 0, 0 };
 		//gameObj->rotVelocity = { 1, 0, 0 };
 		glm::vec4 color(1, 0, 1, 1);
 		gameObj->SetInstanceAttribute(*p.mesh->format.GetAttribute("color"), color);

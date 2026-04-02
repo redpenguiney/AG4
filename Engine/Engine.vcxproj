@@ -205,6 +205,7 @@
     <ClInclude Include="graphics_engine.hpp" />
     <ClInclude Include="indirect_draw_command.hpp" />
     <ClInclude Include="let_me_hash_a_tuple.hpp" />
+    <ClInclude Include="light.hpp" />
     <ClInclude Include="mainloop.hpp" />
     <ClInclude Include="memory_pool.hpp" />
     <ClInclude Include="log.hpp" />

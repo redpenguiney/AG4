@@ -21,6 +21,10 @@ public:
 	void AddComputePass(std::shared_ptr<ComputePass> node);
 	void RemoveComputePass(std::shared_ptr<ComputePass> node);
 
+	void AddUniformBuffer(std::string name, size_t size);
+	void DeleteUniformBuffer(std::string name);
+	void UploadToUniformBuffer(std::string name, void* data, size_t len, size_t destOffset);
+
 	void AddAttachment(FramebufferAttachmentFormatDescriptor attachment);
 
 	// Default renderpasses for newly created GameobjectCreateParams. Will have a reasonable default, but change at your discretion. 

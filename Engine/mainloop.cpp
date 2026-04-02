@@ -25,7 +25,8 @@ void Mainloop::Run() {
 			if (stepPhysics) physicsPaused = true;
 			prePhysics->Fire(simulationTimestep);
 			BaseEvent::FlushEventQueue();
-			PhysicsEngine::Get().StepSimulation(simulationTimestep);
+			PhysicsEngine::Get().StepSimulation(simulationTimestep * 2.0f/3.0f);
+			PhysicsEngine::Get().StepSimulation(simulationTimestep * 1.0f/3.0f);
 			postPhysics->Fire(simulationTimestep);
 			BaseEvent::FlushEventQueue();
 			physicsLag -= simulationTimestep;
