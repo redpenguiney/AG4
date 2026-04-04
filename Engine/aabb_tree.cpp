@@ -1,3 +1,5 @@
+//#define DEBUG_AABBTREE_VISUALIZATION
+
 #include "aabb_tree.hpp"
 #include "collider.hpp"
 #ifdef  DEBUG_AABBTREE_VISUALIZATION

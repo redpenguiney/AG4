@@ -62,11 +62,11 @@ void PhysicsEngine::StepSimulation(double timestep) {
 								// use centroid of contact points
 									// TODO: this is inaccurate centroid calculation; we should decompose it into triangles, then take weighted average of centroids of those triangles
 									// (or just handle each contact point seperately)
-								//glm::vec3 r1 = {0, 0, 0}, r2 = {0, 0, 0};
+								glm::vec3 r1 = {0, 0, 0}, r2 = {0, 0, 0};
 								for (auto& contactPoint : result->collisionPoints) {
-									//r1 += contactPoint.first;
-									//r2 += contactPoint.second;
-									if (auto otherPhys = dynamic_cast<Physobject*>(other->object)) {
+									r1 += contactPoint.first;
+									r2 += contactPoint.second;
+									/*if (auto otherPhys = dynamic_cast<Physobject*>(other->object)) {
 										dynamicCollisions.push_back(DynamicCollisionConstraint{
 											.r1 = contactPoint.first,
 											.r2 = contactPoint.second,
@@ -85,9 +85,9 @@ void PhysicsEngine::StepSimulation(double timestep) {
 											.collisionNormal = result->collisionNormal,
 											.totalLagrange = 0
 											});
-									}
+									}*/
 								}
-								/*r1 /= static_cast<float>(result->collisionPoints.size());
+								r1 /= static_cast<float>(result->collisionPoints.size());
 								r2 /= static_cast<float>(result->collisionPoints.size());
 								if (auto otherPhys = dynamic_cast<Physobject*>(other->object)) {
 									dynamicCollisions.push_back(DynamicCollisionConstraint{
@@ -108,7 +108,7 @@ void PhysicsEngine::StepSimulation(double timestep) {
 										.collisionNormal = result->collisionNormal,
 										.totalLagrange = 0
 										});
-								}*/
+								}
 							}
 						}
 					}
@@ -159,8 +159,8 @@ void PhysicsEngine::StepSimulation(double timestep) {
 				glm::dvec3 displacement = impulse * collision.a->inverseMass;
 				//DebugLogInfo("Displacement strength ", glm::length(displacement), " against penetration ", penetration);
 				glm::vec3 torque = glm::cross(r1, impulse);
-				//glm::vec3 dRot = inertiaAroundTorqueAxis * torque;
-				glm::vec3 dRot = collision.a->inverseInertiaTensor * torque;
+				glm::vec3 dRot = inertiaAroundTorqueAxis * torque;
+				//glm::vec3 dRot = collision.a->inverseInertiaTensor * torque;
  				collision.a->SetPosition(collision.a->Position() + displacement);
 				collision.a->SetRotation(glm::normalize(collision.a->Rotation() + 0.5f * glm::quat(0, dRot.x, dRot.y, dRot.z) * collision.a->Rotation()));
 

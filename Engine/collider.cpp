@@ -14,20 +14,20 @@ Collider::~Collider() {
 }
 
 void Collider::UpdateAABB() {
-    glm::vec3 min(-0.5f, -0.5f, -0.5f);
-    for (float x : { -0.5f, 0.5f }) {
-        for (float y : { -0.5f, 0.5f }) {
-            for (float z : { -0.5f, 0.5f }) {
+    glm::vec3 size = object->Scale() * 0.5f;
+    glm::vec3 max(0, 0, 0);
+    for (float x : { -size.x, size.x }) {
+        for (float y : { -size.y, size.y }) {
+            for (float z : { -size.z, size.z }) {
                 glm::vec3 transformed = object->Rotation() * glm::vec3(x, y, z);
-                min.x = std::min(min.x, transformed.x);
-                min.y = std::min(min.y, transformed.y);
-                min.z = std::min(min.z, transformed.z);
+                max.x = std::max(max.x, transformed.x);
+                max.y = std::max(max.y, transformed.y);
+                max.z = std::max(max.z, transformed.z);
             }
         }
     }
 
-    min *= object->Scale();
-    glm::vec3 max = -min;
+    glm::vec3 min = -max;
     aabb.min = glm::dvec3(min) + object->Position();
     aabb.max = glm::dvec3(max) + object->Position();
 

@@ -42,7 +42,7 @@ static std::shared_ptr<DrawPass> DebugWireframePass() {
 
 static std::shared_ptr<DrawPass> DebugSolidPass() {
 	auto pass = std::make_shared<DrawPass>();
-	pass->name = "debugWireframe";
+	pass->name = "debugSolid";
 	auto rt = WindowRenderTargetDescriptor();
 	rt.clearDepth = false;
 	rt.loadPolicy = AttachmentLoadPolicy::Load;
