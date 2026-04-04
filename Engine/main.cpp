@@ -55,15 +55,15 @@ int main() {
 		pointLight->intensity = 4.0f;
 		pointLight->color = { 1, 0, 0 };
 		auto spotLight = std::make_shared<SpotLight>();
-		spotLight->position = { 3, -2, -8 };
-		spotLight->direction = glm::normalize(glm::vec3{ 1.0f, 0.0f, 3.0f });
-		spotLight->innerAngle = glm::radians(2.0f);
-		spotLight->outerAngle = glm::radians(2.1f);
-		spotLight->intensity = 8.0f;
+		spotLight->position = { 0, -2, 20 };
+		spotLight->direction = glm::normalize(glm::vec3{ 0.0f, 0.0f, -1.0f });
+		spotLight->innerAngle = glm::radians(3.0f);
+		spotLight->outerAngle = glm::radians(6.0f);
+		spotLight->intensity = 800.0f;
 		spotLight->color = glm::vec3(0, 1, 1);
 		CL.lights.push_back(sun);
 		CL.lights.push_back(pointLight);
-		//CL.lights.push_back(spotLight);
+		CL.lights.push_back(spotLight);
 
 		// normal objects
 		auto newPass = std::make_shared<DrawPass>();
@@ -92,13 +92,13 @@ int main() {
 		GraphicsEngine::Get().AddAttachment(FramebufferAttachmentFormatDescriptor{
 			.resourceName = "FINAL_SCENE",
 			.format = Texture::RGBA_16Float,
-			.size = {2048, 2048},
+			.size = {512, 512},
 			});
 		GraphicsEngine::Get().AddAttachment(FramebufferAttachmentFormatDescriptor{
 			.resourceName = "FINAL_SCENE_DEPTH",
 			.renderbuffer = false,
 			.format = Texture::DEPTH24_STENCIL8,
-			.size = {2048, 2048},
+			.size = {512, 512},
 			});
 
 		// postproc

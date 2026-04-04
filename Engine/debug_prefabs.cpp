@@ -19,6 +19,11 @@ std::shared_ptr<Mesh> GetCubeMesh()
 	return cubeMesh;
 }
 
+static std::shared_ptr<ShaderProgram> GetDebugShader() {
+	static auto s = ShaderProgram::New("../shaders/debug_simple_vertex.glsl", "../shaders/debug_simple_fragment.glsl");
+	return s;
+}
+
 static std::shared_ptr<DrawPass> DebugWireframePass() {
 	auto pass = std::make_shared<DrawPass>();
 	pass->name = "debugWireframe";
@@ -31,7 +36,7 @@ static std::shared_ptr<DrawPass> DebugWireframePass() {
 	pass->params.depthTestMode = DepthTestMode::Disabled;
 	pass->params.cullMode = FaceCulling::None;
 	pass->params.polygonFillMode = PolygonFillMode::Lines;
-	pass->params.shader = ShaderProgram::New("../shaders/debug_simple_vertex.glsl", "../shaders/debug_simple_fragment.glsl");
+	pass->params.shader = GetDebugShader();
 	return pass;
 }
 
@@ -47,7 +52,7 @@ static std::shared_ptr<DrawPass> DebugSolidPass() {
 	pass->params.depthTestMode = DepthTestMode::Disabled;
 	pass->params.cullMode = FaceCulling::None;
 	pass->params.polygonFillMode = PolygonFillMode::Fill;
-	pass->params.shader = ShaderProgram::New("../shaders/debug_simple_vertex.glsl", "../shaders/debug_simple_fragment.glsl");
+	pass->params.shader = GetDebugShader();
 	return pass;
 }
 
@@ -62,7 +67,7 @@ std::shared_ptr<DrawPass> DebugLinesPass() {
 	pass->outputs.push_back(WINDOW_RESOURCE_NAME);
 	pass->params.depthTestMode = DepthTestMode::Disabled;
 	pass->params.cullMode = FaceCulling::None;
-	pass->params.shader = ShaderProgram::New("../shaders/debug_simple_vertex.glsl", "../shaders/debug_simple_fragment.glsl");
+	pass->params.shader = GetDebugShader();
 	return pass;
 }
 

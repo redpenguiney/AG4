@@ -11,6 +11,7 @@ class Gameobject;
 struct BaseLight {
 	glm::vec3 color = { 1, 1, 1 };
 	float intensity = 6.0f;
+	float ambienceStrength = 0.2f;
 
 	virtual ~BaseLight() = default;
 };
@@ -35,9 +36,8 @@ struct SpotLight : public PointLight {
 };
 
 struct EnvironmentalLight : public BaseLight {
-	// must be normalied
+	// must be normalized
 	glm::vec3 direction;
-	float ambienceStrength = 0.2f;
 	~EnvironmentalLight() = default;
 };
 

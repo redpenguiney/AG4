@@ -20,6 +20,7 @@ ClusteredLighting::ClusteredLighting() {
         for (size_t i = 0; i < lights.size(); i++) {
             gpuLights[i].color = lights[i]->color;
             gpuLights[i].intensity = lights[i]->intensity;
+            gpuLights[i].ambience = lights[i]->ambienceStrength;
 
             if (auto pl = std::dynamic_pointer_cast<PointLight>(lights[i])) {
                 glm::dvec3 worldPos;
@@ -36,18 +37,17 @@ ClusteredLighting::ClusteredLighting() {
 
             if (auto sl = std::dynamic_pointer_cast<SpotLight>(lights[i])) {
                 gpuLights[i].lightType = 2.0f;
-                gpuLights[i].spotlightInnerAngle = sl->innerAngle;
-                gpuLights[i].spotlightOuterAngle = sl->outerAngle;
+                gpuLights[i].spotlightInnerAngle = cosf(sl->innerAngle);
+                gpuLights[i].spotlightOuterAngle = cosf(sl->outerAngle);
                 if (sl->attachment) {
-                    gpuLights[i].direction = sl->attachment->ObjectNormalToWorld(sl->direction);
+                    gpuLights[i].direction = -sl->attachment->ObjectNormalToWorld(sl->direction);
                 }
                 else {
-                    gpuLights[i].direction = sl->direction;
+                    gpuLights[i].direction = -sl->direction;
                 }
             }
             else if (auto el = std::dynamic_pointer_cast<EnvironmentalLight>(lights[i])) {
                 gpuLights[i].lightType = 3.0f;
-                gpuLights[i].envLightAmbience = el->ambienceStrength;
                 gpuLights[i].direction = el->direction;
             }
             else {

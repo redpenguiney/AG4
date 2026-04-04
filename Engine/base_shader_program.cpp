@@ -177,7 +177,7 @@ void BaseShaderProgram::Link()
         std::string name(nameBuf);
         Assert(size == 1); // TODO: should probably support array uniforms
         auto location = glGetUniformLocation(shaderProgramId, nameBuf);
-        if (location)
+        if (location != -1)
             shaderUniforms[name] = ShaderUniformInfo{
                 .name = name,
                 .uniformLocation = location,

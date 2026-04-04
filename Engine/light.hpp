@@ -7,7 +7,7 @@ struct Light {
 	glm::vec3 pos;
 	float intensity;
 	glm::vec3 color;
-	float envLightAmbience;
+	float ambience;
 	glm::vec3 direction;
 	// 1.0f = pointlight, 2.0f = spotlight, 3.0f = environmental light. 0.0f if STOP
 	float lightType;

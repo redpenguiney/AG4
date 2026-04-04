@@ -276,6 +276,7 @@ void RenderGraph::CreateAttachment(FramebufferAttachmentFormatDescriptor attachm
 	else {
 		TextureCreateParams tcp({});
 		tcp.format = attachment.format;
+		tcp.wrappingBehaviour = Texture::WrapClampToEdge;
 		tcp.renderBuffer = attachment.renderbuffer;
 		a = std::make_shared<Texture>(attachment.size, tcp, Texture::Texture2DFlat);
 	}
