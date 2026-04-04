@@ -44,14 +44,12 @@ void main()
     vec3 normal = normalize(fragmentNormal);
     if (normalMappingEnabled) {normal = normalize(TBNmatrix * (texture(normalMapAUTO_ARRAY, realTexCoords).rgb * 2.0 - 1.0));} // todo: matrix multiplication in fragment shader is really bad, maybe?
 
-    float specularStrength = 0.5;
+    float specularStrength = 0.0;
     if (specularMappingEnabled) {
         specularStrength = texture(specularMapAUTO_ARRAY, realTexCoords).x;
     }
 
     vec3 light = CalculateLighting(specularStrength, normal);
-    vec3 globalAmbient = vec3(1, 1, 1);
-    light += globalAmbient;
 
     vec4 tx;
     if (realTexCoords.z < 0) {
@@ -73,10 +71,10 @@ void main()
         //discard;
     };
 
-    //Output = color;
+    Output = color;
     //Output = vec4(1, 1, 1, 1);
     //float ndc = gl_FragCoord.z * 2.0 - 1.0;
     //Output = vec4(vec3(2.0 * 0.1 * 16384.0 / (16384.0 + 0.1 - ndc * (16384.0 - 0.1))/128.0), 1.0);
-    Output = fragmentColor;
+    //Output = fragmentColor;
     //Output = vec4(light, 1);
 };

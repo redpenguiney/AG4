@@ -137,6 +137,16 @@ const std::unordered_map<std::string, ShaderUniformInfo>& BaseShaderProgram::Get
     return shaderUniforms;
 }
 
+const std::vector<ShaderStorageBufferInfo>& BaseShaderProgram::GetShaderSSBOs()
+{
+    return shaderSSBOs;
+}
+
+const std::vector<ShaderUniformBufferInfo>& BaseShaderProgram::GetShaderUBOs()
+{
+    return shaderUBOs;
+}
+
 bool BaseShaderProgram::HasUniform(std::string name)
 {
     return shaderUniforms.contains(name);
@@ -168,11 +178,11 @@ void BaseShaderProgram::Link()
         Assert(size == 1); // TODO: should probably support array uniforms
         auto location = glGetUniformLocation(shaderProgramId, nameBuf);
         if (location)
-        shaderUniforms[name] = ShaderUniformInfo{
-            .name = name,
-            .uniformLocation = location,
-            .type = type
-        };
+            shaderUniforms[name] = ShaderUniformInfo{
+                .name = name,
+                .uniformLocation = location,
+                .type = type
+            };
         // doesn't work because UBO members were being treated as uniforms
         //Assert(shaderUniforms[name].uniformLocation != -1);
 

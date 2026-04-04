@@ -55,6 +55,8 @@ struct ShaderStorageBufferInfo {
 class BaseShaderProgram {
 public:
     const std::unordered_map<std::string, ShaderUniformInfo>& GetUniforms();
+    const std::vector<ShaderStorageBufferInfo>& GetShaderSSBOs();
+    const std::vector<ShaderUniformBufferInfo>& GetShaderUBOs();
 
     // lets programId be read only without a getter
     const unsigned int& shaderProgramId = programId;

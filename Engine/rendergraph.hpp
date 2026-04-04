@@ -23,6 +23,12 @@ struct AutoArrayTexture {
 
 };
 
+//struct BufferBinding {
+//	BufferedBuffer* bufferToBind;
+//	GLenum locationToBindTo;
+//	std::string shaderBindingName;
+//};
+
 // The conceptual difference between this and DrawPass is:
 // - RenderPass only describes what the user WANTS to happen on that drawing step (like what textures they want to use).
 // - ProcessedRenderPass contains the information needed to actually make that occur (like how those textures are actually stored in texture arrays, the actual framebuffer object being used).
@@ -38,6 +44,7 @@ struct ProcessedDrawPass {
 	RenderingParameters params;
 
 	GLbitfield dependencyWriteMemoryBarrierBits = 0;
+	//std::vector<BufferBinding> bufferBindings;
 
 	ProcessedDrawPass(std::shared_ptr<DrawPass> drawPass);
 };
@@ -72,6 +79,7 @@ struct ResourceLifeTime {
 
 enum class ResourceType {
 	FramebufferAttachment,
+	Buffer,
 	//ShaderStorageBuffer,
 	Abstract
 };

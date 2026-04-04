@@ -10,6 +10,7 @@
 #include "aabb_tree.hpp"
 #include "debug_prefabs.hpp"
 #include "light.hpp"
+#include "clustered_lighting.hpp"
 
 int main() {
 	DebugLogInfo("Reached main() successfully."); // you know it's a bad sign when you need to print this sort of thing
@@ -20,16 +21,49 @@ int main() {
 	GraphicsEngine::Get();
 	GameobjectSAS();
 
+	// Freecam
+	float pitch = 0, yaw = 0, speed = 0;
+	Mainloop::Get().preRender->Connect([&pitch, &yaw, &speed](float) {
+		pitch += 0.01f * Window::Get().MOUSE_DELTA.y;
+		yaw += 0.01f * Window::Get().MOUSE_DELTA.x;
+		pitch = std::clamp(pitch, -glm::radians(89.0f), glm::radians(89.0f));
+		if (yaw < 0.0f) yaw += glm::radians(360.0f);
+		yaw = std::fmod(yaw, glm::radians(360.0f));
+
+		auto& cam = GraphicsEngine::Get().currentCamera;
+		float forward = (Window::Get().PRESSED_KEYS.contains(InputObject::W) ? 1.0f : 0.0f) - (Window::Get().PRESSED_KEYS.contains(InputObject::S) ? 1.0f : 0.0f);
+		float right = (Window::Get().PRESSED_KEYS.contains(InputObject::D) ? 1.0f : 0.0f) - (Window::Get().PRESSED_KEYS.contains(InputObject::A) ? 1.0f : 0.0f);
+		float up = (Window::Get().PRESSED_KEYS.contains(InputObject::Q) ? 1.0f : 0.0f) - (Window::Get().PRESSED_KEYS.contains(InputObject::E) ? 1.0f : 0.0f);
+
+		if (forward == 0 && right == 0 && up == 0) speed = 0;
+		speed += 0.1;
+		cam.rotation = glm::rotate(glm::rotate(glm::identity<glm::mat4x4>(), pitch, glm::vec3(1, 0, 0)), yaw, glm::vec3(0, 1, 0));
+		glm::vec3 fDir = LookVector(pitch, yaw);
+		glm::vec3 rDir = LookVector(0, yaw + glm::radians(90.0f));
+		glm::vec3 upDir = glm::cross(fDir, rDir);
+		cam.position += (fDir * forward + rDir * right + upDir * up) * speed;
+		});
+
 	{
-		GraphicsEngine::Get().AddUniformBuffer("lights", sizeof(Light) * 4096);
-		Light light;
-		light.lightType = 1;
-		light.color = { 1, 1, 1 };
-		light.intensity = 1000;
-		light.pos = { 30, 100, 0 };
-		GraphicsEngine::Get().UploadToUniformBuffer("lights", &light, sizeof(light), 0);
-		light.lightType = 0;
-		GraphicsEngine::Get().UploadToUniformBuffer("lights", &light, sizeof(light), sizeof(light));
+		auto& CL = ClusteredLighting::Get();
+		auto sun = std::make_shared<EnvironmentalLight>();
+		sun->color = glm::vec3(0.9922, 0.9843, 0.8275);
+		sun->direction = glm::normalize(glm::vec3(-1.0f, 3.0f, -1.0f));
+		sun->intensity = 10.0f;
+		auto pointLight = std::make_shared<PointLight>();
+		pointLight->position = { 2.0, 2.0, 2.0 };
+		pointLight->intensity = 4.0f;
+		pointLight->color = { 1, 0, 0 };
+		auto spotLight = std::make_shared<SpotLight>();
+		spotLight->position = { 3, -2, -8 };
+		spotLight->direction = glm::normalize(glm::vec3{ 1.0f, 0.0f, 3.0f });
+		spotLight->innerAngle = glm::radians(2.0f);
+		spotLight->outerAngle = glm::radians(2.1f);
+		spotLight->intensity = 8.0f;
+		spotLight->color = glm::vec3(0, 1, 1);
+		CL.lights.push_back(sun);
+		CL.lights.push_back(pointLight);
+		//CL.lights.push_back(spotLight);
 
 		// normal objects
 		auto newPass = std::make_shared<DrawPass>();
@@ -45,6 +79,7 @@ int main() {
 			.loadPolicy = AttachmentLoadPolicy::Clear,
 			.clearColor = {1, 0, 0, 0}
 			});
+		newPass->dependencies.push_back("lights");
 		newPass->renderTarget = frt;
 		newPass->outputs.push_back("FINAL_SCENE");
 		newPass->outputs.push_back("FINAL_SCENE_DEPTH");
@@ -57,13 +92,13 @@ int main() {
 		GraphicsEngine::Get().AddAttachment(FramebufferAttachmentFormatDescriptor{
 			.resourceName = "FINAL_SCENE",
 			.format = Texture::RGBA_16Float,
-			.size = {1024, 1024},
+			.size = {2048, 2048},
 			});
 		GraphicsEngine::Get().AddAttachment(FramebufferAttachmentFormatDescriptor{
 			.resourceName = "FINAL_SCENE_DEPTH",
 			.renderbuffer = false,
 			.format = Texture::DEPTH24_STENCIL8,
-			.size = {1024, 1024},
+			.size = {2048, 2048},
 			});
 
 		// postproc
@@ -138,28 +173,7 @@ int main() {
 	
 	GraphicsEngine::Get().currentCamera.position = { 0, 0, 5 };
 
-	// Freecam
-	float pitch = 0, yaw = 0, speed = 0;
-	Mainloop::Get().preRender->Connect([&pitch, &yaw, &speed](float) {
-		pitch += 0.01f * Window::Get().MOUSE_DELTA.y;
-		yaw += 0.01f * Window::Get().MOUSE_DELTA.x;
-		pitch = std::clamp(pitch, -glm::radians(89.0f), glm::radians(89.0f));
-		if (yaw < 0.0f) yaw += glm::radians(360.0f);
-		yaw = std::fmod(yaw,glm::radians(360.0f));
-
-		auto& cam = GraphicsEngine::Get().currentCamera;
-		float forward = (Window::Get().PRESSED_KEYS.contains(InputObject::W) ? 1.0f : 0.0f) - (Window::Get().PRESSED_KEYS.contains(InputObject::S) ? 1.0f : 0.0f);
-		float right = (Window::Get().PRESSED_KEYS.contains(InputObject::D) ? 1.0f : 0.0f) - (Window::Get().PRESSED_KEYS.contains(InputObject::A) ? 1.0f : 0.0f);
-		float up = (Window::Get().PRESSED_KEYS.contains(InputObject::Q) ? 1.0f : 0.0f) - (Window::Get().PRESSED_KEYS.contains(InputObject::E) ? 1.0f : 0.0f);
-
-		if (forward == 0 && right == 0 && up == 0) speed = 0;
-		speed += 0.1;
-		cam.rotation = glm::rotate(glm::rotate(glm::identity<glm::mat4x4>(), pitch, glm::vec3(1, 0, 0)), yaw, glm::vec3(0, 1, 0));
-		glm::vec3 fDir = LookVector(pitch, yaw);
-		glm::vec3 rDir= LookVector(0, yaw + glm::radians(90.0f));
-		glm::vec3 upDir = glm::cross(fDir, rDir);
-		cam.position += (fDir * forward + rDir * right + upDir * up) * speed;
-		});
+	
 
 	//Mainloop::Get().stepPhysics = true;
 	Mainloop::Get().physicsPaused = true;

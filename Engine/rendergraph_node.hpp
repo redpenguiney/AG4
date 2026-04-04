@@ -124,14 +124,14 @@ struct WindowRenderTargetDescriptor {
 
 using RenderTargetDescriptor = std::variant<FramebufferRenderTargetDescriptor, WindowRenderTargetDescriptor>;
 
-struct UniformBufferUsageDescriptor {
-public:
-	// name of the GLSL variable
-	std::string bindTo;
-
-	// name of the resource
-	std::string bufferName;
-};
+//struct UniformBufferUsageDescriptor {
+//public:
+//	// name of the GLSL variable
+//	std::string bindTo;
+//
+//	// name of the resource
+//	std::string bufferName;
+//};
 
 using TextureHandle = std::variant<std::string, std::shared_ptr<Texture>, TextureCreateParams>;
 
@@ -186,7 +186,7 @@ public:
 	// uniforms (constant globals) to be fed to shaders
 	//std::vector<std::pair<std::string, ShaderUniformType>> uniforms;
 
-	std::vector<UniformBufferUsageDescriptor> uniformBuffers;
+	//std::vector<UniformBufferUsageDescriptor> uniformBuffers;
 
 	// optional user defined function which if supplied can be used to set shader uniforms (constant globals) prior to drawing/compute work.
 	// Passed argument is the shader about to be used.

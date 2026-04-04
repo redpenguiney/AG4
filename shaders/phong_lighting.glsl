@@ -1,28 +1,23 @@
-uniform vec3 envLightDirection;
-uniform vec3 envLightColor;
-uniform float envLightDiffuse;
-uniform float envLightAmbient;
-uniform float envLightSpecular;
-
 struct Light {
     vec4 relPosAndIntensity; // w-coord is intensity/range, xyz is pos
-    vec4 colorAndAngle; // xyz is color, w-coord is spotlight angle
+    vec4 colorAndAmbient; // xyz is color, w-coord is  env-light ambient strength
     vec4 directionAndLightType; // xyz is direction, w-coord is  0.0f (no more lights, stop iterating), 1.0f (pointlight), 2.0f (spotlight), or 3.0f (environmental light)
+    vec4 angles; // x is inner, y is outer
 };
 
 layout (std140) uniform lights {
     Light Lights[1024];
 };
 
-vec3 CalculateEnvLightInfluence( float specularStrength, vec3 normal) {
+vec3 CalculateEnvLightInfluence( float specularStrength, vec3 normal, vec3 envLightDirection, vec3 envLightColor, float envLightStrength, float envLightAmbient) {
     float diff = max(dot(normal, envLightDirection), 0.0);
-    vec3 diffuse = diff * envLightDiffuse * envLightColor;
+    vec3 diffuse = diff * envLightStrength * envLightColor;
 
     vec3 viewDir = normalize(-cameraToFragmentPosition);
     // vec3 reflectDir = reflect(-lightDir, normal); // replace reflectDir with halfwayDir for blinn-phong lighting, which is better than phong lighting
     vec3 halfwayDir = normalize(envLightDirection + viewDir);
     float spec = pow(max(dot(viewDir, halfwayDir), 0.0), 32);
-    vec3 specular = specularStrength * spec * envLightSpecular * envLightColor;  
+    vec3 specular = specularStrength * spec * envLightColor * envLightStrength;  
 
     vec3 ambient = envLightColor * envLightAmbient;
 
@@ -75,7 +70,13 @@ vec3 CalculateLighting(float specularStrength, vec3 normal) {
     for (uint i = 0; i < 1024; i++) {
         if (Lights[i].directionAndLightType.w == 0.0f) return light;
         else if (Lights[i].directionAndLightType.w == 1.0f) {
-            light += CalculateLightInfluence(Lights[i].colorAndAngle.xyz, Lights[i].relPosAndIntensity.xyz, Lights[i].relPosAndIntensity.w, specularStrength, normal);
+            light += CalculateLightInfluence(Lights[i].colorAndAmbient.xyz, Lights[i].relPosAndIntensity.xyz, Lights[i].relPosAndIntensity.w, specularStrength, normal);
+        }
+        else if (Lights[i].directionAndLightType.w == 2.0f) {
+            light += CalculateSpotlightInfluence(Lights[i].colorAndAmbient.xyz, Lights[i].relPosAndIntensity.xyz, Lights[i].relPosAndIntensity.w, Lights[i].angles.x, Lights[i].angles.y, Lights[i].directionAndLightType.xyz, specularStrength, normal);
+        }
+        else {
+           light += CalculateEnvLightInfluence(specularStrength, normal, Lights[i].directionAndLightType.xyz, Lights[i].colorAndAmbient.xyz, Lights[i].relPosAndIntensity.w, Lights[i].colorAndAmbient.w);
         }
     }
 

@@ -36,6 +36,7 @@ void RenderGraph::Render() {
 	}
 
 	for (auto& pass : renderOrder) {
+
 		if (std::holds_alternative<ProcessedDrawPass>(pass)) {
 			auto& p = std::get<ProcessedDrawPass>(pass);
 
@@ -47,6 +48,44 @@ void RenderGraph::Render() {
 
 			p.params.shader->Use();
 			if (p.setUniforms.operator bool()) p.setUniforms(p.params.shader);
+
+			unsigned uboI = 0;
+			for (auto& uboRequested : p.params.shader->GetShaderUBOs()) {
+				auto logicalBuf = logicalBuffers.at(uboRequested.name);
+				logicalBuf.hardwareResource->buf.BindBase(GL_UNIFORM_BUFFER, uboI);
+			}
+
+			//std::unordered_set<int> usedBufferIndices;
+			/*for (auto& buf : p.bufferBindings) {
+				int bufIndex = -1;
+				if (buf.locationToBindTo == GL_UNIFORM_BUFFER) {
+					unsigned i = 0;
+					for (auto& ubo : p.params.shader->GetShaderUBOs()) {
+						if (ubo.name == buf.shaderBindingName) {
+							bufIndex = i;
+							break;
+						}
+						i++;
+					}
+
+				}
+				else if (buf.locationToBindTo == GL_SHADER_STORAGE_BUFFER) {
+					unsigned i = 0;
+					for (auto& ssbo : p.params.shader->GetShaderSSBOs()) {
+						if (ssbo.name == buf.shaderBindingName) {
+							bufIndex = i;
+							break;
+						}
+						i++;
+					}
+				}
+				else {
+					Assert(false);
+				}
+
+				Assert(bufIndex);
+				buf.bufferToBind->BindBase(buf.locationToBindTo, bufIndex);
+			}*/
 
 			if (p.params.blending) {
 				glEnable(GL_BLEND);
@@ -123,12 +162,14 @@ void RenderGraph::Render() {
 			p.shader->Dispatch(p.workgroupSize);
 		}
 	}
-
+	
+	// todo: could defer this call probably
 	for (auto& buf : hardwareBuffers) {
 		//if (buf->ubo) {
 			buf->buf.Flip();
 		//}
 	}
+	
 }
 
 void RenderGraph::AddPass(std::shared_ptr<RenderPass> pass) {
@@ -152,14 +193,14 @@ void RenderGraph::AddPass(std::shared_ptr<RenderPass> pass) {
 		}
 	}
 
-	for (auto& t : pass->uniformBuffers) {
+	/*for (auto& t : pass->uniformBuffers) {
 		Assert(logicalBuffers.contains(t.bufferName) && logicalBuffers[t.bufferName].ubo == true);
 		for (auto& d : pass->dependencies) {
 			if (d == t.bufferName) goto foundOutputAgain;
 		}
 		Assert(false);
 		foundOutputAgain:;
-	}
+	}*/
 
 	// Verify that render target attachments are specified in pass outputs
 	// TODO: buffer outputs exist
@@ -325,9 +366,13 @@ void RenderGraph::Compile() {
 			}
 			bool isARoot = true;
 			for (auto& d : parent->dependencies) {
-				// TODO: resources available at the beginning of the frame shouldn't trigger this
-				isARoot = false;
-				break;
+				if (logicalBuffers.contains(d) && logicalBuffers[d].access.firstWritePassIndex == -1) {
+					// then this resource is there from the start so it's okay to put this node at the head of the graph
+				}
+				else {
+					isARoot = false;
+					break;
+				}
 			}
 			if (isARoot)
 				orphans.insert(parentName);
@@ -365,6 +410,11 @@ void RenderGraph::Compile() {
 	// Convert the DrawPasses into ProcessedRenderPasses
 	int passI = 0;
 	std::unordered_map<std::string, LogicalResource> logicalResources;
+
+	for (auto& [name, buf] : logicalBuffers) {
+		logicalResources[name].lifetime = buf.access;
+		logicalResources[name].type = ResourceType::Buffer;
+	}
 
 	while (passI < output.size()) {
 
@@ -492,13 +542,16 @@ void RenderGraph::Compile() {
 	for (auto& p : renderOrder) {
 		if (std::holds_alternative<ProcessedDrawPass>(p)) {
 			auto& pass = std::get<ProcessedDrawPass>(p);
-			auto& drawPass = drawPasses.at(pass.sources.at(0));
-			for (auto& usageDescriptor : drawPass->boundAttachments) {
-				pass.textures.push_back(TextureBinding{
-					.textureToBind = attachmentLocations.at(std::get<std::string>(usageDescriptor.texture)),
-					.shaderSamplerName = usageDescriptor.textureUsageLocation
-					});
+			for (auto& n : pass.sources) {
+				auto& drawPass = drawPasses.at(n);
+				for (auto& usageDescriptor : drawPass->boundAttachments) {
+					pass.textures.push_back(TextureBinding{
+						.textureToBind = attachmentLocations.at(std::get<std::string>(usageDescriptor.texture)),
+						.shaderSamplerName = usageDescriptor.textureUsageLocation
+						});
+				}
 			}
+			
 		}
 		else {
 			Assert(false);
@@ -537,6 +590,27 @@ void RenderGraph::Compile() {
 			}
 		}
 	}
+
+	// Setup buffer bindings for individual passes
+	/*for (auto& p : renderOrder) {
+		if (std::holds_alternative<ProcessedDrawPass>(p)) {
+			auto& pass = std::get<ProcessedDrawPass>(p);
+			for (auto& n : pass.sources) {
+				auto& drawPass = drawPasses.at(n);
+				for (auto& buf : drawPass->uniformBuffers) {
+					Assert(logicalResources.contains(buf.bufferName));
+					Assert(logicalBuffers.contains(buf.bufferName));
+					Assert(logicalResources[buf.bufferName].type == ResourceType::Buffer);
+					Assert(logicalBuffers[buf.bufferName].hardwareResource&& logicalBuffers[buf.bufferName].hardwareResource->ubo);
+					pass.bufferBindings.push_back(BufferBinding{
+						.bufferToBind = &logicalBuffers[buf.bufferName].hardwareResource->buf,
+						.locationToBindTo = GL_UNIFORM_BUFFER,
+						.shaderBindingName = buf.bufferName
+						});
+				}
+			}
+		}
+	}*/
 
 	// destroy unused framebuffers
 	for (unsigned i = 0; i < framebuffers.size(); i++) {
