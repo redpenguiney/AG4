@@ -2,6 +2,7 @@
 #include "glm/vec3.hpp"
 #include "constraint.hpp"
 #include <vector>
+#include <random>
 
 class Gameobject;
 
@@ -17,8 +18,11 @@ public:
 
 
 private:
+	unsigned currentShiftAmount;
+
 	std::vector<DynamicCollisionConstraint> dynamicCollisions;
 	std::vector<StaticCollisionConstraint> staticCollisions;
+	std::default_random_engine rng;
 
 	PhysicsEngine();
 	~PhysicsEngine();

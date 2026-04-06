@@ -12,6 +12,9 @@ Gameobject::Gameobject(const GameobjectCreateParams& params) {
     live = true;
     normalMatDirty = true;
 
+    friction = 0.5;
+    elasticity = 0.5;
+
     position = { 0, 0, 0 };
     rotation = glm::identity<glm::quat>();
     scale = { 1, 1, 1 };
@@ -132,8 +135,6 @@ glm::vec3 Gameobject::WorldNormalToObject(glm::vec3 worldNormal)
 Physobject::Physobject(const PhysobjectCreateParams& params): Gameobject(params) {
     velocity = { 0, 0, 0 };
     rotVelocity = { 0, 0, 0 };
-    friction = 0.5;
-    elasticity = 0.5;
     inverseMass = 1;
     UpdateMass();
 }

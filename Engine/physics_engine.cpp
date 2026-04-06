@@ -6,6 +6,7 @@
 #include "glm/ext/quaternion_float.hpp"
 #include "let_me_hash_a_tuple.hpp"
 #include "debug_prefabs.hpp"
+#include <algorithm>
 
 PhysicsEngine& PhysicsEngine::Get() {
 	static PhysicsEngine PE;
@@ -41,6 +42,9 @@ void PhysicsEngine::StepSimulation(double timestep) {
 			}
 		}
 
+		currentShiftAmount += 1;
+		if (currentShiftAmount == 4) currentShiftAmount = 0;
+
 		// Collect collisions
 		for (auto& page : iterable) {
 			for (unsigned i = 0; i < POOL_OBJECTS_PER_PAGE; i++) {
@@ -62,11 +66,14 @@ void PhysicsEngine::StepSimulation(double timestep) {
 								// use centroid of contact points
 									// TODO: this is inaccurate centroid calculation; we should decompose it into triangles, then take weighted average of centroids of those triangles
 									// (or just handle each contact point seperately)
-								glm::vec3 r1 = {0, 0, 0}, r2 = {0, 0, 0};
+								//glm::vec3 r1 = {0, 0, 0}, r2 = {0, 0, 0};
+								// shuffle contactPoints because resolving them in a different order every frame improves stability
+								//std::shift_right(result->collisionPoints.begin(), result->collisionPoints.end(), currentShiftAmount);
+								//std::ranges::shuffle(result->collisionPoints.begin(), result->collisionPoints.end(), rng);
 								for (auto& contactPoint : result->collisionPoints) {
-									r1 += contactPoint.first;
-									r2 += contactPoint.second;
-									/*if (auto otherPhys = dynamic_cast<Physobject*>(other->object)) {
+									//r1 += contactPoint.first;
+									//r2 += contactPoint.second;
+									if (auto otherPhys = dynamic_cast<Physobject*>(other->object)) {
 										dynamicCollisions.push_back(DynamicCollisionConstraint{
 											.r1 = contactPoint.first,
 											.r2 = contactPoint.second,
@@ -85,9 +92,9 @@ void PhysicsEngine::StepSimulation(double timestep) {
 											.collisionNormal = result->collisionNormal,
 											.totalLagrange = 0
 											});
-									}*/
+									}
 								}
-								r1 /= static_cast<float>(result->collisionPoints.size());
+								/*r1 /= static_cast<float>(result->collisionPoints.size());
 								r2 /= static_cast<float>(result->collisionPoints.size());
 								if (auto otherPhys = dynamic_cast<Physobject*>(other->object)) {
 									dynamicCollisions.push_back(DynamicCollisionConstraint{
@@ -108,7 +115,7 @@ void PhysicsEngine::StepSimulation(double timestep) {
 										.collisionNormal = result->collisionNormal,
 										.totalLagrange = 0
 										});
-								}
+								}*/
 							}
 						}
 					}
@@ -117,6 +124,10 @@ void PhysicsEngine::StepSimulation(double timestep) {
 		}
 
 		// todo: see paper Nonconvex Rigid Bodies with Stacking. Since we aren't doing a Jacobi solve, we could handle contacts in a more stable order 
+		//std::ranges::shuffle(staticCollisions.begin(), staticCollisions.end(), rng);
+		//std::ranges::shuffle(dynamicCollisions.begin(), dynamicCollisions.end(), rng);
+		//if (staticCollisions.size() > 0)
+			//DebugLogInfo(staticCollisions[0].r1);
 
 		//if (!staticCollisions.empty()) DebugLogInfo("SOLVING");
 
@@ -209,14 +220,16 @@ void PhysicsEngine::StepSimulation(double timestep) {
 			glm::vec3 tangentVelocity = collision.relV - collision.collisionNormal * priorNormalSpeed;
 			float tangentSpeed = glm::length(tangentVelocity);
 
-			float restitution = collision.a->elasticity * 0.5f; // TODO 0.5f should be replaced with property of B
+			float restitution = (collision.a->elasticity + collision.b->elasticity) * 0.5f;
 			float normalForce = collision.totalLagrange / (float)timestep;
-			float friction = collision.a->friction * 0.5f; // TODO 0.5f should be replaced with property of B
+			float friction = (collision.a->friction + collision.b->friction) * 0.5f;
 			float desiredNormalSpeed =  -restitution * priorNormalSpeed;
 			float neededDv = desiredNormalSpeed - currentNormalSpeed;
+
 			// std::min prevents funky behavior when the two objects were intersecting before the frame started
 			glm::vec3 deltaV = collision.collisionNormal * (-currentNormalSpeed - std::min(0.0f, restitution * priorNormalSpeed));
 			if (tangentSpeed != 0) {
+				//DebugLogInfo("Tangent speed", tangentSpeed, " v = ", collision.a->velocity);
 				glm::vec3 frictionDirection = -tangentVelocity / tangentSpeed;
 				deltaV += frictionDirection * glm::min(normalForce * friction, tangentSpeed);
 			}
@@ -236,8 +249,7 @@ void PhysicsEngine::StepSimulation(double timestep) {
 	simulate(Physobject::Pool::Get().GetIterable()); // note: not extendable to subclasses this way. do not copy paste
 }
 
-PhysicsEngine::PhysicsEngine() {
-
+PhysicsEngine::PhysicsEngine(): rng(), currentShiftAmount(0) {
 }
 
 PhysicsEngine::~PhysicsEngine() {

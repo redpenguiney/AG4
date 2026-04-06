@@ -63,6 +63,9 @@ public:
 	glm::vec3 ObjectNormalToWorld(glm::vec3 objectNormal);
 	glm::vec3 WorldNormalToObject(glm::vec3 worldNormal);
 
+	float elasticity;
+	float friction;
+
 protected:
 
 	Gameobject(const GameobjectCreateParams& params);
@@ -116,9 +119,6 @@ public:
 
 	glm::vec3 velocity;
 	glm::vec3 rotVelocity;
-
-	float elasticity;
-	float friction;
 
 protected:
 

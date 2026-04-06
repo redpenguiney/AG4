@@ -101,7 +101,7 @@ void BuildPit(glm::vec3 pos, glm::vec3 size) {
 
 	Gameobject* floor = Gameobject::New(p);
 	floor->SetPosition({ pos - glm::vec3(0, size.y/2.0f, 0)});
-	floor->SetScale({ size.x, 1, size.z });
+	floor->SetScale({ size.x+3, 1, size.z+3 });
 	floor->SetInstanceAttribute(*p.mesh->format.GetAttribute("color"), floorColor);
 	floor->SetInstanceAttribute(*p.mesh->format.GetAttribute(SpecialVertexAttributeNames::AUTOMATIC_TEXTURE_ARRAY_SELECTION), -1.0f);
 	//floor->SetRotation(glm::angleAxis(glm::radians(5.0f), glm::normalize(glm::vec3(1, 1, 0))));
