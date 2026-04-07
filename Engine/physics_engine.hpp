@@ -18,8 +18,6 @@ public:
 
 
 private:
-	unsigned currentShiftAmount;
-
 	std::vector<DynamicCollisionConstraint> dynamicCollisions;
 	std::vector<StaticCollisionConstraint> staticCollisions;
 	std::default_random_engine rng;

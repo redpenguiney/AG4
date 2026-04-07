@@ -125,11 +125,15 @@ protected:
 	Physobject(const PhysobjectCreateParams& params);
 
 	glm::dvec3 lastPos;
-	//glm::dvec3 nextPos;
-	glm::quat lastRot;
-	//glm::quat nextRot;
-
-	
+	glm::dvec3 nextPos;
+	union {
+		glm::quat lastRot;
+		glm::vec3 nextRotVel;
+	};
+	union {
+		glm::quat nextRot;
+		glm::vec3 nextVel;
+	};
 
 	glm::mat3x3 inverseInertiaTensor; // the moment of inertia is like mass, but for rotation.
 	

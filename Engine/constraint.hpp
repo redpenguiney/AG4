@@ -14,6 +14,7 @@ struct StaticCollisionConstraint {
 	glm::vec3 collisionNormal;
 	glm::vec3 relV;
 	float totalLagrange;
+	float nerf;
 };
 
 // physobject-physobject collision
@@ -27,4 +28,5 @@ struct DynamicCollisionConstraint {
 	glm::vec3 collisionNormal;
 	glm::vec3 relV;
 	float totalLagrange;
+	float nerf;
 };

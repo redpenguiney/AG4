@@ -13,11 +13,7 @@ PhysicsEngine& PhysicsEngine::Get() {
 	return PE;
 }
 
-// see https://matthias-research.github.io/pages/publications/PBDBodies.pdf
-// TODO:
-/*
-- angular velocity gradually declines, probably due to numerical instability
-*/
+// see https://matthias-research.github.io/pages/publications/PBDBodies.pdf (Jacobi solve variant of it)
 void PhysicsEngine::StepSimulation(double timestep) {
 	auto simulate = [&](auto iterable) mutable {
 
@@ -38,12 +34,10 @@ void PhysicsEngine::StepSimulation(double timestep) {
 				obj.lastRot = obj.rotation;
 				obj.SetPosition(obj.position + glm::dvec3(obj.velocity) * timestep + gravity * 0.5 * timestep * timestep);
 				obj.SetRotation(glm::normalize(obj.rotation + 0.5f * (float)timestep * glm::quat(0, obj.rotVelocity.x, obj.rotVelocity.y, obj.rotVelocity.z) * obj.rotation));
-				
+				obj.nextPos = obj.position;
+				obj.nextRot = obj.rotation;
 			}
 		}
-
-		currentShiftAmount += 1;
-		if (currentShiftAmount == 4) currentShiftAmount = 0;
 
 		// Collect collisions
 		for (auto& page : iterable) {
@@ -68,8 +62,7 @@ void PhysicsEngine::StepSimulation(double timestep) {
 									// (or just handle each contact point seperately)
 								//glm::vec3 r1 = {0, 0, 0}, r2 = {0, 0, 0};
 								// shuffle contactPoints because resolving them in a different order every frame improves stability
-								//std::shift_right(result->collisionPoints.begin(), result->collisionPoints.end(), currentShiftAmount);
-								//std::ranges::shuffle(result->collisionPoints.begin(), result->collisionPoints.end(), rng);
+								std::ranges::shuffle(result->collisionPoints.begin(), result->collisionPoints.end(), rng);
 								for (auto& contactPoint : result->collisionPoints) {
 									//r1 += contactPoint.first;
 									//r2 += contactPoint.second;
@@ -80,7 +73,8 @@ void PhysicsEngine::StepSimulation(double timestep) {
 											.a = &obj,
 											.b = otherPhys,
 											.collisionNormal = result->collisionNormal,
-											.totalLagrange = 0
+											.totalLagrange = 0,
+											.nerf = 1.0f / static_cast<float>(result->collisionPoints.size())
 											});
 									}
 									else {
@@ -90,7 +84,8 @@ void PhysicsEngine::StepSimulation(double timestep) {
 											.a = &obj,
 											.b = other->object,
 											.collisionNormal = result->collisionNormal,
-											.totalLagrange = 0
+											.totalLagrange = 0,
+											.nerf = 1.0f / static_cast<float>(result->collisionPoints.size())
 											});
 									}
 								}
@@ -124,16 +119,15 @@ void PhysicsEngine::StepSimulation(double timestep) {
 		}
 
 		// todo: see paper Nonconvex Rigid Bodies with Stacking. Since we aren't doing a Jacobi solve, we could handle contacts in a more stable order 
-		//std::ranges::shuffle(staticCollisions.begin(), staticCollisions.end(), rng);
-		//std::ranges::shuffle(dynamicCollisions.begin(), dynamicCollisions.end(), rng);
+		 
 		//if (staticCollisions.size() > 0)
 			//DebugLogInfo(staticCollisions[0].r1);
 
 		//if (!staticCollisions.empty()) DebugLogInfo("SOLVING");
 
-		// todo: REDUNDANT AABBTREE UPDATES
 		// Run physics solver 
-		for (unsigned posIter = 0; posIter < 1; posIter++) {
+		unsigned N_POS_ITERS = 1;
+		for (unsigned posIter = 0; posIter < N_POS_ITERS; posIter++) {
 
 			for (auto& collision : staticCollisions) {
 				glm::vec3 r1 = collision.a->GetRotSclMatrix() * collision.r1;// +collision.a->Position();
@@ -172,15 +166,25 @@ void PhysicsEngine::StepSimulation(double timestep) {
 				glm::vec3 torque = glm::cross(r1, impulse);
 				glm::vec3 dRot = inertiaAroundTorqueAxis * torque;
 				//glm::vec3 dRot = collision.a->inverseInertiaTensor * torque;
- 				collision.a->SetPosition(collision.a->Position() + displacement);
-				collision.a->SetRotation(glm::normalize(collision.a->Rotation() + 0.5f * glm::quat(0, dRot.x, dRot.y, dRot.z) * collision.a->Rotation()));
+ 				collision.a->nextPos += displacement;
+				collision.a->nextRot =collision.a->nextRot + 0.5f * glm::quat(0, dRot.x, dRot.y, dRot.z) * collision.a->Rotation();
 
 				//DebugLogInfo("TORQUE ", torque)
-
 				//glm::dvec3 newR1 = glm::dvec3(collision.a->GetRotSclMatrix() * collision.r1) + collision.a->Position();
 				//double newPenetration = glm::dot(r2 - newR1, dnormal);
 				//DebugLogInfo("DIS ", displacement);
 				//collision.a->SetPosition(collision.a->Position() + dnormal * penetration);
+			}
+
+			if (posIter != N_POS_ITERS - 1)
+			for (auto& page : iterable) {
+				for (unsigned i = 0; i < POOL_OBJECTS_PER_PAGE; i++) {
+					Physobject& obj = page[i].obj;
+					if (!obj.Live()) continue;
+
+					obj.SetPosition(obj.nextPos);
+					obj.SetRotation(obj.nextRot);
+				}
 			}
 		}
 
@@ -189,7 +193,12 @@ void PhysicsEngine::StepSimulation(double timestep) {
 			for (unsigned i = 0; i < POOL_OBJECTS_PER_PAGE; i++) {
 				Physobject& obj = page[i].obj;
 				if (!obj.Live()) continue;
-				
+
+				//DebugLogInfo("Next rot ", obj.nextRot.x, " ", obj.nextRot.y, " ", obj.nextRot.z);
+
+				obj.SetPosition(obj.nextPos);
+				obj.SetRotation(glm::normalize(obj.nextRot));
+
 				obj.velocity = (obj.Position() - obj.lastPos) / timestep;
 				glm::quat newRot = obj.Rotation();
 				//obj.rotVelocity = 2.0f * glm::vec3(
@@ -207,11 +216,15 @@ void PhysicsEngine::StepSimulation(double timestep) {
 				//if (glm::length2(obj.rotVelocity) < 0.0000001) obj.rotVelocity = glm::vec3(0,0,0);
 				//obj.SetPosition(obj.position);
 				//obj.SetRotation(obj.rotation);
+
+				obj.nextVel = obj.velocity;
+				obj.nextRotVel = obj.rotVelocity;
 			}
 		}
 
 		// Apply friction/restitution/etc.
 		for (auto& collision : staticCollisions) {
+
 			glm::vec3 r1 = glm::dvec3(collision.a->GetRotSclMatrix() * collision.r1);
 			glm::vec3 currentRelV = collision.a->velocity + r1 * collision.a->rotVelocity;
 			float currentNormalSpeed = glm::dot(collision.collisionNormal, currentRelV);
@@ -220,6 +233,8 @@ void PhysicsEngine::StepSimulation(double timestep) {
 			glm::vec3 tangentVelocity = collision.relV - collision.collisionNormal * priorNormalSpeed;
 			float tangentSpeed = glm::length(tangentVelocity);
 
+			//DebugLogInfo("V = ", currentRelV, " was ", collision.relV);
+
 			float restitution = (collision.a->elasticity + collision.b->elasticity) * 0.5f;
 			float normalForce = collision.totalLagrange / (float)timestep;
 			float friction = (collision.a->friction + collision.b->friction) * 0.5f;
@@ -227,11 +242,11 @@ void PhysicsEngine::StepSimulation(double timestep) {
 			float neededDv = desiredNormalSpeed - currentNormalSpeed;
 
 			// std::min prevents funky behavior when the two objects were intersecting before the frame started
-			glm::vec3 deltaV = collision.collisionNormal * (-currentNormalSpeed - std::min(0.0f, restitution * priorNormalSpeed));
+			glm::vec3 deltaV = collision.nerf * collision.collisionNormal * (-currentNormalSpeed - std::min(0.0f, restitution * priorNormalSpeed));
 			if (tangentSpeed != 0) {
 				//DebugLogInfo("Tangent speed", tangentSpeed, " v = ", collision.a->velocity);
 				glm::vec3 frictionDirection = -tangentVelocity / tangentSpeed;
-				deltaV += frictionDirection * glm::min(normalForce * friction, tangentSpeed);
+				deltaV += frictionDirection * glm::min(normalForce * friction, tangentSpeed); // no nerf here because we use normalForce
 			}
 
 			glm::vec3 torqueAxis1 = glm::cross(r1, deltaV); //glm::cross(r1, collision.collisionNormal);
@@ -241,15 +256,26 @@ void PhysicsEngine::StepSimulation(double timestep) {
 				inertiaAroundTorqueAxis = glm::dot(localAxis, collision.a->inverseInertiaTensor * localAxis);
 			}
 			glm::vec3 impulse = deltaV / (collision.a->inverseMass + glm::length2(torqueAxis1) * inertiaAroundTorqueAxis);
-			collision.a->velocity += impulse * collision.a->inverseMass;
-			collision.a->rotVelocity += impulse * inertiaAroundTorqueAxis * torqueAxis1;
+			collision.a->nextVel += impulse * collision.a->inverseMass;
+			collision.a->nextRotVel += impulse * inertiaAroundTorqueAxis * torqueAxis1;
 
 		}
+
+		// TODO: could merge this with first pass of next frame
+		for (auto& page : iterable) {
+			for (unsigned i = 0; i < POOL_OBJECTS_PER_PAGE; i++) {
+				Physobject& obj = page[i].obj;
+				if (!obj.Live()) continue;
+				obj.velocity = obj.nextVel;
+				obj.rotVelocity = obj.nextRotVel;
+			}	
+		}
+
 		};
 	simulate(Physobject::Pool::Get().GetIterable()); // note: not extendable to subclasses this way. do not copy paste
 }
 
-PhysicsEngine::PhysicsEngine(): rng(), currentShiftAmount(0) {
+PhysicsEngine::PhysicsEngine(): rng() {
 }
 
 PhysicsEngine::~PhysicsEngine() {

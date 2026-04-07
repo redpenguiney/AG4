@@ -159,11 +159,11 @@ int main() {
 	for (int i = 0; i < 1; i++) {
 		Physobject* gameObj = Physobject::New(p);
 		gameObj->friction = 0.5f;
-		gameObj->elasticity = 0.0f;
-		gameObj->SetPosition({ i + 2, -0.0f, 0 - i + 3.0f });
+		gameObj->elasticity = 0.5f;
+		gameObj->SetPosition({ i + 2, -2.0f, 0 - i + 3.0f });
 		gameObj->SetScale({ 1, 1, 1 });
 		gameObj->SetRotation(glm::angleAxis(glm::radians(0.0f), glm::normalize(glm::vec3(1, 0, 0))));
-		//gameObj->velocity = { 1, 0, 0 };
+		gameObj->velocity = { 0, -0, 0 };
 		//gameObj->rotVelocity = { 1, 0, 0 };
 		glm::vec4 color(1, 0.7, 1, 1);
 		gameObj->SetInstanceAttribute(*p.mesh->format.GetAttribute("color"), color);
