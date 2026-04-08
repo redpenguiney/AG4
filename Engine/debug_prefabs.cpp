@@ -91,7 +91,7 @@ std::shared_ptr<ConvexMeshPhysicsGeometry> GetCubeCollisions() {
 	return collisions;
 }
 
-void BuildPit(glm::vec3 pos, glm::vec3 size) {
+void BuildPit(glm::vec3 pos, glm::vec3 size, float elasticity, float friction) {
 	GameobjectCreateParams p;
 	p.mesh = GetCubeMesh();
 	p.physicsMesh = GetCubeCollisions();
@@ -100,6 +100,8 @@ void BuildPit(glm::vec3 pos, glm::vec3 size) {
 	glm::vec4 wallColor(0.7, 0.3, 0.3, 1);
 
 	Gameobject* floor = Gameobject::New(p);
+	floor->elasticity = elasticity;
+	floor->friction = friction;
 	floor->SetPosition({ pos - glm::vec3(0, size.y/2.0f, 0)});
 	floor->SetScale({ size.x+3, 1, size.z+3 });
 	floor->SetInstanceAttribute(*p.mesh->format.GetAttribute("color"), floorColor);
@@ -107,12 +109,16 @@ void BuildPit(glm::vec3 pos, glm::vec3 size) {
 	//floor->SetRotation(glm::angleAxis(glm::radians(5.0f), glm::normalize(glm::vec3(1, 1, 0))));
 
 	Gameobject* wall1 = Gameobject::New(p);
+	wall1->elasticity = elasticity;
+	wall1->friction = friction;
 	wall1->SetPosition({ pos - glm::vec3(size.x / 2.0f, 0, 0) });
 	wall1->SetScale({ 1, size.y, size.z });
 	wall1->SetInstanceAttribute(*p.mesh->format.GetAttribute("color"), wallColor);
 	wall1->SetInstanceAttribute(*p.mesh->format.GetAttribute(SpecialVertexAttributeNames::AUTOMATIC_TEXTURE_ARRAY_SELECTION), -1.0f);
 
 	Gameobject* wall2 = Gameobject::New(p);
+	wall2->elasticity = elasticity;
+	wall2->friction = friction;
 	wall2->SetPosition({ pos + glm::vec3(size.x / 2.0f, 0, 0) });
 	wall2->SetScale({ 1, size.y, size.z });
 	wall2->SetInstanceAttribute(*p.mesh->format.GetAttribute("color"), wallColor);

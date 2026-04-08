@@ -61,8 +61,8 @@ void PhysicsEngine::StepSimulation(double timestep) {
 									// TODO: this is inaccurate centroid calculation; we should decompose it into triangles, then take weighted average of centroids of those triangles
 									// (or just handle each contact point seperately)
 								//glm::vec3 r1 = {0, 0, 0}, r2 = {0, 0, 0};
-								// shuffle contactPoints because resolving them in a different order every frame improves stability
-								std::ranges::shuffle(result->collisionPoints.begin(), result->collisionPoints.end(), rng);
+								// shuffle contactPoints because resolving them in a different order every frame improves stability (irrelevant with Jaocbi solve(
+								//std::ranges::shuffle(result->collisionPoints.begin(), result->collisionPoints.end(), rng);
 								for (auto& contactPoint : result->collisionPoints) {
 									//r1 += contactPoint.first;
 									//r2 += contactPoint.second;
@@ -118,7 +118,7 @@ void PhysicsEngine::StepSimulation(double timestep) {
 			}
 		}
 
-		// todo: see paper Nonconvex Rigid Bodies with Stacking. Since we aren't doing a Jacobi solve, we could handle contacts in a more stable order 
+		// todo: see paper Nonconvex Rigid Bodies with Stacking. We could handle contacts in a more stable order if we abandoned the Jacobi solve and solved individual collisions in parallel 
 		 
 		//if (staticCollisions.size() > 0)
 			//DebugLogInfo(staticCollisions[0].r1);
@@ -137,18 +137,20 @@ void PhysicsEngine::StepSimulation(double timestep) {
 				//DebugPoint(glm::dvec3(r2) + collision.b->Position(), {0.5, 0.5, 0.5});
 
 				if (posIter == 0) {
-					collision.relV = collision.a->velocity + r1 * collision.a->rotVelocity;
+					collision.relV = collision.a->velocity + glm::cross(collision.a->rotVelocity, r1);
 				}
 
 				// todo: could maybe evaluate these in A's object space and then use floats?
 				glm::dvec3 dnormal = glm::dvec3(collision.collisionNormal);
 				double penetration = glm::dot(glm::dvec3(r2) + collision.b->Position() - glm::dvec3(r1) - collision.a->Position(), dnormal);
-				if (penetration < 0) continue;
-
+				if (penetration < 0) { // todo: we're having way too many of these given that N_POS_ITERS == 1, wasting perf
+					//DebugLogInfo("Fake news collision, p=", penetration); // expected if N_POS_ITERS > 1
+					continue;
+				}
 				glm::vec3 torqueAxis1 = glm::cross(r1, collision.collisionNormal);
 				// TODO: untested
 
-				//DebugLogInfo("N ", dnormal, " R1 ", r1);
+				//DebugLogInfo("N ", dnormal, " R1 ", r1, " p = ", penetration);
 
 				float inertiaAroundTorqueAxis = 0;
 				if (glm::length2(torqueAxis1) != 0) {
@@ -225,40 +227,49 @@ void PhysicsEngine::StepSimulation(double timestep) {
 		// Apply friction/restitution/etc.
 		for (auto& collision : staticCollisions) {
 
-			glm::vec3 r1 = glm::dvec3(collision.a->GetRotSclMatrix() * collision.r1);
-			glm::vec3 currentRelV = collision.a->velocity + r1 * collision.a->rotVelocity;
+			glm::vec3 r1 = collision.a->GetRotSclMatrix() * collision.r1;
+			glm::vec3 currentRelV = collision.a->velocity + glm::cross(collision.a->rotVelocity, r1);
 			float currentNormalSpeed = glm::dot(collision.collisionNormal, currentRelV);
 			float priorNormalSpeed = glm::dot(collision.collisionNormal, collision.relV);
 			//if (priorNormalSpeed > -0.001) priorNormalSpeed = 0.0f; // prevent jitter and backwards restitution
-			glm::vec3 tangentVelocity = collision.relV - collision.collisionNormal * priorNormalSpeed;
+			
+			glm::vec3 tangentVelocity = currentRelV - collision.collisionNormal * currentNormalSpeed;
 			float tangentSpeed = glm::length(tangentVelocity);
 
 			//DebugLogInfo("V = ", currentRelV, " was ", collision.relV);
 
 			float restitution = (collision.a->elasticity + collision.b->elasticity) * 0.5f;
-			float normalForce = collision.totalLagrange / (float)timestep;
+			float normalForce = collision.totalLagrange / (float)timestep; // this is actually normalForce * timestep, divide by timestep again for the actual force
 			float friction = (collision.a->friction + collision.b->friction) * 0.5f;
 			float desiredNormalSpeed =  -restitution * priorNormalSpeed;
 			float neededDv = desiredNormalSpeed - currentNormalSpeed;
 
-			// std::min prevents funky behavior when the two objects were intersecting before the frame started
-			glm::vec3 deltaV = collision.nerf * collision.collisionNormal * (-currentNormalSpeed - std::min(0.0f, restitution * priorNormalSpeed));
+
+			// std::min prevents funky behavior when the two objects were intersecting before the frame started (TODO NO IT DOESNT)
+			glm::vec3 deltaV = /*collision.nerf **/ collision.collisionNormal * (-currentNormalSpeed - std::min(0.0f, restitution * priorNormalSpeed));
+
+			//DebugLogInfo("desired ", desiredNormalSpeed, " solution ", deltaV.y, " currentV = ", collision.a->velocity);
+
 			if (tangentSpeed != 0) {
 				//DebugLogInfo("Tangent speed", tangentSpeed, " v = ", collision.a->velocity);
 				glm::vec3 frictionDirection = -tangentVelocity / tangentSpeed;
 				deltaV += frictionDirection * glm::min(normalForce * friction, tangentSpeed); // no nerf here because we use normalForce
 			}
 
-			glm::vec3 torqueAxis1 = glm::cross(r1, deltaV); //glm::cross(r1, collision.collisionNormal);
+			glm::vec3 torqueAxis1 = glm::cross(r1, glm::normalize(deltaV)); //glm::cross(r1, collision.collisionNormal);
 			float inertiaAroundTorqueAxis = 0;
 			if (glm::length2(torqueAxis1) != 0) {
 				auto localAxis = glm::inverse(collision.a->Rotation()) * glm::normalize(torqueAxis1);
 				inertiaAroundTorqueAxis = glm::dot(localAxis, collision.a->inverseInertiaTensor * localAxis);
 			}
-			glm::vec3 impulse = deltaV / (collision.a->inverseMass + glm::length2(torqueAxis1) * inertiaAroundTorqueAxis);
+			float reducedInverseMass1 = collision.a->inverseMass + glm::length2(torqueAxis1) * inertiaAroundTorqueAxis;
+
+			glm::vec3 impulse = deltaV / reducedInverseMass1;
 			collision.a->nextVel += impulse * collision.a->inverseMass;
 			collision.a->nextRotVel += impulse * inertiaAroundTorqueAxis * torqueAxis1;
 
+			//DebugLogInfo("NEXTVEL ", collision.a->nextVel.y);
+			//break;
 		}
 
 		// TODO: could merge this with first pass of next frame
