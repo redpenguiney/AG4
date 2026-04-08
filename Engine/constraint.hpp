@@ -15,6 +15,9 @@ struct StaticCollisionConstraint {
 	glm::vec3 relV;
 	float totalLagrange;
 	float nerf;
+
+	void PositionPass(float timestep, unsigned nIter);
+	void VelocityPass(float timestep);
 };
 
 // physobject-physobject collision
@@ -29,4 +32,7 @@ struct DynamicCollisionConstraint {
 	glm::vec3 relV;
 	float totalLagrange;
 	float nerf;
+
+	void PositionPass(float timestep, unsigned nIter);
+	void VelocityPass(float timestep);
 };

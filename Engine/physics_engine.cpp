@@ -196,7 +196,7 @@ void PhysicsEngine::StepSimulation(double timestep) {
 				Physobject& obj = page[i].obj;
 				if (!obj.Live()) continue;
 
-				//DebugLogInfo("Next rot ", obj.nextRot.x, " ", obj.nextRot.y, " ", obj.nextRot.z);
+				//DebugLogInfo("RV " , obj.rotVelocity);
 
 				obj.SetPosition(obj.nextPos);
 				obj.SetRotation(glm::normalize(obj.nextRot));
@@ -226,50 +226,7 @@ void PhysicsEngine::StepSimulation(double timestep) {
 
 		// Apply friction/restitution/etc.
 		for (auto& collision : staticCollisions) {
-
-			glm::vec3 r1 = collision.a->GetRotSclMatrix() * collision.r1;
-			glm::vec3 currentRelV = collision.a->velocity + glm::cross(collision.a->rotVelocity, r1);
-			float currentNormalSpeed = glm::dot(collision.collisionNormal, currentRelV);
-			float priorNormalSpeed = glm::dot(collision.collisionNormal, collision.relV);
-			//if (priorNormalSpeed > -0.001) priorNormalSpeed = 0.0f; // prevent jitter and backwards restitution
-			
-			glm::vec3 tangentVelocity = currentRelV - collision.collisionNormal * currentNormalSpeed;
-			float tangentSpeed = glm::length(tangentVelocity);
-
-			//DebugLogInfo("V = ", currentRelV, " was ", collision.relV);
-
-			float restitution = (collision.a->elasticity + collision.b->elasticity) * 0.5f;
-			float normalForce = collision.totalLagrange / (float)timestep; // this is actually normalForce * timestep, divide by timestep again for the actual force
-			float friction = (collision.a->friction + collision.b->friction) * 0.5f;
-			float desiredNormalSpeed =  -restitution * priorNormalSpeed;
-			float neededDv = desiredNormalSpeed - currentNormalSpeed;
-
-
-			// std::min prevents funky behavior when the two objects were intersecting before the frame started (TODO NO IT DOESNT)
-			glm::vec3 deltaV = /*collision.nerf **/ collision.collisionNormal * (-currentNormalSpeed - std::min(0.0f, restitution * priorNormalSpeed));
-
-			//DebugLogInfo("desired ", desiredNormalSpeed, " solution ", deltaV.y, " currentV = ", collision.a->velocity);
-
-			if (tangentSpeed != 0) {
-				//DebugLogInfo("Tangent speed", tangentSpeed, " v = ", collision.a->velocity);
-				glm::vec3 frictionDirection = -tangentVelocity / tangentSpeed;
-				deltaV += frictionDirection * glm::min(normalForce * friction, tangentSpeed); // no nerf here because we use normalForce
-			}
-
-			glm::vec3 torqueAxis1 = glm::cross(r1, glm::normalize(deltaV)); //glm::cross(r1, collision.collisionNormal);
-			float inertiaAroundTorqueAxis = 0;
-			if (glm::length2(torqueAxis1) != 0) {
-				auto localAxis = glm::inverse(collision.a->Rotation()) * glm::normalize(torqueAxis1);
-				inertiaAroundTorqueAxis = glm::dot(localAxis, collision.a->inverseInertiaTensor * localAxis);
-			}
-			float reducedInverseMass1 = collision.a->inverseMass + glm::length2(torqueAxis1) * inertiaAroundTorqueAxis;
-
-			glm::vec3 impulse = deltaV / reducedInverseMass1;
-			collision.a->nextVel += impulse * collision.a->inverseMass;
-			collision.a->nextRotVel += impulse * inertiaAroundTorqueAxis * torqueAxis1;
-
-			//DebugLogInfo("NEXTVEL ", collision.a->nextVel.y);
-			//break;
+			collision.VelocityPass(timestep);
 		}
 
 		// TODO: could merge this with first pass of next frame

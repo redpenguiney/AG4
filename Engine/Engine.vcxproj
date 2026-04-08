@@ -147,6 +147,7 @@
     <ClCompile Include="collider.cpp" />
     <ClCompile Include="collision_detection.cpp" />
     <ClCompile Include="compute_shader_program.cpp" />
+    <ClCompile Include="constraint.cpp" />
     <ClCompile Include="cursor.cpp" />
     <ClCompile Include="debug_prefabs.cpp" />
     <ClCompile Include="framebuffer.cpp" />

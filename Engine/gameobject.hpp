@@ -141,7 +141,8 @@ protected:
 
 	friend class Pool;
 	friend class PhysicsEngine;
-
+	friend class StaticCollisionConstraint;
+	friend class DynamicCollisionConstraint;
 private:
 	void UpdateMass();
 };
