@@ -25,6 +25,7 @@ void Mainloop::Run() {
 			if (stepPhysics) physicsPaused = true;
 			prePhysics->Fire(simulationTimestep);
 			BaseEvent::FlushEventQueue();
+			//PhysicsEngine::Get().StepSimulation(simulationTimestep);
 			PhysicsEngine::Get().StepSimulation(simulationTimestep * 2.0f/3.0f);
 			PhysicsEngine::Get().StepSimulation(simulationTimestep * 1.0f/3.0f);
 			postPhysics->Fire(simulationTimestep);
@@ -34,6 +35,10 @@ void Mainloop::Run() {
 		}
 		if (physicsLag > simulationTimestep) {
 			DebugLogInfo("Simulation is ", physicsLag, " seconds behind (", elapsedTime, "s since last frame).");
+			if (physicsLag > 1.0) {
+				DebugLogError("Simulation is too far behind, clamping physicsLag to 1.0 seconds.");
+				physicsLag = 1.0;
+			}
 		}
 
 		GameobjectSAS().OptimizeTree();

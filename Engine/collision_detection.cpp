@@ -149,11 +149,12 @@ static std::optional<Collision> ClipFaces(glm::vec3 normal, Gameobject* a, Gameo
     //glm::vec3 contactNormal = b->ObjectNormalToWorld(pmB->polygons[contactFace].normal);
     for (auto& v : contactFacePoints) {
         float depth = SignedDistanceToPlane(pmA->polygons[clippingFace].normal, pmA->polygons[clippingFace].points[0], v);
-        //glm::vec3 worldPlanePoint = a->GetRotSclMatrix() * pmA->polygons[clippingFace].points[0] + glm::vec3(a->Position());
+        glm::vec3 worldPlanePoint = a->GetRotSclMatrix() * pmA->polygons[clippingFace].points[0] + glm::vec3(a->Position());
         glm::vec3 worldV = a->GetRotSclMatrix() * v + glm::vec3(a->Position());
         //float suspectedDepth = SignedDistanceToPlane(clipNormal, worldPlanePoint, worldV);
-        if (depth > -0.00001) {
+        if (depth > -0.001) {
             //DebugPoint(worldV, { 1, 1, 0 });
+            //DebugLogInfo("d = ", depth);
 
             glm::vec3 vInBSpace = worldToB * (a->GetRotSclMatrix() * v - bToARelPos);
             finalContactPoints.push_back(std::make_pair(v - normal * depth, vInBSpace));
@@ -170,6 +171,12 @@ static std::optional<Collision> ClipFaces(glm::vec3 normal, Gameobject* a, Gameo
     }
     else {
         DebugLogError("Found collision, but all proposed contacts were outside object.");
+
+        for (auto& v : contactFacePoints) {
+            float depth = SignedDistanceToPlane(pmA->polygons[clippingFace].normal, pmA->polygons[clippingFace].points[0], v);
+            DebugLogError("DEPTH ", depth);
+        }
+
         return std::nullopt;
     }
 }
@@ -700,6 +707,7 @@ static std::optional<Collision> CollideSAT(Gameobject* a, Gameobject* b) {
         }
     }
 
+    bool bHasGreaterSeperation = false;
     for (auto& planeB : pmB->polygons) {
         glm::vec3 normalInAspace = glm::normalize(normalBToA * planeB.normal);
         glm::vec3 pointA = pmA->Support(-normalInAspace);
@@ -710,7 +718,7 @@ static std::optional<Collision> CollideSAT(Gameobject* a, Gameobject* b) {
             return std::nullopt;
         }
         else if (distance > greatestSeperation) {
-
+            bHasGreaterSeperation = true;
             greatestSeperation = distance;
             collisionNormal = normalInAspace;
         }
@@ -785,6 +793,16 @@ static std::optional<Collision> CollideSAT(Gameobject* a, Gameobject* b) {
             .collisionPoints = {{p1, p2InB},},
             .collisionNormal = worldspaceNormal
         };
+    }
+    else if (bHasGreaterSeperation) {
+        //DebugLogInfo("B HAS GREATER ", greatestSeperation);
+
+        auto backwardResult = ClipFaces((normalAToB * -collisionNormal), b, a, worldToA, bToARelPos, worldToB, normalBToA);
+        if (backwardResult) {
+            backwardResult->collisionNormal = a->ObjectNormalToWorld(collisionNormal);
+            for (auto& p : backwardResult->collisionPoints) std::swap(p.first, p.second);
+        }
+        return backwardResult;
     }
     else {
         return ClipFaces(collisionNormal, a, b, worldToB, -bToARelPos, worldToA, normalAToB);

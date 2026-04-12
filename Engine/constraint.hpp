@@ -13,7 +13,8 @@ struct StaticCollisionConstraint {
 	// B to A
 	glm::vec3 collisionNormal;
 	glm::vec3 relV;
-	float totalLagrange;
+	float totalNormalLagrange;
+	float totalTangentLagrange;
 	float nerf;
 
 	void PositionPass(float timestep, unsigned nIter);
@@ -30,7 +31,8 @@ struct DynamicCollisionConstraint {
 	// B to A
 	glm::vec3 collisionNormal;
 	glm::vec3 relV;
-	float totalLagrange;
+	float totalNormalLagrange;
+	float totalTangentLagrange;
 	float nerf;
 
 	void PositionPass(float timestep, unsigned nIter);

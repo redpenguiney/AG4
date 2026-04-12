@@ -12,7 +12,8 @@ std::shared_ptr<DrawPass> GetDebugWireframePass();
 std::shared_ptr<DrawPass> GetDebugSolidPass();
 std::shared_ptr<ConvexMeshPhysicsGeometry> GetCubeCollisions();
 
-void BuildPit(glm::vec3 pos, glm::vec3 size, float elasticity, float friction);
+void BuildPit(glm::dvec3 pos, glm::vec3 size, float elasticity, float friction);
+void BuildCubeArray(glm::dvec3 origin, glm::dvec3 stride, glm::uvec3 nCubes, bool physics, float elasticity, float friction);
 
 Gameobject* DebugPoint(glm::dvec3 pos, glm::vec3 color = {1, 1, 1});
 Gameobject* DebugLine(glm::dvec3 a, glm::dvec3 b, glm::vec3 color = { 1, 1, 1 });

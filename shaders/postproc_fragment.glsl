@@ -5,7 +5,7 @@ in vec2 TexCoords;
 
 uniform sampler2D screenTextureColor;
 
-const float offset = 1.0 / 1000.0;  
+const float offset = 0.0 / 1000.0;  
 
 void main()
 { 
