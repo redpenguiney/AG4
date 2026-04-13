@@ -175,7 +175,7 @@ int main() {
 	//}
 	//
 	GraphicsEngine::Get().currentCamera.position = { 1, 0, 5 };
-	PhysicsEngine::Get().gravity = { 5, -5, 0 };
+	//PhysicsEngine::Get().gravity = { 5, -5, 0 };
 	
 
 	//Mainloop::Get().stepPhysics = true;
