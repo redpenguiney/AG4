@@ -1,4 +1,4 @@
-#pramga once
+#pragma once
 
 // Represents a client connected to us 
 
