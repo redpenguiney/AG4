@@ -12,7 +12,7 @@ unsigned int MeshVertexFormat::GetNonInstancedVertexSize() const {
     return noninstancedVertexSize;
 }
 
-MeshVertexFormat::MeshVertexFormat(std::vector<VertexAttribute> attribs) : attributes(attribs) {
+MeshVertexFormat::MeshVertexFormat(std::vector<VertexAttribute> attribs, bool floatingOriginEnabled) : attributes(attribs), floatingOriginEnabled(floatingOriginEnabled) {
 
     unsigned numModelMatrices = 0;
     unsigned numNormalMatrices = 0;
@@ -91,7 +91,7 @@ MeshVertexFormat MeshVertexFormat::DefaultGui() {
     attributes.push_back(VertexAttribute{ .name = "color", .nComponents = 4, .instanced = true });
     // TODO: arb1
 
-    return MeshVertexFormat(attributes);
+    return MeshVertexFormat(attributes, false);
 }
 
 MeshVertexFormat MeshVertexFormat::DefaultTriplanarMapping(bool instancedColor)
@@ -119,4 +119,8 @@ const VertexAttribute* MeshVertexFormat::GetAttribute(std::string name) const
 {
     for (const auto& a : attributes) if (a.name == name) return &a;
     return nullptr;
+}
+
+bool MeshVertexFormat::IsFloatingOriginEnabled() const {
+    return floatingOriginEnabled;
 }

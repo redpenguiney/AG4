@@ -59,8 +59,9 @@ namespace SpecialVertexAttributeNames {
 // Attribute offsets are always correct.
 struct MeshVertexFormat {
 
-    MeshVertexFormat(std::vector<VertexAttribute> attribs);
+    MeshVertexFormat(std::vector<VertexAttribute> attribs, bool floatingOriginEnabled = true);
     MeshVertexFormat(const MeshVertexFormat&) = default;
+    MeshVertexFormat& operator=(const MeshVertexFormat&) = default;
 
     const std::vector<VertexAttribute>& GetAttributes() const;
 
@@ -75,11 +76,13 @@ struct MeshVertexFormat {
     // Returns a simple mesh vertex format that should work for normal people doing normal things in 3D.
     // noninstanced: XYZ, TextureXY, NormalXYZ, TangentXYZ. 
     // instanced: model matrix, normal matrix, rgba, textureZ 
+    // floating origin enabled
     static MeshVertexFormat Default();
 
     // Returns a simple mesh vertex format that should work for normal people doing normal things with GUI. 
     // noninstanced XYZ UV 
     // instanced model matrix, normal matrix, rgba, textureZ
+    // floating origin disabled
     static MeshVertexFormat DefaultGui();
 
     // triplanar mapping is a shader technique that allows for texturing meshes that don't have UVs, which is useful for things like procedural terrain.
@@ -95,7 +98,10 @@ struct MeshVertexFormat {
 
     bool operator==(const MeshVertexFormat& other) const = default;
 
+    bool IsFloatingOriginEnabled() const;
+
 private:
+    bool floatingOriginEnabled;
     std::vector<VertexAttribute> attributes;
     unsigned noninstancedVertexSize;
     unsigned instancedVertexSize;

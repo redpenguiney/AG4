@@ -63,7 +63,14 @@ void GraphicsEngine::WriteModelMatrices() {
                 Gameobject& obj = page[i].obj;
                 if (!obj.Live()) continue;
 
-                glm::vec3 relPos = (obj.Position() - currentCamera.position);
+                
+                glm::vec3 relPos;
+                if (obj.meshpool->format.IsFloatingOriginEnabled()) {
+                    relPos = obj.Position() - currentCamera.position;
+                }
+                else {
+                    relPos = obj.Position();
+                }
                 glm::mat4x4 modelMatrix = glm::mat4x4(obj.GetRotSclMatrix());
                 modelMatrix[3].x = relPos.x;
                 modelMatrix[3].y = relPos.y;
