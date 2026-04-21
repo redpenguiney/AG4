@@ -299,5 +299,11 @@
     <ClInclude Include="light.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="local_client.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="remote_client.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
