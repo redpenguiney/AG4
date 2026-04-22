@@ -27,14 +27,15 @@ enum class VerticalAlignMode {
 struct TextFormatting {
 	// Text mesh will be strictly constrained by left and right margins if wrapping is enabled. 
 	// If wrapping is not enabled, then left/right margins are only respected for left/right horizontal alignments respectively.
-	// Top/bottom margins are only respected for top/bottom vertical alignments respectively.
+	// Top/bottom margins are only strictly respected for top/bottom vertical alignments respectively.
 	// Margins are in pixels.
 	int leftMargin = -100000;
 	int rightMargin = -100000;
 	int topMargin = 0;
 	int bottomMargin = 0;
 	
-	float lineHeightMultiplier = 1; // 1 is single spaced, 2 is double spaced, etc.
+	int lineSpacing = 18; // in pixels.
+	int spaceLength = 6; // in pixels.
 
 	HorizontalAlignMode horizontalAlignment = HorizontalAlignMode::Center;
 	VerticalAlignMode verticalAlignment = VerticalAlignMode::Center;
@@ -72,7 +73,7 @@ public:
 
 	// sets vertices and indices given a font texture and 
 	// meshVertexFormat should already be set to what you want when you call this. 
-	// Only sets position, and requires SpecialVertexAttributeNames to be used for position.
+	// Only sets position/UVs, and requires SpecialVertexAttributeNames to be used for position and UVs.
 	void LoadText(Texture& fontmap, std::string text, TextFormatting formatting);
 
     MeshCreateParams() = default;
