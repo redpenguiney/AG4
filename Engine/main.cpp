@@ -12,15 +12,19 @@
 #include "light.hpp"
 #include "clustered_lighting.hpp"
 #include "physics_engine.hpp"
+#include "gui.hpp"
 
 int main() {
 	DebugLogInfo("Reached main() successfully."); // you know it's a bad sign when you need to print this sort of thing
 
 	std::vector<std::shared_ptr<Gameobject>> objects;
-
+	
+	//MemoryPool<Gameobject, const GameobjectCreateParams&>::Get();
+	//MemoryPool<Physobject, const PhysobjectCreateParams&>::Get();
 	Window::Get();
 	GraphicsEngine::Get();
 	GameobjectSAS();
+	//GetScreenGuiContainer();
 
 	// Freecam
 	float pitch = 0, yaw = 0, speed = 0;
@@ -174,6 +178,14 @@ int main() {
 
 	//}
 	//
+
+	auto frame = GuiElement::New(*GetScreenGuiContainer());
+	frame->percentagePosition = { 0.5, 0.5 };
+	frame->percentagePosition = { 0.5, 0.5 };
+	frame->backgroundColor = { 1, 0, 0, 1 };
+	frame->RefreshGraphics();
+	frame->RefreshTransform();
+
 	GraphicsEngine::Get().currentCamera.position = { 1, 0, 5 };
 	//PhysicsEngine::Get().gravity = { 5, -5, 0 };
 	
@@ -203,6 +215,8 @@ int main() {
 		});
 	Mainloop::Get().Run();
 	// TODO cleanup?
+
+	frame = nullptr;
 
 	DebugLogInfo("Main function body executed successfully.");
 }

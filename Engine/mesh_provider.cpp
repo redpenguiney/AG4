@@ -73,6 +73,51 @@ void MeshCreateParams::LoadObj(std::string path) {
     vertices.reserve(vertices.size());
 }
 
+void MeshCreateParams::LoadText(Texture& fontmap, std::string text, TextFormatting formatting) {
+    // text wrapping
+    if (formatting.wrapping) {
+
+        // divide the text into words
+        std::vector<std::string> words; // spaces, tabs, and newlines are words, ok?
+        std::string currentWord = "";
+
+        for (char& c : text) {
+            if (c == ' ' || c == '\n' || c == '\t') {
+                if (currentWord.length() > 0) words.push_back(currentWord);
+                if (c == '\t') {
+                    for (unsigned i = 0; i < formatting.tabLength; i++) words.push_back(" ");
+                }
+                else {
+                    words.push_back(std::string(1, c));
+                }
+                currentWord = "";
+            }
+            else {
+                currentWord += c;
+            }
+        }
+        if (currentWord.length() > 0) words.push_back(currentWord);
+
+        // then, for each word, see if it fits on the current line. 
+            //  If it's just a newline/space/tab, duh.
+            //  If it's bigger than maxLengthPerLine, split the word as needed. 
+            //  Else, if it's bigger than  maxLengthPerLine - currentLineLegnth, put the word on the next line.
+            //  Else, it fits on the current line, just append it directly to wrappedText (with a space)
+        int currentLineLength = 0;
+        int maxLineLength = formatting.rightMargin - formatting.leftMargin;
+        Assert(maxLineLength > 0);
+        std::string wrappedText;
+
+        for (auto it = words.begin(); it != words.end(); it++) {
+            auto& word = *it;
+
+            if (word == "\n") {
+
+            }
+        }
+    }
+}
+
 //MeshCreateParams& MeshCreateParams::operator=(TextMeshCreateParams&& other) noexcept {
 //    return *this;
 //}

@@ -10,6 +10,39 @@
 #include <GL/glew.h>
 #include "mesh_format.hpp"
 
+class Texture;
+
+enum class HorizontalAlignMode {
+	Left,
+	Center,
+	Right
+};
+
+enum class VerticalAlignMode {
+	Top,
+	Center,
+	Bottom
+};
+
+struct TextFormatting {
+	// Text mesh will be strictly constrained by left and right margins if wrapping is enabled. 
+	// If wrapping is not enabled, then left/right margins are only respected for left/right horizontal alignments respectively.
+	// Top/bottom margins are only respected for top/bottom vertical alignments respectively.
+	// Margins are in pixels.
+	int leftMargin = -100000;
+	int rightMargin = -100000;
+	int topMargin = 0;
+	int bottomMargin = 0;
+	
+	float lineHeightMultiplier = 1; // 1 is single spaced, 2 is double spaced, etc.
+
+	HorizontalAlignMode horizontalAlignment = HorizontalAlignMode::Center;
+	VerticalAlignMode verticalAlignment = VerticalAlignMode::Center;
+
+	bool wrapping = true;
+	int tabLength = 4; // in spaces
+};
+
 class MeshCreateParams {
 public:
 	MeshVertexFormat meshVertexFormat = MeshVertexFormat::Default();
@@ -34,7 +67,13 @@ public:
 	// sets vertices and indices given path to a .obj file. Does nothing else.
 	// meshVertexFormat should already be set to what you want when you call this.
 	// Requires SpecialVertexAttributeNames to be used.
+	// Written positions are in pixel space; you should probably NOT use normalizeSize with this.
 	void LoadObj(std::string path);
+
+	// sets vertices and indices given a font texture and 
+	// meshVertexFormat should already be set to what you want when you call this. 
+	// Only sets position, and requires SpecialVertexAttributeNames to be used for position.
+	void LoadText(Texture& fontmap, std::string text, TextFormatting formatting);
 
     MeshCreateParams() = default;
     MeshCreateParams(MeshCreateParams&&) noexcept = default;
@@ -44,24 +83,4 @@ private:
 
     MeshCreateParams(const MeshCreateParams&) = delete;
     
-};
-
-enum class HorizontalAlignMode {
-	Left,
-	Center,
-	Right
-};
-
-enum class VerticalAlignMode {
-	Top,
-	Center,
-	Bottom
-};
-
-struct TextMeshCreateParams {
-	float leftMargin = -1000, rightMargin = 1000, topMargin = 0, bottomMargin = 0; // in pixels, 0 is the center of the ui text is being put on. top and bottom margin are only respected for top and bottom vertical alignment respectively.
-	float lineHeightMultiplier = 1; // 1 is single spaced, 2 is double spaced, etc.
-	HorizontalAlignMode horizontalAlignMode = HorizontalAlignMode::Center;
-	VerticalAlignMode verticalAlignMode = VerticalAlignMode::Center;
-	bool wrapText = true;
 };

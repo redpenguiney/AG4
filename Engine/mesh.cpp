@@ -30,6 +30,22 @@ std::shared_ptr<Mesh> Mesh::Quad() {
 	return m;
 }
 
+std::shared_ptr<Mesh> Mesh::GuiQuad()
+{
+	MeshCreateParams params = MeshCreateParams::DefaultGui();
+	params.normalizeSize = false;
+	params.generateNormals = false;
+	params.generateTangents = false;
+	params.vertices = { 
+		-0.5f, -0.5f, 0.0f, 0.0f, 0.0f,
+		0.5f, -0.5f, 0.0f, 1.0f, 0.0f,
+		0.5f, 0.5f, 0.0f, 1.0f, 1.0f,
+		-0.5f, 0.5f, 0.0f, 0.0f, 1.0f };
+	params.indices = { 0, 1, 2, 0, 2, 3 };
+	static std::shared_ptr<Mesh> m = Mesh::New(std::move(params));
+	return m;
+}
+
 const std::vector<VertexScalar>& Mesh::GetVertices() {
 	return vertices;
 }

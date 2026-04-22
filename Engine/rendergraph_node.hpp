@@ -200,6 +200,9 @@ protected:
 
 class DrawPass : public RenderPass {
 public:
+	DrawPass() = default;
+	DrawPass(const DrawPass& other) = default;
+
 	// If FramebufferRenderTargetDescriptor:
 		// Remember to update outputs to contain ALL attachments of this renderTarget (not just the ones it writes to).
 	// If WindowRenderTargetDescriptor:

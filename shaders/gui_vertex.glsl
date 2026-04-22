@@ -4,7 +4,7 @@
 
 
 layout(location=0) in vec3 vertexPos;
-layout(location=1) in vec4 vertexColor;
+layout(location=1) in vec4 color;
 layout(location=2) in vec2 textureXY;
 layout(location=3) in float textureZ;
 
@@ -32,7 +32,7 @@ void main()
     gl_Position.z = 0;
 
 
-    fragmentColor = vertexColor;
-    fragmentTexCoords = vec3(textureXY, textureZ);
+    fragmentColor = color;
+    fragmentTexCoords = vec3(textureXY, -1.0);
 }          
 

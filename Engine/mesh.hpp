@@ -12,6 +12,9 @@ public:
 	// returns a UV-mapped quad for postprocessing purposes.
 	static std::shared_ptr<Mesh> Quad();
 
+	// Like Quad() but with the gui mesh format and normalized vertex positions.
+	static std::shared_ptr<Mesh> GuiQuad();
+
 	const MeshVertexFormat format;
 	
 	const std::vector<VertexScalar>& GetVertices();
