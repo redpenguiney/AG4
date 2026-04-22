@@ -60,7 +60,8 @@ public:
 
 	glm::vec4 textColor = { 0.0, 0.0, 0.0, 1.0 };
 	std::string text = "DEFAULT TEXT";
-
+	HorizontalAlignMode hAlign = HorizontalAlignMode::Center;
+	VerticalAlignMode vAlign = VerticalAlignMode::Center;
 	// Unsafe if not calling through a std::shared_ptr<GuiElement>.
 	void SetParent(GuiElement* newParent);
 

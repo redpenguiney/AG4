@@ -62,7 +62,8 @@ void GuiElement::RefreshGraphics() {
 }
 
 void GuiElement::RefreshText() {
-
+    textobject = nullptr;
+    MakeTextobject();
 }
 
 void GuiElement::SetParent(GuiElement* newParent) {
@@ -72,7 +73,7 @@ void GuiElement::SetParent(GuiElement* newParent) {
 }
 
 void GuiElement::MakeTextobject() {
-
+    Gameobject
 }
 
 GuiElement::GuiElement(GuiContainer& storeIn, std::shared_ptr<Texture> background, std::shared_ptr<Texture> font):

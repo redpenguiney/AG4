@@ -183,8 +183,10 @@ int main() {
 	frame->percentagePosition = { 0.5, 0.5 };
 	frame->percentagePosition = { 0.5, 0.5 };
 	frame->backgroundColor = { 1, 0, 0, 1 };
+	frame->text = "BOB THE POOPER";
 	frame->RefreshGraphics();
 	frame->RefreshTransform();
+	frame->RefreshText();
 
 	GraphicsEngine::Get().currentCamera.position = { 1, 0, 5 };
 	//PhysicsEngine::Get().gravity = { 5, -5, 0 };
