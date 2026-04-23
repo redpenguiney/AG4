@@ -39,7 +39,7 @@ struct ProcessedDrawPass {
 	std::function<void()> bindRenderTarget;
 	std::function<void(std::shared_ptr<BaseShaderProgram>)> setUniforms; // may be empty
 	std::vector<TextureBinding> textures;
-	std::vector<RenderGroup*> thingsToDraw;
+	//std::vector<RenderGroup*> thingsToDraw; 
 	
 	RenderingParameters params;
 

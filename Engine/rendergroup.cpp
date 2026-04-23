@@ -12,7 +12,13 @@ void RenderGroup::RemoveGameobject(Gameobject& obj) {
 		if (commands[i].baseInstance <= obj.drawInstanceIndex && commands[i].baseInstance + commands[i].instanceCount > obj.drawInstanceIndex) {
 			
 			if (commands[i].baseInstance + commands[i].instanceCount - 1 == obj.drawInstanceIndex) {
-				commands[i].instanceCount--;
+				if (commands[i].instanceCount == 1) {
+					commands[i] = commands.back();
+					commands.pop_back();
+				}
+				else {
+					commands[i].baseInstance--;
+				}
 			}
 			else if (commands[i].baseInstance == obj.drawInstanceIndex) {
 				if (commands[i].instanceCount == 1) {
@@ -53,6 +59,19 @@ void RenderGroup::RemoveGameobject(Gameobject& obj) {
 		}
 	}
 
+}
+
+RenderGroup::~RenderGroup() {
+	//Assert(commands.empty()); TODO: ???
+	for (auto& pass : drawPasses) {
+		for (unsigned groupI = 0; groupI < pass->drawnObjects.size(); groupI++) {
+			if (pass->drawnObjects[groupI] == this) {
+				pass->drawnObjects[groupI] = pass->drawnObjects.back();
+				pass->drawnObjects.pop_back();
+				break; // only breaks inner loop
+			}
+		}
+	}
 }
 
 void RenderGroup::AddGameobject(Gameobject& obj, const GameobjectCreateParams& params) {

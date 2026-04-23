@@ -64,6 +64,7 @@ public:
 	// Equivalent to default constructor.
 	static MeshCreateParams Default();
 	static MeshCreateParams DefaultGui();
+	static MeshCreateParams DefaultText();
 
 	// sets vertices and indices given path to a .obj file. Does nothing else.
 	// meshVertexFormat should already be set to what you want when you call this.

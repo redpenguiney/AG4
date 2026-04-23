@@ -319,9 +319,16 @@ void BaseShaderProgram::Uniform(std::string uniformName, int ival, bool require)
         if (require) throw std::runtime_error("Shader has no uniform " + uniformName);
         else return;
     };
-    if (shaderUniforms[uniformName].type != GL_INT) {
-        if (require) throw std::runtime_error("Shader expects a different type for this uniform.");
-        else return;
+    auto type = shaderUniforms[uniformName].type;
+    if (type != GL_INT && 
+        type != GL_SAMPLER_2D && 
+        type != GL_SAMPLER_2D_ARRAY&&
+        type != GL_SAMPLER_2D_SHADOW&&
+        type != GL_SAMPLER_2D_ARRAY_SHADOW&&
+        type != GL_SAMPLER_CUBE&&
+        type != GL_SAMPLER_CUBE_MAP_ARRAY
+        ) {
+        throw std::runtime_error("Shader expects a different type for this uniform.");
     }
     Use();
     glUniform1i(shaderUniforms.at(uniformName).uniformLocation, ival);

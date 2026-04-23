@@ -5,6 +5,7 @@
 #include "indirect_draw_command.hpp"
 
 class DrawPass;
+class ProcessedDrawPass;
 class Meshpool;
 class Gameobject;
 struct GameobjectCreateParams;
@@ -20,7 +21,7 @@ public:
 	// May remove the RenderGroup from renderGroupsByMeshpool if removing last gameobject, potentially causing group destruction if no other shared_ptr references exist.
 	void RemoveGameobject(Gameobject& obj);
 
-	~RenderGroup() = default;
+	~RenderGroup();
 
 private:
 	void AddGameobject(Gameobject& obj, const GameobjectCreateParams& params);

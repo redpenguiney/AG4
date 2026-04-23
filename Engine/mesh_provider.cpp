@@ -16,6 +16,10 @@ MeshCreateParams MeshCreateParams::DefaultGui() {
     return p;
 }
 
+MeshCreateParams MeshCreateParams::DefaultText() {
+    return DefaultGui();
+}
+
 void MeshCreateParams::LoadObj(std::string path) {
     
     tinyobj::ObjReaderConfig reader_config;
@@ -113,8 +117,8 @@ void MeshCreateParams::LoadText(Texture& fontmap, std::string text, TextFormatti
         int maxLineLength = formatting.rightMargin - formatting.leftMargin;
         Assert(maxLineLength > 0);
         std::string currentLine = "";
-        for (auto it = words.begin(); it != words.end(); it++) {
-            auto& word = *it;
+        for (int wordI = 0; wordI < static_cast<int>(words.size()); wordI++) {
+            auto& word = words[wordI];
 
             if (word == "\n") {
                 lines.push_back(currentLine);
@@ -123,9 +127,10 @@ void MeshCreateParams::LoadText(Texture& fontmap, std::string text, TextFormatti
             }
             else if (word == " ") {
                 currentLineLength += fontmap.glyphs->at(' ').advance;
+                currentLine += " ";
             }
             else {
-                int wordLength; // in pixels
+                int wordLength = 0; // in pixels
                 unsigned i = 0;
                 for (const char& c : word) {
                     wordLength += fontmap.glyphs->at(c).advance;
@@ -135,8 +140,10 @@ void MeshCreateParams::LoadText(Texture& fontmap, std::string text, TextFormatti
                         // std::cout << "Splitting word " << word << " into " << word.substr(0, i) << " and " << word.substr(i, std::string::npos) << ".\n";
 
                         currentLine += word.substr(0, i);
-                        words.insert(std::next(it), word.substr(i, std::string::npos));
-                        words.insert(std::next(it), "\n");
+                        currentLineLength += wordLength - fontmap.glyphs->at(c).advance;
+                        words.insert(words.begin() + wordI + 1, word.substr(i, std::string::npos));
+                        words.insert(words.begin() + wordI + 1, "\n");
+                        
                         goto splitWord;
                     }
 
@@ -144,7 +151,8 @@ void MeshCreateParams::LoadText(Texture& fontmap, std::string text, TextFormatti
                 }
 
                 if (wordLength > (maxLineLength - currentLineLength)) {
-                    words.insert(std::next(it), "\n");
+                    words.insert(words.begin() + wordI, "\n");
+                    wordI--;
                 }
                 else {
                     currentLine += word;
@@ -190,7 +198,10 @@ void MeshCreateParams::LoadText(Texture& fontmap, std::string text, TextFormatti
     }
 
     // Figure out height of first line
-    if (lines.empty()) DebugLogError("No text???"); return;
+    if (lines.empty()) {
+        DebugLogError("No text???");
+        return;
+    }
     int textHeight = formatting.lineSpacing * (lines.size() - 1); // distance between baseline of first line and baseline of last line.
     int topLineHeight = 0; // top line baseline to top of letter with greatest yMax
     int bottomLineHeight = 0; // bottom line baseline to bottom of letter with least yMin
@@ -245,8 +256,8 @@ void MeshCreateParams::LoadText(Texture& fontmap, std::string text, TextFormatti
 
                 int width = fontmap.glyphs->at(c).width;
                 int height = fontmap.glyphs->at(c).height;
-                int startX = fontmap.glyphs->at(c).bearingX;
-                int startY = fontmap.glyphs->at(c).bearingY;
+                int startX = currentX + fontmap.glyphs->at(c).bearingX;
+                int startY = currentY + fontmap.glyphs->at(c).bearingY;
 
                 indices.push_back(vertexIndex + 2);
                 indices.push_back(vertexIndex + 1);

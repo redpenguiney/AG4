@@ -181,7 +181,7 @@ public:
 	std::vector<std::string> dependencies; // names of Resources that this RenderPass reads from
 	std::vector<std::string> outputs; // names of Resources that this RenderPass writes to
 
-	std::vector<TextureUsageDescriptor> boundAttachments;
+	std::vector<TextureUsageDescriptor> boundTextures;
 
 	// uniforms (constant globals) to be fed to shaders
 	//std::vector<std::pair<std::string, ShaderUniformType>> uniforms;

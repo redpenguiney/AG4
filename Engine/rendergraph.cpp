@@ -134,20 +134,25 @@ void RenderGraph::Render() {
 				
 			int activeTexture = 0;
 			for (auto& f : p.textures) {
-				p.params.shader->Uniform(f.shaderSamplerName, activeTexture);
+				if (f.shaderSamplerName == "fontMap") {
+					DebugLogInfo("YO");
+				}
+				p.params.shader->Uniform(f.shaderSamplerName, activeTexture, true);
 				f.textureToBind->Use(activeTexture);
 				activeTexture++;
 			}
 
-			for (auto& renderGroup : p.thingsToDraw) {
-				renderGroup->meshpool->BindVAO(p.params.shader);
-				renderGroup->meshpool->indices.Bind(GL_ELEMENT_ARRAY_BUFFER);
-				for (auto& c : renderGroup->commands) {
-					//glPointSize(5);
-					unsigned baseVertexOffset = renderGroup->meshpool->vertices.GetOffset() / renderGroup->meshpool->format.GetNonInstancedVertexSize();
-					unsigned firstIndexOffset = renderGroup->meshpool->indices.GetOffset();
-					unsigned instanceOffset = renderGroup->meshpool->instances.GetOffset() / renderGroup->meshpool->format.GetInstancedVertexSize();
-					glDrawElementsInstancedBaseVertexBaseInstance(renderGroup->primitiveType, c.count, GL_UNSIGNED_INT, (void*)(unsigned int)((c.firstIndex + firstIndexOffset) * sizeof(unsigned int)), c.instanceCount, c.baseVertex + baseVertexOffset, c.baseInstance + instanceOffset);
+			for (auto& src : p.sources) {
+				for (auto& renderGroup : drawPasses.at(src)->drawnObjects) {
+					renderGroup->meshpool->BindVAO(p.params.shader);
+					renderGroup->meshpool->indices.Bind(GL_ELEMENT_ARRAY_BUFFER);
+					for (auto& c : renderGroup->commands) {
+						//glPointSize(5);
+						unsigned baseVertexOffset = renderGroup->meshpool->vertices.GetOffset() / renderGroup->meshpool->format.GetNonInstancedVertexSize();
+						unsigned firstIndexOffset = renderGroup->meshpool->indices.GetOffset();
+						unsigned instanceOffset = renderGroup->meshpool->instances.GetOffset() / renderGroup->meshpool->format.GetInstancedVertexSize();
+						glDrawElementsInstancedBaseVertexBaseInstance(renderGroup->primitiveType, c.count, GL_UNSIGNED_INT, (void*)(unsigned int)((c.firstIndex + firstIndexOffset) * sizeof(unsigned int)), c.instanceCount, c.baseVertex + baseVertexOffset, c.baseInstance + instanceOffset);
+					}
 				}
 			}
 		}
@@ -182,14 +187,16 @@ void RenderGraph::AddPass(std::shared_ptr<RenderPass> pass) {
 	auto computePass = std::dynamic_pointer_cast<ComputePass>(pass);
 	Assert(drawPass || computePass);
 
-	for (auto& t : pass->boundAttachments) {
-		Assert(std::holds_alternative<std::string>(t.texture));
-		if (t.willRead) {
-			for (auto& d : pass->dependencies) {
-				if (d == std::get<std::string>(t.texture)) goto foundOutput4;
-			}
-			Assert(false);
+	for (auto& t : pass->boundTextures) {
+		Assert(!std::holds_alternative<TextureCreateParams>(t.texture));
+		if (std::holds_alternative<std::string>(t.texture)) {
+			if (t.willRead) {
+				for (auto& d : pass->dependencies) {
+					if (d == std::get<std::string>(t.texture)) goto foundOutput4;
+				}
+				Assert(false);
 			foundOutput4:;
+			}
 		}
 	}
 
@@ -545,9 +552,20 @@ void RenderGraph::Compile() {
 			auto& pass = std::get<ProcessedDrawPass>(p);
 			for (auto& n : pass.sources) {
 				auto& drawPass = drawPasses.at(n);
-				for (auto& usageDescriptor : drawPass->boundAttachments) {
+				for (auto& usageDescriptor : drawPass->boundTextures) {
+					Texture* tex;
+					if (std::holds_alternative<std::string>(usageDescriptor.texture)) {
+						tex = attachmentLocations.at(std::get<std::string>(usageDescriptor.texture));
+					}
+					else if (std::holds_alternative < std::shared_ptr<Texture>>(usageDescriptor.texture)) {
+						tex = std::get<std::shared_ptr<Texture>>(usageDescriptor.texture).get();
+					}
+					else {
+						Assert(false);
+						std::unreachable();
+					}
 					pass.textures.push_back(TextureBinding{
-						.textureToBind = attachmentLocations.at(std::get<std::string>(usageDescriptor.texture)),
+						.textureToBind = tex,
 						.shaderSamplerName = usageDescriptor.textureUsageLocation
 						});
 				}
@@ -709,7 +727,7 @@ RenderGraph::FramebufferResource& RenderGraph::GetFramebuffer(FramebufferRenderT
 ProcessedDrawPass::ProcessedDrawPass(std::shared_ptr<DrawPass> drawPass) {
 	params = drawPass->params;
 	setUniforms = drawPass->uniformSupplier;
-	thingsToDraw = drawPass->drawnObjects;
+	//thingsToDraw = drawPass->drawnObjects;
 	sources.push_back(drawPass->name);
 }
 

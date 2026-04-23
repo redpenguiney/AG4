@@ -5,6 +5,7 @@
 #include <glm/vec2.hpp>
 #include <glm/vec4.hpp>
 #include <unordered_map>
+#include "mesh_provider.hpp"
 
 class Gameobject;
 class Texture;
@@ -62,8 +63,12 @@ public:
 	std::string text = "DEFAULT TEXT";
 	HorizontalAlignMode hAlign = HorizontalAlignMode::Center;
 	VerticalAlignMode vAlign = VerticalAlignMode::Center;
+	bool wrapText = true;
 	// Unsafe if not calling through a std::shared_ptr<GuiElement>.
 	void SetParent(GuiElement* newParent);
+
+	glm::ivec2 GetPixelSize();
+	glm::ivec2 GetPixelCenterPosition();
 
 private:
 	void MakeTextobject();

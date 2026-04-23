@@ -113,7 +113,7 @@ int main() {
 		rt.loadPolicy = AttachmentLoadPolicy::DontCare;
 		postprocPass->renderTarget = rt;
 		postprocPass->dependencies.push_back("FINAL_SCENE");
-		postprocPass->boundAttachments.push_back(TextureUsageDescriptor{
+		postprocPass->boundTextures.push_back(TextureUsageDescriptor{
 			.texture = "FINAL_SCENE",
 			.textureUsageLocation = "screenTextureColor"
 		});
@@ -177,16 +177,20 @@ int main() {
 	//	objects.push_back(unique);
 
 	//}
-	//
 
-	auto frame = GuiElement::New(*GetScreenGuiContainer());
+	TextureCreateParams arialFontParams({ TextureSource("../fonts/arial.ttf"),});
+	arialFontParams.fontHeight = 18;
+	arialFontParams.format = Texture::Grayscale_8Bit;
+	auto arialFont = std::make_shared<Texture>(arialFontParams, Texture::Texture2D);
+
+	auto frame = GuiElement::New(*GetScreenGuiContainer(), nullptr, arialFont);
 	frame->percentagePosition = { 0.5, 0.5 };
 	frame->percentagePosition = { 0.5, 0.5 };
-	frame->backgroundColor = { 1, 0, 0, 1 };
+	frame->backgroundColor = { 1, 0, 0, 0 };
 	frame->text = "BOB THE POOPER";
 	frame->RefreshGraphics();
 	frame->RefreshTransform();
-	frame->RefreshText();
+	//frame->RefreshText();
 
 	GraphicsEngine::Get().currentCamera.position = { 1, 0, 5 };
 	//PhysicsEngine::Get().gravity = { 5, -5, 0 };
