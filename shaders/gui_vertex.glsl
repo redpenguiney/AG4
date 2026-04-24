@@ -6,7 +6,7 @@
 layout(location=0) in vec3 vertexPos;
 layout(location=1) in vec4 color;
 layout(location=2) in vec2 textureXY;
-layout(location=3) in float textureZ;
+layout(location=3) in float autoTextureZ;
 
 layout(location=6) in mat4 modelMatrix;
 // locations 6-9 are part of model
@@ -33,6 +33,6 @@ void main()
 
 
     fragmentColor = color;
-    fragmentTexCoords = vec3(textureXY, -1.0);
+    fragmentTexCoords = vec3(textureXY, autoTextureZ);
 }          
 

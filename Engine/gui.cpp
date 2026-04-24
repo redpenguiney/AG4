@@ -7,6 +7,10 @@
 #include "assert.hpp"
 #include "window.hpp"
 
+static void SupplyTextUniforms(std::shared_ptr<BaseShaderProgram> shader) {
+    shader->Uniform("fontMappingEnabled", true);
+}
+
 static std::shared_ptr<GuiContainer> ScreenGui() {
     auto pass = std::shared_ptr<DrawPass>(new DrawPass());
     pass->outputs.push_back(WINDOW_RESOURCE_NAME);
@@ -16,11 +20,12 @@ static std::shared_ptr<GuiContainer> ScreenGui() {
     pass->renderTarget = WindowRenderTargetDescriptor{
         .loadPolicy = AttachmentLoadPolicy::Load, 
         .clearDepth = false, 
-        .blendingSrcFactor = BlendFactorMode::OneMinusSrcAlpha,
-        .blendingDstFactor = BlendFactorMode::SrcAlpha,
-        .blendFunc = BlendingEquation::Addition,
+        //.blendingSrcFactor = BlendFactorMode::OneMinusSrcAlpha,
+        //.blendingDstFactor = BlendFactorMode::SrcAlpha,
+        //.blendFunc = BlendingEquation::Addition,
     };
-    pass->params.depthTestMode = DepthTestMode::Disabled;
+    //pass->uniformSupplier = std::nullopt;
+    //pass->params.depthTestMode = DepthTestMode::Disabled;
     pass->params.shader = ShaderProgram::New("../shaders/gui_vertex.glsl", "../shaders/gui_fragment.glsl");
     
     auto container = std::make_shared<GuiContainer>();
@@ -56,7 +61,7 @@ void GuiElement::RefreshTransform() {
     gameobject->SetRotation(glm::angleAxis(rotation, glm::vec3(0, 0, 1)));
 
     if (textobject) {
-        textobject->SetPosition(glm::dvec3(objectCenterPosition, depth + 0.001));
+        textobject->SetPosition(glm::dvec3(objectCenterPosition, depth - 0.001));
         textobject->SetRotation(glm::angleAxis(rotation, glm::vec3(0, 0, 1)));
     }
 
@@ -67,11 +72,11 @@ void GuiElement::RefreshTransform() {
 
 void GuiElement::RefreshGraphics() {
     gameobject->SetInstanceAttribute(*Mesh::GuiQuad()->format.GetAttribute("color"), backgroundColor);
+    gameobject->SetInstanceAttribute(*Mesh::GuiQuad()->format.GetAttribute(SpecialVertexAttributeNames::AUTOMATIC_TEXTURE_ARRAY_SELECTION), -1.0f);
     if (textobject) {
         textobject->SetInstanceAttribute(*Mesh::GuiQuad()->format.GetAttribute("color"), textColor);
-        textobject->SetInstanceAttribute(*Mesh::GuiQuad()->format.GetAttribute("textureZ"), 0.0f);
+        textobject->SetInstanceAttribute(*Mesh::GuiQuad()->format.GetAttribute(SpecialVertexAttributeNames::AUTOMATIC_TEXTURE_ARRAY_SELECTION), 0.0f);
     }
-    //gameobject->SetInstanceAttribute(*Mesh::GuiQuad()->format.GetAttribute(SpecialVertexAttributeNames::AUTOMATIC_TEXTURE_ARRAY_SELECTION), -1.0f);
 }
 
 void GuiElement::RefreshText() {
@@ -116,14 +121,16 @@ void GuiElement::MakeTextobject() {
     format.topMargin = pos.y + size.y / 2;
     format.wrapping = wrapText;
     textmeshparams.LoadText(*font, text, format);
+    textmeshparams.normalizeSize = false;
     auto textmesh = Mesh::New(std::move(textmeshparams));
     GameobjectCreateParams textobjectparams;
-    textobjectparams.mesh = Mesh::GuiQuad(); //textmesh;
+    textobjectparams.mesh = textmesh;
     if (!container->elementPasses.contains(font.get())) {
         Assert(font);
         static int i = 0;
         std::shared_ptr<DrawPass> newPass(new DrawPass(*container->elementPasses[nullptr]));
         newPass->name = "SCREEN_GUI_PRESENTATION_FONT " + std::to_string(i++);
+        newPass->uniformSupplier = SupplyTextUniforms;
         newPass->boundTextures.push_back(TextureUsageDescriptor{
             .texture = font,
             .textureUsageLocation = "fontMap",

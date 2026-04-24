@@ -30,12 +30,11 @@ void main()
     color.a *= font;
 
     if (color.a < 0.1) {
-        //discard;
+        discard;
     };
 
     Output = color;
     //Output = texture(fontMap, fragmentTexCoords);
-    //Output = vec4(font, font, font, 1.0);
     //Output = vec4(fragmentTexCoords, 1.0);
     //Output = vec4(gl_FragCoord.zzz * color.xyz, 1.0);
     //Output = vec4(1.0, 1.0, 1.0, 1.0);

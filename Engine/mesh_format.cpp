@@ -85,7 +85,7 @@ MeshVertexFormat MeshVertexFormat::DefaultGui() {
     std::vector<VertexAttribute> attributes;
     attributes.push_back(VertexAttribute{ .name = SpecialVertexAttributeNames::VERTEX_POSITION, .nComponents = 3, .instanced = false });
     attributes.push_back(VertexAttribute{ .name = SpecialVertexAttributeNames::VERTEX_UV, .nComponents = 2, .instanced = false });
-
+    attributes.push_back(VertexAttribute{ .name = SpecialVertexAttributeNames::AUTOMATIC_TEXTURE_ARRAY_SELECTION, .nComponents = 1, .instanced = true });
     attributes.push_back(VertexAttribute{ .name = SpecialVertexAttributeNames::MODEL_MATRIX, .nComponents = 16, .instanced = true });
     attributes.push_back(VertexAttribute{ .name = SpecialVertexAttributeNames::NORMAL_MATRIX, .nComponents = 9, .instanced = true });
     attributes.push_back(VertexAttribute{ .name = "color", .nComponents = 4, .instanced = true });
