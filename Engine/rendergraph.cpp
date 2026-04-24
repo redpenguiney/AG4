@@ -148,10 +148,11 @@ void RenderGraph::Render() {
 					renderGroup->meshpool->indices.Bind(GL_ELEMENT_ARRAY_BUFFER);
 					for (auto& c : renderGroup->commands) {
 						//glPointSize(5);
+
 						unsigned baseVertexOffset = renderGroup->meshpool->vertices.GetOffset() / renderGroup->meshpool->format.GetNonInstancedVertexSize();
 						unsigned firstIndexOffset = renderGroup->meshpool->indices.GetOffset();
 						unsigned instanceOffset = renderGroup->meshpool->instances.GetOffset() / renderGroup->meshpool->format.GetInstancedVertexSize();
-						glDrawElementsInstancedBaseVertexBaseInstance(renderGroup->primitiveType, c.count, GL_UNSIGNED_INT, (void*)(unsigned int)((c.firstIndex + firstIndexOffset) * sizeof(unsigned int)), c.instanceCount, c.baseVertex + baseVertexOffset, c.baseInstance + instanceOffset);
+						glDrawElementsInstancedBaseVertexBaseInstance(renderGroup->primitiveType, c.count, GL_UNSIGNED_INT, (void*)(unsigned int)((c.firstIndex + firstIndexOffset)), c.instanceCount, c.baseVertex + baseVertexOffset, c.baseInstance + instanceOffset);
 					}
 				}
 			}

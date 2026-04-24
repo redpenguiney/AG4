@@ -33,6 +33,8 @@ std::shared_ptr<GuiContainer> GetScreenGuiContainer();
 
 class GuiElement: public std::enable_shared_from_this<GuiElement> {
 public:
+	static inline std::vector<GuiElement*> elementsList;
+	static void InitGuiEvents();
 	static std::shared_ptr<GuiElement> New(GuiContainer& storeIn, std::shared_ptr<Texture> background = nullptr, std::shared_ptr<Texture> font = nullptr);
 
 	~GuiElement();
@@ -43,6 +45,7 @@ public:
 	// Call to apply color/etc. changes.
 	void RefreshGraphics();
 	// Call to apply text changes.
+	// You also need to call this if the ui changes size and you want wrapped text to adjust.
 	void RefreshText();
 
 	// in radians

@@ -186,12 +186,12 @@ int main() {
 	auto frame = GuiElement::New(*GetScreenGuiContainer(), nullptr, arialFont);
 	frame->percentagePosition = { 0.5, 0.5 };
 	frame->percentagePosition = { 0.5, 0.5 };
-	frame->backgroundColor = { 1, 0, 0, 1};
-	//frame->text = "BOB THE POOPER";
+	frame->backgroundColor = { 1, 0, 0, 0};
+	frame->text = "BOB THE POOPER";
 	frame->textColor = { 0, 1, 0, 1 };
 	frame->RefreshGraphics();
 	frame->RefreshTransform();
-	//frame->RefreshText();
+	frame->RefreshText();
 
 	GraphicsEngine::Get().currentCamera.position = { 1, 0, 5 };
 	//PhysicsEngine::Get().gravity = { 5, -5, 0 };
