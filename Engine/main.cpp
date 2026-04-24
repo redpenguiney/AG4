@@ -188,6 +188,7 @@ int main() {
 	frame->percentagePosition = { 0.5, 0.5 };
 	frame->backgroundColor = { 1, 0, 0, 0 };
 	frame->text = "BOB THE POOPER";
+	frame->textColor = { 0, 1, 0, 1 };
 	frame->RefreshGraphics();
 	frame->RefreshTransform();
 	//frame->RefreshText();

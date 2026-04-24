@@ -69,6 +69,7 @@ void GuiElement::RefreshGraphics() {
     gameobject->SetInstanceAttribute(*Mesh::GuiQuad()->format.GetAttribute("color"), backgroundColor);
     if (textobject) {
         textobject->SetInstanceAttribute(*Mesh::GuiQuad()->format.GetAttribute("color"), textColor);
+        textobject->SetInstanceAttribute(*Mesh::GuiQuad()->format.GetAttribute("textureZ"), 0.0f);
     }
     //gameobject->SetInstanceAttribute(*Mesh::GuiQuad()->format.GetAttribute(SpecialVertexAttributeNames::AUTOMATIC_TEXTURE_ARRAY_SELECTION), -1.0f);
 }
@@ -117,7 +118,7 @@ void GuiElement::MakeTextobject() {
     textmeshparams.LoadText(*font, text, format);
     auto textmesh = Mesh::New(std::move(textmeshparams));
     GameobjectCreateParams textobjectparams;
-    textobjectparams.mesh = textmesh;
+    textobjectparams.mesh = Mesh::GuiQuad(); //textmesh;
     if (!container->elementPasses.contains(font.get())) {
         Assert(font);
         static int i = 0;

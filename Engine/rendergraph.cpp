@@ -134,9 +134,9 @@ void RenderGraph::Render() {
 				
 			int activeTexture = 0;
 			for (auto& f : p.textures) {
-				if (f.shaderSamplerName == "fontMap") {
-					DebugLogInfo("YO");
-				}
+				//if (f.shaderSamplerName == "fontMap") {
+					//DebugLogInfo("YO");
+				//}
 				p.params.shader->Uniform(f.shaderSamplerName, activeTexture, true);
 				f.textureToBind->Use(activeTexture);
 				activeTexture++;
