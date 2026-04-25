@@ -138,11 +138,11 @@ void MeshCreateParams::LoadText(Texture& fontmap, std::string text, TextFormatti
 
                     if (wordLength > maxLineLength /*&& currentLineLength == 0*/) {
                         // split the string and add newline
-                        // std::cout << "Splitting word " << word << " into " << word.substr(0, i) << " and " << word.substr(i, std::string::npos) << ".\n";
+                         //std::cout << "Splitting word " << word << " into " << word.substr(0, i) << " and " << word.substr(i, std::string::npos) << ".\n";
 
-                        currentLine += word.substr(0, i);
-                        currentLineLength += wordLength - fontmap.glyphs->at(c).advance;
                         words.insert(words.begin() + wordI + 1, word.substr(i, std::string::npos));
+                        //words.insert(words.begin() + wordI + 1, "d\n");
+                        words.insert(words.begin() + wordI + 1, word.substr(0, i));
                         words.insert(words.begin() + wordI + 1, "\n");
                         
                         goto splitWord;
@@ -205,25 +205,25 @@ void MeshCreateParams::LoadText(Texture& fontmap, std::string text, TextFormatti
     }
     int textHeight = formatting.lineSpacing * (lines.size() - 1); // distance between baseline of first line and baseline of last line.
     int topLineHeight = 0; // top line baseline to top of letter with greatest yMax
-    int bottomLineHeight = 0; // bottom line baseline to bottom of letter with least yMin
+    //int bottomLineHeight = 0; // bottom line baseline to bottom of letter with least yMin
     for (auto& c : lines[0]) {
         topLineHeight = std::max(topLineHeight, fontmap.glyphs->at(c).bearingY);
     }
-    for (auto& c : lines.back()) {
-        bottomLineHeight = std::min(bottomLineHeight, static_cast<int>(fontmap.glyphs->at(c).height) - fontmap.glyphs->at(c).bearingY);
-    }
-    int totalHeight = textHeight + topLineHeight + bottomLineHeight;
-
+    //for (auto& c : lines.back()) {
+        //bottomLineHeight = std::max(topLineHeight, fontmap.glyphs->at(c).bearingY);
+    //}
+    //int totalHeight = textHeight + topLineHeight + bottomLineToTop;
+    
     int currentY;
     if (formatting.verticalAlignment == VerticalAlignMode::Top) {
         currentY = formatting.topMargin - topLineHeight;
     }
     else if (formatting.verticalAlignment == VerticalAlignMode::Center) {
-        int desiredCentre = (formatting.topMargin - formatting.bottomMargin) / 2;
-        currentY = desiredCentre + (textHeight + topLineHeight + bottomLineHeight) / 2 - topLineHeight;
+        int desiredCentre = (formatting.topMargin + formatting.bottomMargin) / 2;
+        currentY = desiredCentre + (textHeight - topLineHeight) / 2;
     }
     else {
-        currentY = formatting.bottomMargin + bottomLineHeight;
+        currentY = formatting.bottomMargin + textHeight;
     }
 
     // Write vertices
@@ -249,7 +249,7 @@ void MeshCreateParams::LoadText(Texture& fontmap, std::string text, TextFormatti
 
         for (auto& c : lines[i]) {
             if (c == ' ') {
-                currentX += formatting.spaceLength;
+            
             }
             else {
                 vertices.resize(vertices.size() + 4 * scalarsPerVertex, -1.0f);
@@ -260,40 +260,41 @@ void MeshCreateParams::LoadText(Texture& fontmap, std::string text, TextFormatti
                 float startX = currentX + fontmap.glyphs->at(c).bearingX;
                 float startY = currentY + fontmap.glyphs->at(c).bearingY;
 
-                indices.push_back(vertexIndex + 2);
+                indices.push_back(vertexIndex + 0);
                 indices.push_back(vertexIndex + 1);
-                indices.push_back(vertexIndex);
                 indices.push_back(vertexIndex + 3);
                 indices.push_back(vertexIndex + 2);
-                indices.push_back(vertexIndex);
+                indices.push_back(vertexIndex + 3);
+                indices.push_back(vertexIndex + 1);
 
                 vertices[vertexIndex * scalarsPerVertex + posOffset + 0].f = startX;
                 vertices[vertexIndex * scalarsPerVertex + posOffset + 1].f = startY;
                 vertices[vertexIndex * scalarsPerVertex + posOffset + 2].f = 0;
                 vertices[vertexIndex * scalarsPerVertex + uvsOffset + 0].f = fontmap.glyphs->at(c).leftUv;
-                vertices[vertexIndex * scalarsPerVertex + uvsOffset + 1].f = fontmap.glyphs->at(c).bottomUv;
+                vertices[vertexIndex * scalarsPerVertex + uvsOffset + 1].f = fontmap.glyphs->at(c).topUv;
                 vertexIndex += 1;
                 vertices[vertexIndex * scalarsPerVertex + posOffset + 0].f = startX;
-                vertices[vertexIndex * scalarsPerVertex + posOffset + 1].f = startY + height;
+                vertices[vertexIndex * scalarsPerVertex + posOffset + 1].f = startY - height;
                 vertices[vertexIndex * scalarsPerVertex + posOffset + 2].f = 0;
                 vertices[vertexIndex * scalarsPerVertex + uvsOffset + 0].f = fontmap.glyphs->at(c).leftUv;
-                vertices[vertexIndex * scalarsPerVertex + uvsOffset + 1].f = fontmap.glyphs->at(c).topUv;
+                vertices[vertexIndex * scalarsPerVertex + uvsOffset + 1].f = fontmap.glyphs->at(c).bottomUv;
                 vertexIndex += 1;
                 vertices[vertexIndex * scalarsPerVertex + posOffset + 0].f = startX + width;
-                vertices[vertexIndex * scalarsPerVertex + posOffset + 1].f = startY + height;
+                vertices[vertexIndex * scalarsPerVertex + posOffset + 1].f = startY - height;
                 vertices[vertexIndex * scalarsPerVertex + posOffset + 2].f = 0;
                 vertices[vertexIndex * scalarsPerVertex + uvsOffset + 0].f = fontmap.glyphs->at(c).rightUv;
-                vertices[vertexIndex * scalarsPerVertex + uvsOffset + 1].f = fontmap.glyphs->at(c).topUv;
+                vertices[vertexIndex * scalarsPerVertex + uvsOffset + 1].f = fontmap.glyphs->at(c).bottomUv;
                 vertexIndex += 1;
                 vertices[vertexIndex * scalarsPerVertex + posOffset + 0].f = startX + width;
                 vertices[vertexIndex * scalarsPerVertex + posOffset + 1].f = startY;
                 vertices[vertexIndex * scalarsPerVertex + posOffset + 2].f = 0;
                 vertices[vertexIndex * scalarsPerVertex + uvsOffset + 0].f = fontmap.glyphs->at(c).rightUv;
-                vertices[vertexIndex * scalarsPerVertex + uvsOffset + 1].f = fontmap.glyphs->at(c).bottomUv;
+                vertices[vertexIndex * scalarsPerVertex + uvsOffset + 1].f = fontmap.glyphs->at(c).topUv;
                 vertexIndex += 1;
 
-                currentX += fontmap.glyphs->at(c).advance;
             }
+
+            currentX += fontmap.glyphs->at(c).advance;
         }
 
         currentY -= formatting.lineSpacing;

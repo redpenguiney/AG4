@@ -25,6 +25,7 @@ int main() {
 	GraphicsEngine::Get();
 	GameobjectSAS();
 	//GetScreenGuiContainer();
+	GuiElement::InitGuiEvents();
 
 	// Freecam
 	float pitch = 0, yaw = 0, speed = 0;
@@ -179,16 +180,18 @@ int main() {
 	//}
 
 	TextureCreateParams arialFontParams({ TextureSource("../fonts/arial.ttf"),});
-	arialFontParams.fontHeight = 18;
+	arialFontParams.fontHeight = 8;
 	arialFontParams.format = Texture::Grayscale_8Bit;
 	auto arialFont = std::make_shared<Texture>(arialFontParams, Texture::Texture2D);
 
 	auto frame = GuiElement::New(*GetScreenGuiContainer(), nullptr, arialFont);
 	frame->percentagePosition = { 0.5, 0.5 };
-	frame->percentagePosition = { 0.5, 0.5 };
-	frame->backgroundColor = { 1, 0, 0, 0};
-	frame->text = "BOB THE POOPER";
-	frame->textColor = { 0, 1, 0, 1 };
+	frame->pixelSize = { 300, 150 };
+	frame->backgroundColor = { 1, 1, 1, 0.0};
+	frame->text = "Honey is a free browser addon available on AAAAAAGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGoogle, Oprah, Firefox, Safari - if it's a browser. It has Honey.";
+	frame->textColor = { 0, 1, 0, 1.0 };
+	frame->vAlign = VerticalAlignMode::Center;
+	frame->hAlign = HorizontalAlignMode::Center;
 	frame->RefreshGraphics();
 	frame->RefreshTransform();
 	frame->RefreshText();

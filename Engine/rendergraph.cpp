@@ -134,9 +134,9 @@ void RenderGraph::Render() {
 				
 			int activeTexture = 0;
 			for (auto& f : p.textures) {
-				//if (f.shaderSamplerName == "fontMap") {
+				if (f.shaderSamplerName == "fontMap") {
 					//DebugLogInfo("YO");
-				//}
+				}
 				p.params.shader->Uniform(f.shaderSamplerName, activeTexture, true);
 				f.textureToBind->Use(activeTexture);
 				activeTexture++;
@@ -148,6 +148,9 @@ void RenderGraph::Render() {
 					renderGroup->meshpool->indices.Bind(GL_ELEMENT_ARRAY_BUFFER);
 					for (auto& c : renderGroup->commands) {
 						//glPointSize(5);
+						//if (c.count == 6) {
+						//	DebugLogInfo("Sus");
+						//}
 
 						unsigned baseVertexOffset = renderGroup->meshpool->vertices.GetOffset() / renderGroup->meshpool->format.GetNonInstancedVertexSize();
 						unsigned firstIndexOffset = renderGroup->meshpool->indices.GetOffset();

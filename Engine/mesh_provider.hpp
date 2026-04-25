@@ -35,7 +35,6 @@ struct TextFormatting {
 	int bottomMargin = 0;
 	
 	int lineSpacing = 18; // in pixels.
-	int spaceLength = 6; // in pixels.
 
 	HorizontalAlignMode horizontalAlignment = HorizontalAlignMode::Center;
 	VerticalAlignMode verticalAlignment = VerticalAlignMode::Center;

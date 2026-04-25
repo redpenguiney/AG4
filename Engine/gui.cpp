@@ -14,9 +14,10 @@ static void SupplyTextUniforms(std::shared_ptr<BaseShaderProgram> shader) {
 static std::shared_ptr<GuiContainer> ScreenGui() {
     auto pass = std::shared_ptr<DrawPass>(new DrawPass());
     pass->outputs.push_back(WINDOW_RESOURCE_NAME);
+    pass->outputs.push_back("FRAMES_DRAWN");
     pass->dependencies.push_back("POST_PROC");
     pass->name = "SCREEN_GUI_PRESENTATION_UNTEXTURED";
-    pass->params.cullMode = FaceCulling::None;
+    pass->params.cullMode = FaceCulling::Backface;
     pass->renderTarget = WindowRenderTargetDescriptor{
         .loadPolicy = AttachmentLoadPolicy::Load, 
         .clearDepth = false, 
@@ -40,6 +41,15 @@ std::shared_ptr<GuiContainer> GetScreenGuiContainer()
     return container;
 }
 
+void GuiElement::InitGuiEvents() {
+    Window::Get().onWindowResize->Connect([](glm::uvec2, glm::uvec2) {
+        for (auto& ui : elementsList) {
+            if (ui->font) ui->RefreshText();
+            else ui->RefreshTransform();
+        }
+        });
+}
+
 std::shared_ptr<GuiElement> GuiElement::New(GuiContainer& storeIn, std::shared_ptr<Texture> background, std::shared_ptr<Texture> font)
 {
     auto ptr = std::shared_ptr<GuiElement>(new GuiElement(storeIn, background, font));
@@ -48,7 +58,12 @@ std::shared_ptr<GuiElement> GuiElement::New(GuiContainer& storeIn, std::shared_p
 }
 
 GuiElement::~GuiElement() {
-
+    for (unsigned i = 0; i < elementsList.size(); i++) {
+        if (elementsList[i] == this) {
+            elementsList[i] = elementsList.back();
+            elementsList.pop_back();
+        }
+    }
 }
 
 void GuiElement::RefreshTransform() {
@@ -61,6 +76,7 @@ void GuiElement::RefreshTransform() {
     gameobject->SetRotation(glm::angleAxis(rotation, glm::vec3(0, 0, 1)));
 
     if (textobject) {
+        DebugLogInfo("Text placed at ", objectCenterPosition);
         textobject->SetPosition(glm::dvec3(objectCenterPosition, depth - 0.001));
         textobject->SetRotation(glm::angleAxis(rotation, glm::vec3(0, 0, 1)));
     }
@@ -115,11 +131,14 @@ void GuiElement::MakeTextobject() {
     format.verticalAlignment = vAlign;
     auto size = GetPixelSize();
     auto pos = GetPixelCenterPosition();
-    format.leftMargin = pos.x - size.x / 2;
-    format.rightMargin = pos.x + size.x / 2;
-    format.bottomMargin = pos.y - size.y / 2;
-    format.topMargin = pos.y + size.y / 2;
+    format.leftMargin = -size.x / 2;
+    format.rightMargin = size.x / 2;
+    format.bottomMargin = -size.y / 2;
+    format.topMargin = size.y / 2;
     format.wrapping = wrapText;
+
+    DebugLogInfo("Size ", size, " margins ", format.topMargin, " ", format.bottomMargin);
+
     textmeshparams.LoadText(*font, text, format);
     textmeshparams.normalizeSize = false;
     auto textmesh = Mesh::New(std::move(textmeshparams));
@@ -130,6 +149,8 @@ void GuiElement::MakeTextobject() {
         static int i = 0;
         std::shared_ptr<DrawPass> newPass(new DrawPass(*container->elementPasses[nullptr]));
         newPass->name = "SCREEN_GUI_PRESENTATION_FONT " + std::to_string(i++);
+        newPass->dependencies.push_back("FRAMES_DRAWN");
+        newPass->outputs.pop_back();
         newPass->uniformSupplier = SupplyTextUniforms;
         newPass->boundTextures.push_back(TextureUsageDescriptor{
             .texture = font,
@@ -149,7 +170,8 @@ texture(background),
 font(font),
 container(&storeIn)
 {
-    
+    elementsList.push_back(this);
+
     GameobjectCreateParams params;
     params.mesh = Mesh::GuiQuad();
     if (!storeIn.elementPasses.contains(background.get())) {
