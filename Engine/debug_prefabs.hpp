@@ -15,6 +15,9 @@ std::shared_ptr<ConvexMeshPhysicsGeometry> GetCubeCollisions();
 void BuildPit(glm::dvec3 pos, glm::vec3 size, float elasticity, float friction);
 void BuildCubeArray(glm::dvec3 origin, glm::dvec3 stride, glm::uvec3 nCubes, bool physics, float elasticity, float friction);
 
+inline float freecamPitch = 0, freecamYaw = 0, freecamSpeed = 0;
+void Freecam();
+
 Gameobject* DebugPoint(glm::dvec3 pos, glm::vec3 color = {1, 1, 1});
 Gameobject* DebugLine(glm::dvec3 a, glm::dvec3 b, glm::vec3 color = { 1, 1, 1 });
 Gameobject* DebugTriangle(glm::dvec3 a, glm::dvec3 b, glm::dvec3 c, glm::vec3 color = { 1, 1, 1 });

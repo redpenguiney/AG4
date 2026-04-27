@@ -7,6 +7,7 @@
 #include "shader_program.hpp"
 #include "window.hpp"
 #include "mesh.hpp"
+#include "rendergroup.hpp"
 
 GraphicsEngine& GraphicsEngine::Get() {
     static GraphicsEngine GE;
@@ -55,6 +56,14 @@ void GraphicsEngine::UploadToUniformBuffer(std::string name, void* data, size_t 
 
 void GraphicsEngine::AddAttachment(FramebufferAttachmentFormatDescriptor attachment) {
     renderGraph->CreateAttachment(attachment);
+}
+
+void GraphicsEngine::ForceAddDrawPass(std::shared_ptr<DrawPass> pass) {
+    if (!RenderGroup::drawPassNumUsers.contains(pass.get())) {
+        renderGraph->AddPass(pass);
+        RenderGroup::drawPassNumUsers[pass.get()] = 0;
+    }
+    RenderGroup::drawPassNumUsers[pass.get()]++;
 }
 
 void GraphicsEngine::WriteModelMatrices() {

@@ -5,6 +5,9 @@
 #include "shader_program.hpp"
 #include "physics_mesh.hpp"
 #include "gameobject.hpp"
+#include "mainloop.hpp"
+#include "window.hpp"
+#include "utility.hpp"
 
 static std::shared_ptr<Mesh> CubeMesh() {
 	auto mparams = MeshCreateParams::Default();
@@ -146,6 +149,30 @@ void BuildCubeArray(glm::dvec3 origin, glm::dvec3 stride, glm::uvec3 nCubes, boo
 			}
 		}
 	}
+}
+
+void Freecam() {
+	// Freecam
+	Mainloop::Get().preRender->Connect([](float) {
+		freecamPitch += 0.01f * Window::Get().MOUSE_DELTA.y;
+		freecamYaw += 0.01f * Window::Get().MOUSE_DELTA.x;
+		freecamPitch = std::clamp(freecamPitch, -glm::radians(89.0f), glm::radians(89.0f));
+		if (freecamYaw < 0.0f) freecamYaw += glm::radians(360.0f);
+		freecamYaw = std::fmod(freecamYaw, glm::radians(360.0f));
+
+		auto& cam = GraphicsEngine::Get().currentCamera;
+		float forward = (Window::Get().PRESSED_KEYS.contains(InputObject::W) ? 1.0f : 0.0f) - (Window::Get().PRESSED_KEYS.contains(InputObject::S) ? 1.0f : 0.0f);
+		float right = (Window::Get().PRESSED_KEYS.contains(InputObject::D) ? 1.0f : 0.0f) - (Window::Get().PRESSED_KEYS.contains(InputObject::A) ? 1.0f : 0.0f);
+		float up = (Window::Get().PRESSED_KEYS.contains(InputObject::Q) ? 1.0f : 0.0f) - (Window::Get().PRESSED_KEYS.contains(InputObject::E) ? 1.0f : 0.0f);
+
+		if (forward == 0 && right == 0 && up == 0) freecamSpeed = 0;
+		freecamSpeed += 0.1;
+		cam.rotation = glm::rotate(glm::rotate(glm::identity<glm::mat4x4>(), freecamPitch, glm::vec3(1, 0, 0)), freecamYaw, glm::vec3(0, 1, 0));
+		glm::vec3 fDir = LookVector(freecamPitch, freecamYaw);
+		glm::vec3 rDir = LookVector(0, freecamYaw + glm::radians(90.0f));
+		glm::vec3 upDir = glm::cross(fDir, rDir);
+		cam.position += (fDir * forward + rDir * right + upDir * up) * freecamSpeed;
+		});
 }
 
 Gameobject* DebugPoint(glm::dvec3 pos, glm::vec3 color) {

@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -19,34 +19,34 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <VCProjectVersion>17.0</VCProjectVersion>
+    <VCProjectVersion>18.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{f3df43df-de64-4c9d-85f2-557ce25740c1}</ProjectGuid>
-    <RootNamespace>Engine</RootNamespace>
+    <ProjectGuid>{732144fa-5e81-498c-a8b0-d6703833e568}</ProjectGuid>
+    <RootNamespace>Dev</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
-    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
-    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -59,9 +59,13 @@
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\shared_build_settings.props" />
+    <Import Project="..\debug_build.props" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\shared_build_settings.props" />
+    <Import Project="..\release_build.props" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
@@ -74,15 +78,13 @@
     <Import Project="..\release_build.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
-  <PropertyGroup Label="Vcpkg">
-    <VcpkgEnableManifest>true</VcpkgEnableManifest>
-  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -97,11 +99,10 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
-      <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
@@ -111,8 +112,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <ShowIncludes>false</ShowIncludes>
-      <SupportJustMyCode>false</SupportJustMyCode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -127,115 +127,20 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
-      <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="aabb_tree.cpp" />
-    <ClCompile Include="animation.cpp" />
-    <ClCompile Include="base_event.cpp" />
-    <ClCompile Include="base_shader_program.cpp" />
-    <ClCompile Include="buffered_buffer.cpp" />
-    <ClCompile Include="camera.cpp" />
-    <ClCompile Include="checked_uint.cpp" />
-    <ClCompile Include="clustered_lighting.cpp" />
-    <ClCompile Include="collider.cpp" />
-    <ClCompile Include="collision_detection.cpp" />
-    <ClCompile Include="compute_shader_program.cpp" />
-    <ClCompile Include="constraint.cpp" />
-    <ClCompile Include="cursor.cpp" />
-    <ClCompile Include="debug_prefabs.cpp" />
-    <ClCompile Include="framebuffer.cpp" />
-    <ClCompile Include="gameobject.cpp" />
-    <ClCompile Include="gl_error_handler.cpp" />
-    <ClCompile Include="graphics_engine.cpp" />
-    <ClCompile Include="gui.cpp" />
-    <ClCompile Include="indirect_draw_command.cpp" />
-    <ClCompile Include="let_me_hash_a_tuple.cpp" />
-    <ClCompile Include="log.cpp" />
-    <ClCompile Include="main.cpp" />
-    <ClCompile Include="mainloop.cpp" />
-    <ClCompile Include="mesh.cpp" />
-    <ClCompile Include="meshold.cpp" />
-    <ClCompile Include="meshpoolold.cpp" />
-    <ClCompile Include="mesh_format.cpp" />
-    <ClCompile Include="mesh_multifromfile.cpp" />
-    <ClCompile Include="mesh_provider.cpp" />
-    <ClCompile Include="mesh_voxels.cpp" />
-    <ClCompile Include="physics_engine.cpp" />
-    <ClCompile Include="physics_mesh.cpp" />
-    <ClCompile Include="raycast.cpp" />
-    <ClCompile Include="renderbuffer.cpp" />
-    <ClCompile Include="rendergraph.cpp" />
-    <ClCompile Include="rendergroup.cpp" />
-    <ClCompile Include="shader_input_provider.cpp" />
-    <ClCompile Include="shader_program.cpp" />
-    <ClCompile Include="static_meshpool.cpp" />
-    <ClCompile Include="stb_image.cpp" />
-    <ClCompile Include="texture.cpp" />
-    <ClCompile Include="texture_atlas.cpp" />
-    <ClCompile Include="texture_collection.cpp" />
-    <ClCompile Include="text_mesh.cpp" />
-    <ClCompile Include="tinyobjloader.cpp" />
-    <ClCompile Include="utility.cpp" />
-    <ClCompile Include="window.cpp" />
+    <ClCompile Include="dev_main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="aabb.hpp" />
-    <ClInclude Include="aabb_tree.hpp" />
-    <ClInclude Include="animation.hpp" />
-    <ClInclude Include="assert.hpp" />
-    <ClInclude Include="base_event.hpp" />
-    <ClInclude Include="base_shader_program.hpp" />
-    <ClInclude Include="buffered_buffer.hpp" />
-    <ClInclude Include="camera.hpp" />
-    <ClInclude Include="checked_uint.hpp" />
-    <ClInclude Include="clustered_lighting.hpp" />
-    <ClInclude Include="collider.hpp" />
-    <ClInclude Include="collision_detection.hpp" />
-    <ClInclude Include="compute_shader_program.hpp" />
-    <ClInclude Include="constraint.hpp" />
-    <ClInclude Include="cursor.hpp" />
-    <ClInclude Include="debug_prefabs.hpp" />
-    <ClInclude Include="event.hpp" />
-    <ClInclude Include="framebuffer.hpp" />
-    <ClInclude Include="gameobject.hpp" />
-    <ClInclude Include="graphics_engine.hpp" />
-    <ClInclude Include="gui.hpp" />
-    <ClInclude Include="indirect_draw_command.hpp" />
-    <ClInclude Include="let_me_hash_a_tuple.hpp" />
-    <ClInclude Include="light.hpp" />
-    <ClInclude Include="local_client.hpp" />
-    <ClInclude Include="mainloop.hpp" />
-    <ClInclude Include="memory_pool.hpp" />
-    <ClInclude Include="log.hpp" />
-    <ClInclude Include="mesh.hpp" />
-    <ClInclude Include="meshold.hpp" />
-    <ClInclude Include="mesh_format.hpp" />
-    <ClInclude Include="physics_engine.hpp" />
-    <ClInclude Include="physics_mesh.hpp" />
-    <ClInclude Include="raycast.hpp" />
-    <ClInclude Include="remote_client.hpp" />
-    <ClInclude Include="renderbuffer.hpp" />
-    <ClInclude Include="rendergroup.hpp" />
-    <ClInclude Include="static_meshpool.hpp" />
-    <ClInclude Include="meshpoolold.hpp" />
-    <ClInclude Include="mesh_provider.hpp" />
-    <ClInclude Include="rendergraph.hpp" />
-    <ClInclude Include="rendergraph_node.hpp" />
-    <ClInclude Include="shader_input_provider.hpp" />
-    <ClInclude Include="shader_program.hpp" />
-    <ClInclude Include="texture.hpp" />
-    <ClInclude Include="texture_atlas.hpp" />
-    <ClInclude Include="texture_collection.hpp" />
-    <ClInclude Include="tiny_obj_loader.h" />
-    <ClInclude Include="utility.hpp" />
-    <ClInclude Include="window.hpp" />
+    <ProjectReference Include="..\Engine\Engine.vcxproj">
+      <Project>{f3df43df-de64-4c9d-85f2-557ce25740c1}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
