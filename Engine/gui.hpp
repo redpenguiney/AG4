@@ -18,7 +18,7 @@ public:
 	~GuiContainer() = default;
 private:
 	// flat array of all GuiElements, including their descendants
-	std::vector<std::shared_ptr<GuiElement>> contents;
+	//std::vector<GuiElement*> contents;
 	//std::shared_ptr<DrawPass> pass;
 	std::unordered_map<Texture*, std::shared_ptr<DrawPass>> elementPasses;
 	static std::vector<std::shared_ptr<GuiContainer>>& Containers();
@@ -31,9 +31,19 @@ private:
 // Returns the GuiContainer for normal stuff that's just getting rendered directly to the screen.
 std::shared_ptr<GuiContainer> GetScreenGuiContainer();
 
+// percents are with respect to size of object LayoutChildrenList() is being called on.
+// pixels are still absolute
+struct ListLayout {
+	glm::ivec2 pixelStart = { 0, 0 };
+	glm::vec2 percentStart = { 0, 0 };
+	glm::ivec2 pixelStride = { 0, 0 };
+	glm::vec2 percentStride = { 0, 0 };
+};
+
 class GuiElement: public std::enable_shared_from_this<GuiElement> {
 public:
 	static inline std::vector<GuiElement*> elementsList;
+	static inline std::vector<GuiElement*> elementsBeingHoveredOn;
 	static void InitGuiEvents();
 	static std::shared_ptr<GuiElement> New(GuiContainer& storeIn, std::shared_ptr<Texture> background = nullptr, std::shared_ptr<Texture> font = nullptr);
 
@@ -48,9 +58,14 @@ public:
 	// You also need to call this if the ui changes size and you want wrapped text to adjust.
 	void RefreshText();
 
-	// in radians
+	// Sets position of children and calls RefreshTransform() on them.
+	void LayoutChildrenList(ListLayout params);
+
+	// in radians. Only use for elements without children that don't need to use the input/hover events (TODO ADD SUPPORT FOR THAT)
 	float rotation = 0.0f;
 
+	// used by LayoutChildren____() functions.
+	int sortOrder = 0;
 
 	float depth = 0.0f;
 
@@ -73,7 +88,11 @@ public:
 	glm::ivec2 GetPixelSize();
 	glm::ivec2 GetPixelCenterPosition();
 
+	bool hover = false;
 private:
+	glm::ivec2 GetParentBounds();
+	glm::ivec2 GetParentOffset();
+
 	void MakeTextobject();
 
 	GuiElement(GuiContainer& storeIn, std::shared_ptr<Texture> background, std::shared_ptr<Texture> font);

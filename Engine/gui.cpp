@@ -48,12 +48,20 @@ void GuiElement::InitGuiEvents() {
             else ui->RefreshTransform();
         }
         });
+
+    Window::Get().postInputProccessing->Connect([]() {
+        glm::ivec2 cursorPos
+        for (auto& ui : elementsList) {
+            
+        }
+        });
+    Window::Get().
 }
 
 std::shared_ptr<GuiElement> GuiElement::New(GuiContainer& storeIn, std::shared_ptr<Texture> background, std::shared_ptr<Texture> font)
 {
     auto ptr = std::shared_ptr<GuiElement>(new GuiElement(storeIn, background, font));
-    storeIn.contents.push_back(ptr);
+    //storeIn.contents.push_back(ptr.get());
     return ptr;
 }
 
@@ -62,6 +70,15 @@ GuiElement::~GuiElement() {
         if (elementsList[i] == this) {
             elementsList[i] = elementsList.back();
             elementsList.pop_back();
+        }
+    }
+
+    if (hover) {
+        for (unsigned i = 0; i < elementsBeingHoveredOn.size(); i++) {
+            if (elementsBeingHoveredOn[i] == this) {
+                elementsBeingHoveredOn[i] = elementsBeingHoveredOn.back();
+                elementsBeingHoveredOn.pop_back();
+            }
         }
     }
 }
@@ -76,7 +93,7 @@ void GuiElement::RefreshTransform() {
     gameobject->SetRotation(glm::angleAxis(rotation, glm::vec3(0, 0, 1)));
 
     if (textobject) {
-        DebugLogInfo("Text placed at ", objectCenterPosition);
+        //DebugLogInfo("Text placed at ", objectCenterPosition);
         textobject->SetPosition(glm::dvec3(objectCenterPosition, depth - 0.001));
         textobject->SetRotation(glm::angleAxis(rotation, glm::vec3(0, 0, 1)));
     }
@@ -108,19 +125,50 @@ void GuiElement::SetParent(GuiElement* newParent) {
 }
 
 glm::ivec2 GuiElement::GetPixelSize() {
-    auto& window = Window::Get();
-    glm::vec2 screenResolution = { window.width, window.height };
+    glm::vec2 screenResolution = GetParentBounds();
     glm::ivec2 finalPixelSize = glm::ivec2(screenResolution * percentageSize) + pixelSize;
     return finalPixelSize;
 }
 
 glm::ivec2 GuiElement::GetPixelCenterPosition() {
-    auto& window = Window::Get();
-    glm::vec2 screenResolution = { window.width, window.height };
+    glm::vec2 screenResolution = GetParentBounds();
     glm::ivec2 anchorPointPixelPosition = glm::ivec2(screenResolution * percentagePosition) + pixelPosition;
     glm::ivec2 anchorPointOffset = anchorPoint * glm::vec2(GetPixelSize());
     glm::ivec2 objectCenterPosition = anchorPointPixelPosition - anchorPointOffset;
-    return objectCenterPosition;
+    return objectCenterPosition + GetParentOffset();
+}
+
+glm::ivec2 GuiElement::GetParentBounds() { 
+    if (parent) {
+        return parent->GetPixelSize();
+    }
+    else {
+        return glm::ivec2(Window::Get().width, Window::Get().height);
+    }
+}
+
+glm::ivec2 GuiElement::GetParentOffset() {
+    if (parent) {
+        return parent->GetPixelCenterPosition() - parent->GetPixelSize() / 2;
+    }
+    else {
+        return glm::ivec2(0, 0);
+    }
+}
+
+void GuiElement::LayoutChildrenList(ListLayout params) {
+    // sort children
+    std::sort(children.begin(), children.end(), [](const std::shared_ptr<GuiElement>& a, const std::shared_ptr<GuiElement>& b) -> bool { return a->sortOrder < b->sortOrder; });
+
+    glm::ivec2 pixelPos = params.pixelStart;
+    glm::vec2 percentPos = params.percentStart;
+    for (auto& c : children) {
+        c->pixelPosition = pixelPos;
+        pixelPos += params.pixelStride;
+        c->percentagePosition += percentPos;
+        percentPos += params.percentStride;
+        c->RefreshTransform();
+    }
 }
 
 void GuiElement::MakeTextobject() {
@@ -137,7 +185,7 @@ void GuiElement::MakeTextobject() {
     format.topMargin = size.y / 2;
     format.wrapping = wrapText;
 
-    DebugLogInfo("Size ", size, " margins ", format.topMargin, " ", format.bottomMargin);
+    //DebugLogInfo("Size ", size, " margins ", format.topMargin, " ", format.bottomMargin);
 
     textmeshparams.LoadText(*font, text, format);
     textmeshparams.normalizeSize = false;
@@ -168,7 +216,9 @@ void GuiElement::MakeTextobject() {
 GuiElement::GuiElement(GuiContainer& storeIn, std::shared_ptr<Texture> background, std::shared_ptr<Texture> font):
 texture(background),
 font(font),
-container(&storeIn)
+container(&storeIn),
+onInput(Event<InputObject>::New()),
+onMouseEnter(Event<void>::New())
 {
     elementsList.push_back(this);
 

@@ -47,7 +47,7 @@ int main() {
 		frt.colorAttachments.push_back(FramebufferAttachmentUsageDescriptor{
 			.attachmentName = "FINAL_SCENE",
 			.loadPolicy = AttachmentLoadPolicy::Clear,
-			
+			//.clearColor = {0, 0, 0, 1}
 			});
 		frt.depthStencilAttachment.emplace(FramebufferAttachmentUsageDescriptor{
 			.attachmentName = "FINAL_SCENE_DEPTH",

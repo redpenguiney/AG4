@@ -28,7 +28,6 @@ void main()
 
     vec4 color = fragmentColor * colorTx;
     color.a *= font;
-
     if (color.a < 0.1) {
         discard;
     };

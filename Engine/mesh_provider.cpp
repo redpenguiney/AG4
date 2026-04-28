@@ -95,7 +95,7 @@ void MeshCreateParams::LoadText(Texture& fontmap, std::string text, TextFormatti
             if (c == ' ' || c == '\n' || c == '\t') {
                 if (currentWord.length() > 0) words.push_back(currentWord);
                 if (c == '\t') {
-                    for (unsigned i = 0; i < formatting.tabLength; i++) words.push_back(" ");
+                    for (int i = 0; i < formatting.tabLength; i++) words.push_back(" ");
                 }
                 else {
                     words.push_back(std::string(1, c));
@@ -174,12 +174,14 @@ void MeshCreateParams::LoadText(Texture& fontmap, std::string text, TextFormatti
                 currentLine = "";
             }
             else if (c == '\t') {
-                for (unsigned i = 0; i < formatting.tabLength; i++) currentLine += " ";
+                for (int i = 0; i < formatting.tabLength; i++) currentLine += " ";
             }
             else {
                 currentLine += c;
             }
         }
+
+        if (!currentLine.empty()) lines.push_back(currentLine);
     }
 
     // trim whitespace off each line

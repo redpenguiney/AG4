@@ -17,7 +17,7 @@ void RenderGroup::RemoveGameobject(Gameobject& obj) {
 					commands.pop_back();
 				}
 				else {
-					commands[i].baseInstance--;
+					commands[i].instanceCount--;
 				}
 			}
 			else if (commands[i].baseInstance == obj.drawInstanceIndex) {

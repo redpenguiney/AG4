@@ -10,20 +10,20 @@
 // Events of various kinds are triggered by various parts of the AG3 engine (input events, collision events, etc.).
 // You can connect functions to those events to make code run when an event is fired, as well as fire custom events.
 // Connected functions are not called immediately for performance reasons, but are instead stored in a queue then fired all at once.
-template <typename ... eventArgs>
+// Objects of the same class share the same Event objects; events store which connections are affiliated with which objects.
+template <typename Object, typename ... eventArgs>
 class Event : public BaseEvent {
 public:
 	using Ref = std::shared_ptr<Event>;
-	using WeakRef = std::weak_ptr<Event>;
 
 	friend class Connection;
 
-	// Represents a function's connection to a specific event. 
+	// Represents a function's connection to a specific object's event. 
 	// When this goes out of scope, it disconnects the function from the event.
 	class Connection {
 	public:
-		Connection(unsigned int id, WeakRef even) :
-			connectedFunctionId(id), event(even)
+		Connection(unsigned int id, std::shared_ptr<Object> obj) :
+			connectedFunctionId(id), obj(obj)
 		{
 
 		}
@@ -45,12 +45,12 @@ public:
 		Connection(Connection&&) = delete;
 	private:
 		unsigned int connectedFunctionId;
-		WeakRef event;
+		std::weak_ptr<Object> obj;
 	};
 
 	using ConnectableFunctionArgs = std::tuple<eventArgs...>;
 	using ConnectableFunction = std::function<void(eventArgs...)>;
-
+	using ConnectableUniversalFunction = std::function<void(Object*, eventArgs...)>;
 private:
 	class EventInvocation : public BaseEventInvocation {
 	public:
@@ -74,12 +74,8 @@ private:
 		}
 	};
 public:
-
-	// sadly, we have to use shared_ptr for events to handle the situation where firing an event results in the destruction of that fired event.
-	// this means no default constructing event either :(
-	static Ref New() {
-		auto ptr = std::shared_ptr< Event>(new Event());
-		return ptr;
+	Event() : BaseEvent() {
+		connectedFunctions = std::make_shared< std::vector<std::pair<unsigned int, ConnectableFunction>>>();
 	}
 
 	Event(const Event&) = delete;
@@ -101,9 +97,14 @@ public:
 	// Connects the given function to the event, so that it will be called every time the event is fired.
 	// WARNING: if the function is a lambda which captures a shared_ptr, then that shared_ptr gets stored in this event.
 	// This connection is permanent and lasts until the event is destroyed. For a temporary connection use ConnectTemporary().
-	void Connect(ConnectableFunction function) {
+	void Connect(ConnectableFunction function, const std::shared_ptr<Object>& obj) {
 		Assert(function != nullptr);
 		connectedFunctions->push_back(std::make_pair(LAST_CONNECTION_ID++, function));
+	}
+
+	// Like Connect(), but the provided function is connected to every object.
+	void ConnectUniversal(ConnectableUniversalFunction function) {
+	
 	}
 
 	// Connects the given function to the event, so that it will be called every time the event is fired, until the destruction of the returned Connection object.
@@ -114,18 +115,15 @@ public:
 		return std::move(std::unique_ptr<Connection>(new Connection(id, wthis)));
 	}
 
+	std::unique_ptr<Connection> ConnectTemporaryUniversal()
+
 	// returns true if anything is connected to this event.
 	bool HasConnections() {
 		return connectedFunctions->size() > 0;
 	};
 
 private:
-	static inline unsigned int LAST_CONNECTION_ID = 0;
-
-	// private to enforce use of factory constructor
-	Event() : BaseEvent() {
-		connectedFunctions = std::make_shared< std::vector<std::pair<unsigned int, ConnectableFunction>>>();
-	}
+	static inline unsigned int LAST_CONNECTION_ID = 0;	
 
 	virtual void CleanupConnections() override {
 		connectedFunctions = nullptr;
@@ -138,7 +136,12 @@ private:
 	//std::shared_ptr<std::vector<ConnectableFunctionArgs>> eventInvocations;
 	friend class EventInvocation;
 
-	// unsigned int is ID of the function, because std::function can't be compared and we need to be able to differentiate between different functions to disconnect them.
-	std::shared_ptr<std::vector<std::pair<unsigned int, ConnectableFunction>>> connectedFunctions;
+	struct ConnectedFunction {
+		ConnectableFunction func;
+		// std::function can't be compared and we need to be able to differentiate between different functions to disconnect them.
+		unsigned int funcId;
+	};
+	
+	std::vector<ConnectedFunction> universallyConnectedFunctions;
 
 };
