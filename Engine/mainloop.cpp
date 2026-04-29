@@ -23,12 +23,12 @@ void Mainloop::Run() {
 		unsigned tries = 0;
 		while (physicsLag > simulationTimestep && tries++ < 2) {
 			if (stepPhysics) physicsPaused = true;
-			prePhysics->Fire(simulationTimestep);
+			prePhysics.Fire(this, simulationTimestep);
 			BaseEvent::FlushEventQueue();
 			//PhysicsEngine::Get().StepSimulation(simulationTimestep);
 			PhysicsEngine::Get().StepSimulation(simulationTimestep * 2.0f/3.0f);
 			PhysicsEngine::Get().StepSimulation(simulationTimestep * 1.0f/3.0f);
-			postPhysics->Fire(simulationTimestep);
+			postPhysics.Fire(this, simulationTimestep);
 			BaseEvent::FlushEventQueue();
 			physicsLag -= simulationTimestep;
 			if (stepPhysics) break;
@@ -43,10 +43,10 @@ void Mainloop::Run() {
 
 		GameobjectSAS().OptimizeTree();
 
-		preRender->Fire(elapsedTime);
+		preRender.Fire(this, elapsedTime);
 		BaseEvent::FlushEventQueue();
 		GraphicsEngine::Get().RenderScene(elapsedTime);
-		postRender->Fire(elapsedTime);
+		postRender.Fire(this, elapsedTime);
 		BaseEvent::FlushEventQueue();
 		// TODO: unsure about placement of flip buffers? 
 		// i think this yields until GPU done drawing and image on screen

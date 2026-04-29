@@ -16,11 +16,11 @@ Window& Window::Get() {
 }
 
 Window::Window(int widthh, int heightt) :
-    inputDown(Event<InputObject>::New()),
-    inputUp(Event<InputObject>::New()),
-    onScroll(Event<double, double>::New()),
-    postInputProccessing(Event<>::New()),
-    onWindowResize(Event<glm::uvec2, glm::uvec2>::New())
+    inputDown(Event<Window, InputObject>::New()),
+    inputUp(Event<Window, InputObject>::New()),
+    onScroll(Event<Window, double, double>::New()),
+    postInputProccessing(Event<Window>::New()),
+    onWindowResize(Event<Window, glm::uvec2, glm::uvec2>::New())
 {
     width = widthh;
     height = heightt;
@@ -34,7 +34,7 @@ Window::Window(int widthh, int heightt) :
 
     glfwWindowHint(GLFW_DOUBLEBUFFER, doubleBuf ? GL_TRUE : GL_FALSE); // disbable double buffering; TODO THIS SHOULD NOT BE NECCESSARY
     glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE); // Tell GLFW we are going to be running opengl in debug mode, which lets us use GL_DEBUG_OUTPUT to get error messages easily
-    glfwWindow = glfwCreateWindow(width, height, "AG3", nullptr, nullptr);
+    glfwWindow = glfwCreateWindow(width, height, "AG4", nullptr, nullptr);
     if (!glfwWindow) {
         glfwTerminate();
         std::printf("Failure to create GLFW window. Aborting.\n");
@@ -128,7 +128,7 @@ void Window::Update() {
 
 
 
-    postInputProccessing->Fire();
+    postInputProccessing.Fire(this);
 }
 
 void Window::FlipBuffers() {
@@ -293,12 +293,12 @@ void Window::KeyCallback(GLFWwindow* window, int key, int scancode, int action, 
     if (action == GLFW_PRESS) {
         Window::Get().PRESS_BEGAN_KEYS.insert(input);
         Window::Get().PRESSED_KEYS.insert(input.input);
-        Window::Get().inputDown->Fire(input);
+        Window::Get().inputDown.Fire(&Window::Get(), input);
     }
     else if (action == GLFW_RELEASE) {
         Window::Get().PRESS_ENDED_KEYS.insert(input);
         Window::Get().PRESSED_KEYS.erase(input.input);
-        Window::Get().inputUp->Fire(input);
+        Window::Get().inputUp.Fire(&Window::Get(), input);
     }
 }
 
@@ -320,12 +320,12 @@ void Window::MouseButtonCallback(GLFWwindow* window, int button, int action, int
         if (action == GLFW_RELEASE) {
             Window::Get().PRESS_ENDED_KEYS.insert(input);
             Window::Get().PRESSED_KEYS.erase(input.input);
-            Window::Get().inputUp->Fire(input);
+            Window::Get().inputUp.Fire(&Window::Get(), input);
         }
         else if (action == GLFW_PRESS) {
             Window::Get().PRESS_BEGAN_KEYS.insert(input);
             Window::Get().PRESSED_KEYS.insert(input.input);
-            Window::Get().inputDown->Fire(input);
+            Window::Get().inputDown.Fire(&Window::Get(), input);
         }
     }
 
@@ -343,8 +343,8 @@ void Window::ScrollCallback(GLFWwindow* window, double deltaScrollX, double delt
         .input = InputObject::Scroll, .direction = {deltaScrollX, deltaScrollY}, .capitalized = false, .altDown = alt, .ctrlDown = ctrl, .shiftDown = shift
     };
 
-   Window::Get().onScroll->Fire(deltaScrollX, deltaScrollY);
-   Window::Get().inputDown->Fire(input);
+   Window::Get().onScroll.Fire(&Window::Get(), deltaScrollX, deltaScrollY);
+   Window::Get().inputDown.Fire(&Window::Get(), input);
    Window::Get().PRESS_BEGAN_KEYS.insert(input);
    Window::Get().PRESS_ENDED_KEYS.insert(input);
 }
@@ -360,7 +360,7 @@ void Window::ResizeCallback(GLFWwindow* window, int newWindowWidth, int newWindo
 
         Assert(newWindowWidth != 0);
 
-       Window::Get().onWindowResize->Fire(oldWidth, glm::uvec2(newWindowWidth, newWindowHeight));
+       Window::Get().onWindowResize.Fire(&Window::Get(), oldWidth, glm::uvec2(newWindowWidth, newWindowHeight));
     }
 
 }

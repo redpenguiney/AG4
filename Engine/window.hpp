@@ -115,18 +115,18 @@ public:
     const bool doubleBuf = false;
     const bool vsync = true; // value ignored if !doubleBuf
 
-    std::shared_ptr<Event<InputObject>> inputDown;
-    std::shared_ptr<Event<InputObject>> inputUp;
+    Event<Window, InputObject>& inputDown;
+    Event<Window, InputObject>& inputUp;
 
     // passes scroll delta x/y
-    std::shared_ptr<Event<double, double>> onScroll;
+    Event<Window, double, double>& onScroll;
 
     // fired after Update() finishes
-    std::shared_ptr<Event<>> postInputProccessing;
+    Event<Window>& postInputProccessing;
 
     // fired during Update() before postInputProccesing if the window was resized that frame.
     // first uvec2 is old window size, secon is new window size
-    std::shared_ptr<Event<glm::uvec2, glm::uvec2>> onWindowResize;
+    Event<Window, glm::uvec2, glm::uvec2>& onWindowResize;
 
     Window() = delete;
     Window(const Window&) = delete;

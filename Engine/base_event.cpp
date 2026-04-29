@@ -41,12 +41,12 @@ void BaseEvent::FlushEventQueue(int depth) {
 	}
 }
 
-void BaseEvent::Cleanup() {
-	while (!events.empty()) {
-		events.back()->CleanupConnections();
-		events.pop_back();
-	}
-}
+//void BaseEvent::Cleanup() {
+//	while (!events.empty()) {
+//		events.back()->CleanupConnections();
+//		events.pop_back();
+//	}
+//}
 
 //std::vector<std::weak_ptr<BaseEvent>>& BaseEvent::EventList()
 //{
@@ -60,18 +60,18 @@ std::vector<std::unique_ptr<BaseEvent::BaseEventInvocation>>& BaseEvent::EventIn
 }
 ;
 
-BaseEvent::BaseEvent() {
-	// CANNOT do this here because a shared_ptr hasn't been made yet.
-	//EventQueue().push_back(enable_shared_from_this<BaseEvent>::weak_from_this(this));
-	events.push_back(this);
-}
-
-BaseEvent::~BaseEvent() {
-	// might not be in events if Cleanup() has already been called
-	for (auto it = events.begin(); it != events.end(); it++) {
-		if (*it == this) {
-			events.erase(it);
-			return;
-		}
-	}
-}
+//BaseEvent::BaseEvent() {
+//	// CANNOT do this here because a shared_ptr hasn't been made yet.
+//	//EventQueue().push_back(enable_shared_from_this<BaseEvent>::weak_from_this(this));
+//	events.push_back(this);
+//}
+//
+//BaseEvent::~BaseEvent() {
+//	// might not be in events if Cleanup() has already been called
+//	for (auto it = events.begin(); it != events.end(); it++) {
+//		if (*it == this) {
+//			events.erase(it);
+//			return;
+//		}
+//	}
+//}

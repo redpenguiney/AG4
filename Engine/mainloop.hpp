@@ -20,11 +20,11 @@ public:
 
 	float simulationTimestep = 1.0f / 60.0f; // number of seconds physics simulation is stepped by every frame
 
-	Event<float>::Ref preRender = Event<float>::New();
-	Event<float>::Ref postRender = Event<float>::New();
+	Event<Mainloop, float>& preRender = Event<Mainloop, float>::New();
+	Event<Mainloop, float>& postRender = Event<Mainloop, float>::New();
 
-	Event<float>::Ref prePhysics = Event<float>::New();
-	Event<float>::Ref postPhysics = Event<float>::New();
+	Event<Mainloop, float>& prePhysics = Event<Mainloop, float>::New();
+	Event<Mainloop, float>& postPhysics = Event<Mainloop, float>::New();
 
 private:
 	Mainloop() = default;

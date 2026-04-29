@@ -42,18 +42,24 @@ std::shared_ptr<GuiContainer> GetScreenGuiContainer()
 }
 
 void GuiElement::InitGuiEvents() {
-    Window::Get().onWindowResize->Connect([](glm::uvec2, glm::uvec2) {
+    static auto connection1 = Window::Get().onWindowResize.Connect([](Window*, glm::uvec2, glm::uvec2) {
         for (auto& ui : elementsList) {
             if (ui->font) ui->RefreshText();
             else ui->RefreshTransform();
         }
         });
 
-    Window::Get().postInputProccessing->Connect([]() {
-        glm::ivec2 cursorPos
+    Window::Get().postInputProccessing.Connect([](Window* w) {
+        glm::ivec2 cursorPos(w->MOUSE_POS);
         for (auto& ui : elementsList) {
-            
-        }
+            auto uiPos = ui->GetPixelCenterPosition();
+            auto uiSize = ui->GetPixelSize();
+            bool isHovering = cursorPos.x > uiPos.x - uiSize.x / 2 && cursorPos.y > uiPos.y - uiSize.y / 2 && cursorPos.x < uiPos.x + uiSize.x / 2 && cursorPos.y < uiPos.y + uiSize.y / 2;
+            if (isHovering && !ui->hover) {
+                elementsBeingHoveredOn.push_back(ui);
+                ui->hover = true;
+                ui->
+            }
         });
     Window::Get().
 }
@@ -216,9 +222,7 @@ void GuiElement::MakeTextobject() {
 GuiElement::GuiElement(GuiContainer& storeIn, std::shared_ptr<Texture> background, std::shared_ptr<Texture> font):
 texture(background),
 font(font),
-container(&storeIn),
-onInput(Event<InputObject>::New()),
-onMouseEnter(Event<void>::New())
+container(&storeIn)
 {
     elementsList.push_back(this);
 

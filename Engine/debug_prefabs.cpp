@@ -153,7 +153,7 @@ void BuildCubeArray(glm::dvec3 origin, glm::dvec3 stride, glm::uvec3 nCubes, boo
 
 void Freecam() {
 	// Freecam
-	Mainloop::Get().preRender->Connect([](float) {
+	Mainloop::Get().preRender.Connect([](Mainloop*, float) {
 		freecamPitch += 0.01f * Window::Get().MOUSE_DELTA.y;
 		freecamYaw += 0.01f * Window::Get().MOUSE_DELTA.x;
 		freecamPitch = std::clamp(freecamPitch, -glm::radians(89.0f), glm::radians(89.0f));
