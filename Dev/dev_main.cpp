@@ -18,7 +18,7 @@ void GameMain() {
 	DebugPoint({ 0, 0.4, 0 }, { 0, 1, 0 });
 	DebugPoint({ 0, 0, 0.4 }, { 0, 0, 1 });
 
-
+	Freecam();
 	/*{
 		Gameobject* gameObj = Gameobject::New(p);
 		gameObj->SetPosition({ 0, -3, 0 });
@@ -39,7 +39,7 @@ void GameMain() {
 	//for (int i = 0; i < 1; i++) {
 	//	Physobject* gameObj = Physobject::New(p);
 	//	gameObj->friction = 1.0f;
-	//	gameObj->elasticity = 0.0f;
+	//	gameObj->elasticity = 0.0f;d
 	//	gameObj->SetPosition({ i + 2.5, -1.5f, 0 - i + 3 });
 	//	gameObj->SetScale({ 1, 1, 1 });
 	//	gameObj->SetRotation(glm::angleAxis(glm::radians(100.0f), glm::normalize(glm::vec3(1, 0, 0))));
@@ -57,7 +57,7 @@ void GameMain() {
 	auto& CL = ClusteredLighting::Get();
 	auto pointLight = std::make_shared<PointLight>();
 	pointLight->position = { 2.0, 2.0, 2.0 };
-	pointLight->intensity = 4.0f;
+	pointLight->intensity = 400.0f;
 	pointLight->color = { 1, 0, 0 };
 	auto spotLight = std::make_shared<SpotLight>();
 	spotLight->position = { 3, 0, 20 };
@@ -92,7 +92,7 @@ void GameMain() {
 
 	//Mainloop::Get().stepPhysics = true;
 	Mainloop::Get().physicsPaused = true;
-	Window::Get().inputUp->Connect([](InputObject input) {
+	static auto c = Window::Get().inputUp.Connect([](Window*, InputObject input) {
 		if (input.input == InputObject::Space) Mainloop::Get().physicsPaused = !Mainloop::Get().physicsPaused;
 
 		if (input.input == InputObject::LMB) {

@@ -6,6 +6,8 @@
 #include <glm/vec4.hpp>
 #include <unordered_map>
 #include "mesh_provider.hpp"
+#include "event.hpp"
+#include "window.hpp"
 
 class Gameobject;
 class Texture;
@@ -89,6 +91,12 @@ public:
 	glm::ivec2 GetPixelCenterPosition();
 
 	bool hover = false;
+
+	static inline Event<GuiElement>& onHoverBegin = Event<GuiElement>::New();;
+	static inline Event<GuiElement>& onHoverEnd = Event<GuiElement>::New();;
+	static inline Event<GuiElement, InputObject>& onInputBegin = Event<GuiElement, InputObject>::New();
+	static inline Event<GuiElement, InputObject>& onInputEnd = Event<GuiElement, InputObject>::New();
+
 private:
 	glm::ivec2 GetParentBounds();
 	glm::ivec2 GetParentOffset();

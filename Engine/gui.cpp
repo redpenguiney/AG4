@@ -42,6 +42,7 @@ std::shared_ptr<GuiContainer> GetScreenGuiContainer()
 }
 
 void GuiElement::InitGuiEvents() {
+
     static auto connection1 = Window::Get().onWindowResize.Connect([](Window*, glm::uvec2, glm::uvec2) {
         for (auto& ui : elementsList) {
             if (ui->font) ui->RefreshText();
@@ -58,10 +59,32 @@ void GuiElement::InitGuiEvents() {
             if (isHovering && !ui->hover) {
                 elementsBeingHoveredOn.push_back(ui);
                 ui->hover = true;
-                ui->
+                onHoverBegin.Fire(ui);
             }
-        });
-    Window::Get().
+            else if (!isHovering && ui->hover) {
+                for (unsigned i = 0; i < elementsBeingHoveredOn.size(); i++) {
+                    if (elementsBeingHoveredOn[i] == ui) {
+                        elementsBeingHoveredOn[i] = elementsBeingHoveredOn.back();
+                        elementsBeingHoveredOn.pop_back();
+                        break;
+                    }
+                }
+                ui->hover = false;
+                onHoverEnd.Fire(ui);
+            }
+        }
+
+        for (auto& p : w->PRESS_BEGAN_KEYS) {
+            for (auto& ui : elementsBeingHoveredOn) {
+                onInputBegin.Fire(ui, p);
+            }
+        }
+        for (auto& p : w->PRESS_ENDED_KEYS) {
+            for (auto& ui : elementsBeingHoveredOn) {
+                onInputEnd.Fire(ui, p);
+            }
+        }
+    });
 }
 
 std::shared_ptr<GuiElement> GuiElement::New(GuiContainer& storeIn, std::shared_ptr<Texture> background, std::shared_ptr<Texture> font)

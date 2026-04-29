@@ -30,8 +30,6 @@ int main() {
 	//GetScreenGuiContainer();
 	GuiElement::InitGuiEvents();
 
-	Freecam();
-
 	{
 		auto& CL = ClusteredLighting::Get();
 		auto sun = std::make_shared<EnvironmentalLight>();
