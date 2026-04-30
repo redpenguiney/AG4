@@ -50,8 +50,9 @@ void GuiElement::InitGuiEvents() {
         }
         });
 
-    Window::Get().postInputProccessing.Connect([](Window* w) {
+    static auto connection2 = Window::Get().postInputProccessing.Connect([](Window* w) {
         glm::ivec2 cursorPos(w->MOUSE_POS);
+        cursorPos.y = w->height - cursorPos.y;
         for (auto& ui : elementsList) {
             auto uiPos = ui->GetPixelCenterPosition();
             auto uiSize = ui->GetPixelSize();

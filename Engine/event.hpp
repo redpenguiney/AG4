@@ -8,6 +8,15 @@
 #include <tuple>
 #include "utility.hpp"
 
+// Represents a function's connection to a specific object's event. 
+// When this goes out of scope, it disconnects the function from the event.
+// To avoid UB, no Connection may outlive the Event/Object that generated it. Connections should be stored with the Object they are associated with.
+class IConnection {
+public:
+	virtual ~IConnection() = default;
+};
+using Connection = std::unique_ptr<IConnection>;
+
 // Events of various kinds are triggered by various parts of the AG3 engine (input events, collision events, etc.).
 // You can connect functions to those events to make code run when an event is fired, as well as fire custom events.
 // Connected functions are not called immediately for performance reasons, but are instead stored in a queue then fired all at once.
@@ -28,20 +37,17 @@ public:
 	Event(const Event&) = delete;
 	virtual ~Event() {}
 
-	// Represents a function's connection to a specific object's event. 
-	// When this goes out of scope, it disconnects the function from the event.
-	// To avoid UB, no Connection may outlive the Event/Object that generated it. Connections should be stored with the Object they are associated with.
 	// todo: safer version using std::weak_ptr<Object> should be provided as an option
-	class Connection {
+	class EventConnection: public IConnection {
 	private:
 		Event* event;
 		Object* obj;
 		unsigned connectionId;
 
 	public:
-		Connection(Event* e, Object* o, unsigned i) : event(e), obj(o), connectionId(i) {};
-		Connection(const Connection&) = delete;
-		Connection(Connection&& old):
+		EventConnection(Event* e, Object* o, unsigned i) : event(e), obj(o), connectionId(i) {};
+		EventConnection(const EventConnection&) = delete;
+		EventConnection(EventConnection&& old):
 		event(old.event),
 		obj(old.obj),
 		connectionId(old.connectionId)
@@ -49,7 +55,7 @@ public:
 			old.event = nullptr;
 		}
 
-		~Connection() {
+		~EventConnection() {
 			if (event) {
 				Assert(event->connectedFunctions.contains(obj));
 				for (unsigned i = 0; i < event->connectedFunctions[obj].size(); i++) {
@@ -72,7 +78,7 @@ public:
 			.connectionId = id,
 			.func = f
 		});
-		return Connection(this, obj, id);
+		return std::make_unique<EventConnection>(this, obj, id);
 	}
 
 	// Without providing an object, the provided function will be called when Fire() is called with any object, until the returned Connection is destroyed.
@@ -93,6 +99,15 @@ public:
 	void Fire(Object* obj, eventArgs... args) {
 		if (connectedFunctions.contains(nullptr)) {
 			for (auto& f : connectedFunctions[nullptr]) {
+				auto invoc = std::make_unique<EventInvocation>();
+				invoc->args = std::make_tuple(obj, args...);
+				invoc->func = f.func;
+				EventInvocationQueue().push_back(std::move(invoc));
+			}
+		}
+
+		if (connectedFunctions.contains(obj)) {
+			for (auto& f : connectedFunctions[obj]) {
 				auto invoc = std::make_unique<EventInvocation>();
 				invoc->args = std::make_tuple(obj, args...);
 				invoc->func = f.func;

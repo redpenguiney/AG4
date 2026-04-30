@@ -8,5 +8,6 @@ void GameMain() {
 }
 
 void GameExit() {
-	mainMenuContainer = nullptr;
+	menuEventConnections.clear();
+	menuContainer = nullptr;
 } 

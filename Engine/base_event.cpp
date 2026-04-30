@@ -26,6 +26,8 @@ void BaseEvent::FlushEventQueue(int depth) {
 		//std::cout << "";
 	//}
 	auto priorSize = q.size();
+
+	DebugLogInfo("Handling ", priorSize);
 	for (auto& invoc : q) {
 		invoc->RunConnections();
 	}
