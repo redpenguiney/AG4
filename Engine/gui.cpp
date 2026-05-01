@@ -288,3 +288,14 @@ std::vector<std::shared_ptr<GuiContainer>>& GuiContainer::Containers() {
     static std::vector<std::shared_ptr<GuiContainer>> c;
     return c;
 }
+
+std::shared_ptr<TextboxElement> TextboxElement::New(GuiContainer& storeIn, std::shared_ptr<Texture> background, std::shared_ptr<Texture> font)
+{
+    auto ptr = std::shared_ptr<TextboxElement>(new TextboxElement(storeIn, background, font));
+    return ptr;
+}
+
+TextboxElement::TextboxElement(GuiContainer& storeIn, std::shared_ptr<Texture> background, std::shared_ptr<Texture> font)
+: GuiElement(storeIn, background, font) {
+
+}

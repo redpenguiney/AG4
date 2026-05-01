@@ -49,7 +49,7 @@ public:
 	static void InitGuiEvents();
 	static std::shared_ptr<GuiElement> New(GuiContainer& storeIn, std::shared_ptr<Texture> background = nullptr, std::shared_ptr<Texture> font = nullptr);
 
-	~GuiElement();
+	virtual ~GuiElement();
 
 	// Call to apply transform/hierarchy changes.
 	// Recursively calls RefreshTransform() on the GuiElement's children.
@@ -97,13 +97,17 @@ public:
 	static inline Event<GuiElement, InputObject>& onInputBegin = Event<GuiElement, InputObject>::New();
 	static inline Event<GuiElement, InputObject>& onInputEnd = Event<GuiElement, InputObject>::New();
 
+protected:
+
+	GuiElement(GuiContainer& storeIn, std::shared_ptr<Texture> background, std::shared_ptr<Texture> font);
+
 private:
 	glm::ivec2 GetParentBounds();
 	glm::ivec2 GetParentOffset();
 
 	void MakeTextobject();
 
-	GuiElement(GuiContainer& storeIn, std::shared_ptr<Texture> background, std::shared_ptr<Texture> font);
+	GuiElement(const GuiElement&) = delete;
 
 	std::shared_ptr<Texture> texture; // nullptr if no texture
 	std::shared_ptr<Texture> font; // nullptr if no text
@@ -119,7 +123,20 @@ private:
 	void Orphan();
 };
 
+class TextboxElement : public GuiElement {
+public:
+	std::shared_ptr<TextboxElement> New(GuiContainer& storeIn, std::shared_ptr<Texture> background = nullptr, std::shared_ptr<Texture> font = nullptr);
 
+	std::string emptyText = "type here";
+	std::string entryText = "";
+
+	virtual ~TextboxElement();
+
+private:
+	TextboxElement(GuiContainer& storeIn, std::shared_ptr<Texture> background, std::shared_ptr<Texture> font);
+
+	bool focused = false;
+};
 
 
 
