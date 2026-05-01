@@ -364,3 +364,149 @@ void Window::ResizeCallback(GLFWwindow* window, int newWindowWidth, int newWindo
     }
 
 }
+
+std::optional<std::string> InputToString(InputObject input) {
+    if (input.capitalized) {
+        switch (input.input) {
+        case InputObject::A:
+            return "A";
+        case InputObject::B:
+            return "B";
+        case InputObject::C:
+            return "C";
+        case InputObject::D:
+            return "D";
+        case InputObject::E:
+            return "E";
+        case InputObject::F:
+            return "F";
+        case InputObject::G:
+            return "G";
+        case InputObject::H:
+            return "H";
+        case InputObject::I:
+            return "I";
+        case InputObject::J:
+            return "J";
+        case InputObject::K:
+            return "K";
+        case InputObject::L:
+            return "L";
+        case InputObject::M:
+            return "M";
+        case InputObject::N:
+            return "N";
+        case InputObject::O:
+            return "O";
+        case InputObject::P:
+            return "P";
+        case InputObject::Q:
+            return "Q";
+        case InputObject::R:
+            return "R";
+        case InputObject::S:
+            return "S";
+        case InputObject::T:
+            return "T";
+        case InputObject::U:
+            return "U";
+        case InputObject::V:
+            return "V";
+        case InputObject::W:
+            return "W";
+        case InputObject::X:
+            return "X";
+        case InputObject::Y:
+            return "Y";
+        case InputObject::Z:
+            return "Z";
+        }
+    }
+    else {
+        switch (input.input) {
+        case InputObject::A:
+            return "a";
+        case InputObject::B:
+            return "b";
+        case InputObject::C:
+            return "c";
+        case InputObject::D:
+            return "d";
+        case InputObject::E:
+            return "e";
+        case InputObject::F:
+            return "f";
+        case InputObject::G:
+            return "g";
+        case InputObject::H:
+            return "h";
+        case InputObject::I:
+            return "i";
+        case InputObject::J:
+            return "j";
+        case InputObject::K:
+            return "k";
+        case InputObject::L:
+            return "l";
+        case InputObject::M:
+            return "m";
+        case InputObject::N:
+            return "n";
+        case InputObject::O:
+            return "o";
+        case InputObject::P:
+            return "p";
+        case InputObject::Q:
+            return "q";
+        case InputObject::R:
+            return "r";
+        case InputObject::S:
+            return "s";
+        case InputObject::T:
+            return "t";
+        case InputObject::U:
+            return "u";
+        case InputObject::V:
+            return "v";
+        case InputObject::W:
+            return "w";
+        case InputObject::X:
+            return "x";
+        case InputObject::Y:
+            return "y";
+        case InputObject::Z:
+            return "z";
+        }
+    }
+
+    switch (input.input) {
+    case input.Space:
+        return " ";
+    case input.Tab:
+        return "\t";
+    case input.Zero:
+        return "0";
+    case input.One:
+        return "1";
+    case input.Two:
+        return "2";
+    case input.Three:
+        return "3";
+    case input.Four:
+        return "4";
+    case input.Five:
+        return "5";
+    case input.Six:
+        return "6";
+    case input.Seven:
+        return "7";
+    case input.Eight:
+        return "8";
+    case input.Nine:
+        return "9";
+    default:
+        return std::nullopt;
+    }
+
+    std::unreachable();
+}

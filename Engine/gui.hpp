@@ -14,6 +14,7 @@ class Texture;
 class DrawPass;
 
 class GuiElement;
+class TextboxElement;
 
 class GuiContainer {
 public:
@@ -69,6 +70,7 @@ public:
 	// used by LayoutChildren____() functions.
 	int sortOrder = 0;
 
+	// Smaller/more negative depth shows up on top. Be wary of increments <= 0.001 since that is the increment used to put text in front of its respective element.
 	float depth = 0.0f;
 
 	glm::ivec2 pixelPosition = { 0, 0 };
@@ -98,6 +100,7 @@ public:
 	static inline Event<GuiElement, InputObject>& onInputEnd = Event<GuiElement, InputObject>::New();
 
 protected:
+	static inline TextboxElement* currentlyFocused = nullptr;
 
 	GuiElement(GuiContainer& storeIn, std::shared_ptr<Texture> background, std::shared_ptr<Texture> font);
 
@@ -125,17 +128,31 @@ private:
 
 class TextboxElement : public GuiElement {
 public:
-	std::shared_ptr<TextboxElement> New(GuiContainer& storeIn, std::shared_ptr<Texture> background = nullptr, std::shared_ptr<Texture> font = nullptr);
+	// background may be nullptr, font is mandatory
+	static std::shared_ptr<TextboxElement> New(GuiContainer& storeIn, std::shared_ptr<Texture> background, std::shared_ptr<Texture> font);
 
-	std::string emptyText = "type here";
-	std::string entryText = "";
+	bool clearOnFocus = true;
+
+	// Does not require calling RefreshText().
+	void SetEmptyText(std::string);
+
+	// Different from text.empty() since text will contain emptyText when the user has not typed anything and the ui is unfocused.
+	bool IsEmpty();
 
 	virtual ~TextboxElement();
 
+	// Makes the textbox element have the provided text as if a user typed it in. (just setting text would cause it to be overwritten due to the isEmpty flag not being updated)
+	// Also calls RefreshText().
+	void ApplyText(std::string txt);
+
+	void Focus();
+	void Unfocus();
 private:
 	TextboxElement(GuiContainer& storeIn, std::shared_ptr<Texture> background, std::shared_ptr<Texture> font);
+	bool isEmpty = true;
+	std::string emptyText = "type here";
 
-	bool focused = false;
+	friend class GuiElement;
 };
 
 

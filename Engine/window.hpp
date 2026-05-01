@@ -5,6 +5,7 @@
 #include <unordered_set>
 #include "event.hpp"
 #include "cursor.hpp"
+#include <optional>
 
 // Object representing any kind of input.
 class InputObject {
@@ -90,6 +91,8 @@ public:
 
     bool operator== (const InputObject&) const = default;
 };
+
+std::optional<std::string> InputToString(InputObject input);
 
 // hash inputobject so it can go in unordered map
 // TODO: add direction member to hash function

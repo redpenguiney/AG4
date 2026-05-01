@@ -75,7 +75,10 @@ void GuiElement::InitGuiEvents() {
             }
         }
 
+        bool leftClick = false;
+
         for (auto& p : w->PRESS_BEGAN_KEYS) {
+            if (p.input == InputObject::LMB) leftClick == true;
             for (auto& ui : elementsBeingHoveredOn) {
                 onInputBegin.Fire(ui, p);
             }
@@ -83,6 +86,32 @@ void GuiElement::InitGuiEvents() {
         for (auto& p : w->PRESS_ENDED_KEYS) {
             for (auto& ui : elementsBeingHoveredOn) {
                 onInputEnd.Fire(ui, p);
+            }
+        }
+
+        if (leftClick) {
+            for (auto& e : elementsBeingHoveredOn) {
+                if (auto textbox = dynamic_cast<TextboxElement*>(e)) {
+                    if (currentlyFocused == textbox) {
+                        goto textboxFocusDone;
+                    }
+                    else if (currentlyFocused == textbox) {
+                        textbox->Focus();
+                    }
+                }
+            }
+            currentlyFocused->Unfocus();
+        }
+        textboxFocusDone:;
+
+        if (currentlyFocused) {
+            for (auto& p : w->PRESS_BEGAN_KEYS) {
+                if (auto s = InputToString(p)) {
+                    currentlyFocused->text += s.value();
+                }
+            }
+            if (!w->PRESS_BEGAN_KEYS.empty()) {
+                currentlyFocused->RefreshText();
             }
         }
     });
@@ -198,6 +227,7 @@ void GuiElement::LayoutChildrenList(ListLayout params) {
         c->percentagePosition += percentPos;
         percentPos += params.percentStride;
         c->RefreshTransform();
+        DebugLogInfo("Placed at pos ", c->GetPixelCenterPosition());
     }
 }
 
@@ -291,11 +321,54 @@ std::vector<std::shared_ptr<GuiContainer>>& GuiContainer::Containers() {
 
 std::shared_ptr<TextboxElement> TextboxElement::New(GuiContainer& storeIn, std::shared_ptr<Texture> background, std::shared_ptr<Texture> font)
 {
+    Assert(font);
     auto ptr = std::shared_ptr<TextboxElement>(new TextboxElement(storeIn, background, font));
     return ptr;
 }
 
+void TextboxElement::SetEmptyText(std::string txt) {
+    emptyText = txt;
+    if (isEmpty) {
+        text = txt;
+        RefreshText();
+    }
+}
+
+bool TextboxElement::IsEmpty() {
+    return isEmpty;
+}
+
+TextboxElement::~TextboxElement() {
+    if (currentlyFocused == this) {
+        Unfocus();
+    }
+}
+
+void TextboxElement::ApplyText(std::string txt) {
+    text = txt;
+    isEmpty = text.empty();
+    RefreshText();
+}
+
+void TextboxElement::Focus() {
+    if (clearOnFocus) {
+        text.clear();
+        isEmpty = true;
+    }
+    else if (isEmpty) {
+        text.clear(); // get rid of the empty info text
+    }
+    RefreshText();
+}
+
+void TextboxElement::Unfocus() {
+    Assert(currentlyFocused == this);
+
+    currentlyFocused = nullptr;
+}
+
 TextboxElement::TextboxElement(GuiContainer& storeIn, std::shared_ptr<Texture> background, std::shared_ptr<Texture> font)
 : GuiElement(storeIn, background, font) {
-
+    text = emptyText;
+    RefreshText();
 }
