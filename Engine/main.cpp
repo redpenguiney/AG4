@@ -13,9 +13,7 @@
 #include "clustered_lighting.hpp"
 #include "physics_engine.hpp"
 #include "gui.hpp"
-
-void GameMain();
-void GameExit();
+#include "game.hpp"
 
 int main() {
 	DebugLogInfo("Reached main() successfully."); // you know it's a bad sign when you need to print this sort of thing
@@ -107,9 +105,11 @@ int main() {
 		}
 		});
 
-	GameMain();
-	Mainloop::Get().Run();
-	GameExit();
+	{
+		Game g;
+		Mainloop::Get().Run();
+		// Game::~Game() runs here.
+	}
 	// TODO cleanup?
 
 	DebugLogInfo("Main function body executed successfully.");

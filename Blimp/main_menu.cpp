@@ -2,6 +2,7 @@
 #include "gui.hpp"
 #include "texture.hpp"
 #include "window.hpp"
+#include "game_state.hpp"
 
 glm::vec3 MAIN_COLOR(0.75, 0.4, 0.9);
 glm::vec3 DARK_COLOR(0.65, 0.3, 0.8);
@@ -21,7 +22,7 @@ std::shared_ptr<Texture>& GetMenuFont() {
 	return font;
 }
 
-void MakeHostNewMenu() {
+void GameState::MakeHostNewMenu() {
 	menuContainer = nullptr;
 	menuEventConnections.clear();
 
@@ -101,17 +102,17 @@ void MakeHostNewMenu() {
 	buttonsContainer->RefreshTransform();
 }
 
-void MakeHostSavedMenu() {
+void GameState::MakeHostSavedMenu() {
 	menuContainer = nullptr;
 	menuEventConnections.clear();
 }
 
-void MakeJoinMenu() {
+void GameState::MakeJoinMenu() {
 	menuContainer = nullptr;
 	menuEventConnections.clear();
 }
 
-void MakeMainMenu() {
+void GameState::MakeMainMenu() {
 	menuContainer = nullptr;
 	menuEventConnections.clear();
 
@@ -125,7 +126,7 @@ void MakeMainMenu() {
 
 	auto menuFont = GetMenuFont<30>();
 
-	auto makeMenuButton = [menuFont](std::string label, int order, std::function<void()> onActivate) {
+	auto makeMenuButton = [this, menuFont](std::string label, int order, std::function<void()> onActivate) {
 		auto butt = GuiElement::New(*GetScreenGuiContainer(), nullptr, menuFont);
 		butt->SetParent(menuContainer.get());
 		butt->anchorPoint = { -0.5, 0.5};
@@ -139,13 +140,13 @@ void MakeMainMenu() {
 		butt->sortOrder = order;
 		butt->RefreshText();
 
-		auto hOnConnection = butt->onHoverBegin.Connect(butt.get(), [](GuiElement* elem) {
+		auto hOnConnection = butt->onHoverBegin.Connect(butt.get(), [this](GuiElement* elem) {
 			elem->backgroundColor = glm::vec4(HIGHLIGHT_COLOR, 0.5f);
 			elem->RefreshGraphics();
 			Window::Get().UseCursor(Window::Get().systemSelectionCursor);
 			});
 		menuEventConnections.push_back(std::move(hOnConnection));
-		auto hOffConnection = butt->onHoverEnd.Connect(butt.get(), [](GuiElement* elem) {
+		auto hOffConnection = butt->onHoverEnd.Connect(butt.get(), [this](GuiElement* elem) {
 			elem->backgroundColor = glm::vec4(MAIN_COLOR, 0.5f);
 			elem->RefreshGraphics();
 			Window::Get().UseCursor(Window::Get().systemPointerCursor);

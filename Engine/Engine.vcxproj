@@ -204,6 +204,7 @@
     <ClInclude Include="debug_prefabs.hpp" />
     <ClInclude Include="event.hpp" />
     <ClInclude Include="framebuffer.hpp" />
+    <ClInclude Include="game.hpp" />
     <ClInclude Include="gameobject.hpp" />
     <ClInclude Include="graphics_engine.hpp" />
     <ClInclude Include="gui.hpp" />

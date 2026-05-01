@@ -1,13 +1,15 @@
 #pragma once
 #include "../Engine/debug_prefabs.hpp"
-#include "main_menu.hpp"
+#include "game_state.hpp"
+#include "game.hpp"
+#include "event.hpp"
+#include <vector>
 
-
-void GameMain() {
-	MakeMainMenu();
+Game::Game() {
+	state->MakeMainMenu();
 }
 
-void GameExit() {
-	menuEventConnections.clear();
-	menuContainer = nullptr;
+Game::~Game() {
+	state->menuEventConnections.clear();
+	state->menuContainer = nullptr;
 } 

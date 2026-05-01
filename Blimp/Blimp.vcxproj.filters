@@ -23,7 +23,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="main_menu.hpp">
+    <ClInclude Include="game_state.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

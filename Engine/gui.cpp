@@ -90,7 +90,9 @@ void GuiElement::InitGuiEvents() {
         }
 
         if (leftClick) {
+            DebugLogInfo("LMB");
             for (auto& e : elementsBeingHoveredOn) {
+                DebugLogInfo("ITS ", e->text);
                 if (auto textbox = dynamic_cast<TextboxElement*>(e)) {
                     if (currentlyFocused == textbox) {
                         goto textboxFocusDone;
