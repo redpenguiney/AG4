@@ -77,6 +77,8 @@ public:
         UpArrow,
         DownArrow,
 
+        Backspace,
+
         Unknown
     };
 

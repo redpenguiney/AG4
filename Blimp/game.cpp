@@ -6,6 +6,7 @@
 #include <vector>
 
 Game::Game() {
+	state = std::make_unique<GameState>();
 	state->MakeMainMenu();
 }
 

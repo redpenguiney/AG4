@@ -78,7 +78,7 @@ void GuiElement::InitGuiEvents() {
         bool leftClick = false;
 
         for (auto& p : w->PRESS_BEGAN_KEYS) {
-            if (p.input == InputObject::LMB) leftClick == true;
+            if (p.input == InputObject::LMB) leftClick = true;
             for (auto& ui : elementsBeingHoveredOn) {
                 onInputBegin.Fire(ui, p);
             }
@@ -90,15 +90,16 @@ void GuiElement::InitGuiEvents() {
         }
 
         if (leftClick) {
-            DebugLogInfo("LMB");
+            //DebugLogInfo("LMB");
             for (auto& e : elementsBeingHoveredOn) {
-                DebugLogInfo("ITS ", e->text);
+                //DebugLogInfo("ITS ", e->text);
                 if (auto textbox = dynamic_cast<TextboxElement*>(e)) {
                     if (currentlyFocused == textbox) {
                         goto textboxFocusDone;
                     }
-                    else if (currentlyFocused == textbox) {
+                    else {
                         textbox->Focus();
+                        goto textboxFocusDone;
                     }
                 }
             }
@@ -110,6 +111,11 @@ void GuiElement::InitGuiEvents() {
             for (auto& p : w->PRESS_BEGAN_KEYS) {
                 if (auto s = InputToString(p)) {
                     currentlyFocused->text += s.value();
+                }
+                else if (p.input == InputObject::Backspace) {
+                    if (!currentlyFocused->text.empty()) {
+                        currentlyFocused->text.pop_back();
+                    }
                 }
             }
             if (!w->PRESS_BEGAN_KEYS.empty()) {
@@ -229,50 +235,52 @@ void GuiElement::LayoutChildrenList(ListLayout params) {
         c->percentagePosition += percentPos;
         percentPos += params.percentStride;
         c->RefreshTransform();
-        DebugLogInfo("Placed at pos ", c->GetPixelCenterPosition());
     }
 }
 
 void GuiElement::MakeTextobject() {
-    Assert(font);
-    MeshCreateParams textmeshparams = MeshCreateParams::DefaultText();
-    TextFormatting format;
-    format.horizontalAlignment = hAlign;
-    format.verticalAlignment = vAlign;
-    auto size = GetPixelSize();
-    auto pos = GetPixelCenterPosition();
-    format.leftMargin = -size.x / 2;
-    format.rightMargin = size.x / 2;
-    format.bottomMargin = -size.y / 2;
-    format.topMargin = size.y / 2;
-    format.wrapping = wrapText;
-
-    //DebugLogInfo("Size ", size, " margins ", format.topMargin, " ", format.bottomMargin);
-
-    textmeshparams.LoadText(*font, text, format);
-    textmeshparams.normalizeSize = false;
-    auto textmesh = Mesh::New(std::move(textmeshparams));
-    GameobjectCreateParams textobjectparams;
-    textobjectparams.mesh = textmesh;
-    if (!container->elementPasses.contains(font.get())) {
+    textobject = nullptr;
+    if (!text.empty()) {
         Assert(font);
-        static int i = 0;
-        std::shared_ptr<DrawPass> newPass(new DrawPass(*container->elementPasses[nullptr]));
-        newPass->name = "SCREEN_GUI_PRESENTATION_FONT " + std::to_string(i++);
-        newPass->dependencies.push_back("FRAMES_DRAWN");
-        newPass->outputs.pop_back();
-        newPass->uniformSupplier = SupplyTextUniforms;
-        newPass->boundTextures.push_back(TextureUsageDescriptor{
-            .texture = font,
-            .textureUsageLocation = "fontMap",
-            .willRead = true
-            });
-        container->elementPasses.emplace(font.get(), newPass);
+        MeshCreateParams textmeshparams = MeshCreateParams::DefaultText();
+        TextFormatting format;
+        format.horizontalAlignment = hAlign;
+        format.verticalAlignment = vAlign;
+        auto size = GetPixelSize();
+        auto pos = GetPixelCenterPosition();
+        format.leftMargin = -size.x / 2;
+        format.rightMargin = size.x / 2;
+        format.bottomMargin = -size.y / 2;
+        format.topMargin = size.y / 2;
+        format.wrapping = wrapText;
+
+        //DebugLogInfo("Size ", size, " margins ", format.topMargin, " ", format.bottomMargin);
+
+        textmeshparams.LoadText(*font, text, format);
+        textmeshparams.normalizeSize = false;
+        auto textmesh = Mesh::New(std::move(textmeshparams));
+        GameobjectCreateParams textobjectparams;
+        textobjectparams.mesh = textmesh;
+        if (!container->elementPasses.contains(font.get())) {
+            Assert(font);
+            static int i = 0;
+            std::shared_ptr<DrawPass> newPass(new DrawPass(*container->elementPasses[nullptr]));
+            newPass->name = "SCREEN_GUI_PRESENTATION_FONT " + std::to_string(i++);
+            newPass->dependencies.push_back("FRAMES_DRAWN");
+            newPass->outputs.pop_back();
+            newPass->uniformSupplier = SupplyTextUniforms;
+            newPass->boundTextures.push_back(TextureUsageDescriptor{
+                .texture = font,
+                .textureUsageLocation = "fontMap",
+                .willRead = true
+                });
+            container->elementPasses.emplace(font.get(), newPass);
+        }
+        textobjectparams.renderPasses = { container->elementPasses[font.get()], };
+        textobject = std::unique_ptr<Gameobject>(Gameobject::New(textobjectparams));
+        RefreshGraphics();
+        RefreshTransform();
     }
-    textobjectparams.renderPasses = { container->elementPasses[font.get()], };
-    textobject = std::unique_ptr<Gameobject>(Gameobject::New(textobjectparams));
-    RefreshGraphics();
-    RefreshTransform();
 }
 
 GuiElement::GuiElement(GuiContainer& storeIn, std::shared_ptr<Texture> background, std::shared_ptr<Texture> font):
@@ -353,6 +361,9 @@ void TextboxElement::ApplyText(std::string txt) {
 }
 
 void TextboxElement::Focus() {
+    if (currentlyFocused) currentlyFocused->Unfocus();
+    currentlyFocused = this;
+
     if (clearOnFocus) {
         text.clear();
         isEmpty = true;

@@ -172,6 +172,7 @@
     <ClCompile Include="raycast.cpp" />
     <ClCompile Include="renderbuffer.cpp" />
     <ClCompile Include="rendergraph.cpp" />
+    <ClCompile Include="rendergraph_node.cpp" />
     <ClCompile Include="rendergroup.cpp" />
     <ClCompile Include="shader_input_provider.cpp" />
     <ClCompile Include="shader_program.cpp" />

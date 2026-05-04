@@ -1,9 +1,12 @@
 #pragma once
+#include <vector>
 #include "game.hpp"
+#include "event.hpp"
+
+class GuiElement;
 
 class GameState {
 public:
-	class GuiElement;
 
 	void MakeMainMenu();
 	void MakeHostNewMenu();
@@ -11,7 +14,8 @@ public:
 	void MakeJoinMenu();
 	void MakeSettingsMenu();
 	void MakeCreditsMenu();
+	void MakeModsMenu();
 
-	std::shared_ptr<GuiElement> menuContainer;
+	std::shared_ptr<GuiElement> menuContainer = nullptr;
 	std::vector<Connection> menuEventConnections;
 };

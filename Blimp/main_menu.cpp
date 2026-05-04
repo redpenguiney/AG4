@@ -1,4 +1,3 @@
-#include "main_menu.hpp"
 #include "gui.hpp"
 #include "texture.hpp"
 #include "window.hpp"
@@ -10,7 +9,7 @@ glm::vec3 HIGHLIGHT_COLOR(0.95, 0.6, 1);
 glm::vec3 CONTRAST_COLOR(1, 1, 1);
 
 std::shared_ptr<Texture> GeoFont(unsigned size) {
-	TextureCreateParams menuFontParams({ TextureSource("../fonts/Geo-Regular.ttf"), });
+	TextureCreateParams menuFontParams({ TextureSource("../fonts/Arial.ttf"), });
 	menuFontParams.fontHeight = size;
 	menuFontParams.format = Texture::Grayscale_8Bit;
 	return std::make_shared<Texture>(menuFontParams, Texture::Texture2D);
@@ -37,20 +36,21 @@ void GameState::MakeHostNewMenu() {
 	auto headerFont = GetMenuFont<24>();
 	auto mainTextFont = GetMenuFont<18>();
 
-	auto buttonsContainer = GuiElement::New(*GetScreenGuiContainer());
-	buttonsContainer->SetParent(menuContainer.get());
-	buttonsContainer->backgroundColor.w = 0;
-	buttonsContainer->percentageSize = { 1, 1 };
-	buttonsContainer->percentagePosition = { 0.5, 0.5 };
-	buttonsContainer->pixelSize = { -10, 0 };
-	buttonsContainer->anchorPoint = { 0, 0 };
-	buttonsContainer->RefreshGraphics();
-	buttonsContainer->RefreshTransform();
+	auto optionsContainer = GuiElement::New(*GetScreenGuiContainer());
+	optionsContainer->SetParent(menuContainer.get());
+	optionsContainer->backgroundColor.w = 0;
+	optionsContainer->percentageSize = { 1, 0.8 };
+	optionsContainer->percentagePosition = { 0.5, 1.0 };
+	//optionsContainer->pixelPosition = {}
+	optionsContainer->pixelSize = { -10, 0 };
+	optionsContainer->anchorPoint = { 0, 0.5 };
+	optionsContainer->RefreshGraphics();
+	optionsContainer->RefreshTransform();
 
 	int nOption = 0;
-	auto makeTextboxMenuOption = [buttonsContainer, mainTextFont, &nOption](std::string optionName, std::string defaultValue) {
+	auto makeTextboxMenuOption = [optionsContainer, mainTextFont, &nOption](std::string optionName, std::string defaultValue) {
 		auto option = GuiElement::New(*GetScreenGuiContainer(), nullptr, nullptr);
-		option->SetParent(buttonsContainer.get());
+		option->SetParent(optionsContainer.get());
 		option->pixelSize = { 0, 30 };
 		option->percentageSize = { 1.0, 0 };
 		option->sortOrder = nOption++;
@@ -66,7 +66,7 @@ void GameState::MakeHostNewMenu() {
 		label->percentagePosition = { 0, 0.5 };
 		label->pixelPosition = { 0, 0 };
 		label->anchorPoint = { -0.5, 0.0 };
-		label->depth = buttonsContainer->depth - 1;
+		label->depth = optionsContainer->depth - 1;
 		label->wrapText = false;
 		label->hAlign = HorizontalAlignMode::Left;
 		label->backgroundColor = glm::vec4(DARK_COLOR, 1.0f);
@@ -81,7 +81,7 @@ void GameState::MakeHostNewMenu() {
 		entryField->percentagePosition = { 1, 0.5 };
 		entryField->pixelPosition = { 0, 0 };
 		entryField->anchorPoint = { 0.5, 0.0 };
-		entryField->depth = buttonsContainer->depth - 1;
+		entryField->depth = optionsContainer->depth - 1;
 		entryField->wrapText = false;
 		entryField->hAlign = HorizontalAlignMode::Right;
 		entryField->backgroundColor = glm::vec4(0, 0, 0, 1.0f);
@@ -94,12 +94,67 @@ void GameState::MakeHostNewMenu() {
 	makeTextboxMenuOption("Password:", "abc");
 	makeTextboxMenuOption("Max players:", "9999");
 
-	buttonsContainer->LayoutChildrenList(ListLayout{
+	optionsContainer->LayoutChildrenList(ListLayout{
 		.pixelStart = {0, -40},
 		.percentStart = {0.0, 1.0},
 		.pixelStride = {0, -30},
 		});
+	optionsContainer->RefreshTransform();
+
+	auto buttonsContainer = GuiElement::New(*GetScreenGuiContainer());
+	buttonsContainer->SetParent(menuContainer.get());
+	buttonsContainer->backgroundColor = glm::vec4(1, 1, 1, 1);
+	buttonsContainer->percentageSize = { 1, 0.2 };
+	buttonsContainer->percentagePosition = { 0.5, 0.2 };
+	buttonsContainer->pixelPosition = { 0, 5 };
+	buttonsContainer->pixelSize = { -10, -5 };
+	buttonsContainer->anchorPoint = { 0, 0.5 };
+	buttonsContainer->RefreshGraphics();
 	buttonsContainer->RefreshTransform();
+
+	nOption = 0;
+	auto makeButton = [this, buttonsContainer, mainTextFont, &nOption](std::string label, std::function<void()> onActivate) {
+		auto butt = GuiElement::New(*GetScreenGuiContainer(), nullptr, mainTextFont);
+		butt->SetParent(buttonsContainer.get());
+		butt->percentageSize = { 0, 0 };
+		butt->pixelSize = { 60, 30 };
+		butt->percentagePosition = { 0.5, 0.5 };
+		butt->pixelPosition = { 4 + nOption * 64, 0 };
+		butt->anchorPoint = { -0.5, 0.0 };
+		butt->depth = buttonsContainer->depth - 1;
+		butt->wrapText = false;
+		butt->hAlign = HorizontalAlignMode::Center;
+		butt->backgroundColor = glm::vec4(DARK_COLOR, 1.0f);
+		butt->textColor = glm::vec4(CONTRAST_COLOR, 1.0f);
+		butt->text = label;
+		butt->RefreshText();
+
+		auto hOnConnection = butt->onHoverBegin.Connect(butt.get(), [this](GuiElement* elem) {
+			elem->backgroundColor = glm::vec4(HIGHLIGHT_COLOR, 0.5f);
+			elem->RefreshGraphics();
+			Window::Get().UseCursor(Window::Get().systemSelectionCursor);
+			});
+		menuEventConnections.push_back(std::move(hOnConnection));
+		auto hOffConnection = butt->onHoverEnd.Connect(butt.get(), [this](GuiElement* elem) {
+			elem->backgroundColor = glm::vec4(DARK_COLOR, 0.5f);
+			elem->RefreshGraphics();
+			Window::Get().UseCursor(Window::Get().systemPointerCursor);
+			});
+		menuEventConnections.push_back(std::move(hOffConnection));
+		auto clickConnection = butt->onInputEnd.Connect(butt.get(), [onActivate](GuiElement*, InputObject input) {
+			if (input.input == InputObject::LMB) onActivate();
+			});
+		menuEventConnections.push_back(std::move(clickConnection));
+
+		nOption++;
+	};
+
+	makeButton("Cancel", [this]() {
+		menuEventConnections.clear();
+		menuContainer = nullptr;
+		MakeMainMenu();
+	});
+	makeButton("Host", [this]() {});
 }
 
 void GameState::MakeHostSavedMenu() {
@@ -110,6 +165,15 @@ void GameState::MakeHostSavedMenu() {
 void GameState::MakeJoinMenu() {
 	menuContainer = nullptr;
 	menuEventConnections.clear();
+}
+
+void GameState::MakeSettingsMenu() {
+}
+
+void GameState::MakeCreditsMenu() {
+}
+
+void GameState::MakeModsMenu() {
 }
 
 void GameState::MakeMainMenu() {
@@ -158,12 +222,12 @@ void GameState::MakeMainMenu() {
 		menuEventConnections.push_back(std::move(clickConnection));
 		};
 
-	makeMenuButton("Host new game", 0, MakeHostNewMenu);
-	makeMenuButton("Host saved game", 1, MakeHostNewMenu);
-	makeMenuButton("Join game", 2, MakeJoinMenu);
-	makeMenuButton("Credits", 5, []() {});
-	makeMenuButton("Settings", 4, []() {});
-	makeMenuButton("Mods", 3, []() {});
+	makeMenuButton("Host new game", 0, [this]() {MakeHostNewMenu(); });
+	makeMenuButton("Host saved game", 1, [this]() {MakeHostSavedMenu(); });
+	makeMenuButton("Join game", 2, [this]() {MakeJoinMenu(); });
+	makeMenuButton("Credits", 5, [this]() {MakeCreditsMenu();  });
+	makeMenuButton("Settings", 4, [this]() {MakeSettingsMenu(); });
+	makeMenuButton("Mods", 3, [this]() {MakeModsMenu(); });
 	makeMenuButton("Quit", 6, []() {
 		Window::Get().Close();
 		});

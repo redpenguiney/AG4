@@ -27,6 +27,7 @@ private:
 	void AddGameobject(Gameobject& obj, const GameobjectCreateParams& params);
 
 	RenderGroup(std::vector<std::shared_ptr<DrawPass>> drawPasses, std::shared_ptr<Meshpool> meshpool, GLenum primitiveType);
+	RenderGroup(const RenderGroup&&) = delete;
 
 	std::shared_ptr<Meshpool> meshpool = nullptr;
 
@@ -37,7 +38,7 @@ private:
 	std::vector<IndirectDrawCommand> commands;
 
 	// users are RenderGroups, not Gameobjects.
-	static inline std::unordered_map<DrawPass*, unsigned> drawPassNumUsers;
+	static inline std::unordered_map<DrawPass*, CheckedUint> drawPassNumUsers;
 	//std::unordered_map<std::string, DrawPass*> drawPassesInUse;
 
 	friend class RenderGraph;

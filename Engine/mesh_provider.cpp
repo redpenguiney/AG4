@@ -119,7 +119,7 @@ void MeshCreateParams::LoadText(Texture& fontmap, std::string text, TextFormatti
         Assert(maxLineLength > 0);
         std::string currentLine = "";
         for (int wordI = 0; wordI < static_cast<int>(words.size()); wordI++) {
-            auto& word = words[wordI];
+            std::string word = words[wordI];
 
             if (word == "\n") {
                 lines.push_back(currentLine);

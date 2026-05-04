@@ -172,7 +172,7 @@ StaticMeshpool::StaticMeshpool(MeshVertexFormat f): Meshpool(f) {
 }
 
 StaticMeshpool::~StaticMeshpool() {
-
+	//DebugLogInfo("Destroying static pool at ", this);
 }
 
 MeshpoolMeshStorageLocation StaticMeshpool::AddMesh(std::shared_ptr<Mesh> m) {

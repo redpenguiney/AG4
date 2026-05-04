@@ -160,6 +160,8 @@ void Window::SetMouseLocked(bool locked) {
 
 InputObject::InputType glfwKeyToInputType(int key) {
     switch (key) {
+    case GLFW_KEY_BACKSPACE:
+        return InputObject::Backspace;
     case GLFW_KEY_A:
         return InputObject::A;
     case GLFW_KEY_B:

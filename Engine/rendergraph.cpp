@@ -27,7 +27,10 @@ RenderGraph::RenderGraph() {
 
 
 void RenderGraph::Render() {
-	if (dirty) Compile();
+	if (dirty) {
+		DebugLogInfo("Recompiling rendergraph.")
+		Compile();
+	}
 
 	for (auto& buf : hardwareBuffers) {
 		//if (buf->ubo) {
@@ -143,7 +146,7 @@ void RenderGraph::Render() {
 			}
 
 			for (auto& src : p.sources) {
-				for (auto& renderGroup : drawPasses.at(src)->drawnObjects) {
+				for (RenderGroup* renderGroup : drawPasses.at(src)->drawnObjects) {
 					renderGroup->meshpool->BindVAO(p.params.shader);
 					renderGroup->meshpool->indices.Bind(GL_ELEMENT_ARRAY_BUFFER);
 					for (auto& c : renderGroup->commands) {
@@ -342,6 +345,12 @@ void RenderGraph::Compile() {
 		if (f->ubo) continue;
 		f->destroy = true;
 		f->accesses.clear();
+	}
+
+	for (auto& [n,p] : drawPasses) {
+		for (RenderGroup* group : p->drawnObjects) {
+			Assert(group->commands.size() > 0);
+		}
 	}
 
 	// Use Khan's algorithm to topologically sort our render passes into an order that ensures any node is visited only after its dependencies are.

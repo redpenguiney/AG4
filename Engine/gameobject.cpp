@@ -33,7 +33,7 @@ Gameobject::Gameobject(const GameobjectCreateParams& params) {
 }
 
 Gameobject::~Gameobject() {
-    renderGroup->RemoveGameobject(*this);
+    if (meshpool) renderGroup->RemoveGameobject(*this);
     live = false;
 }
 

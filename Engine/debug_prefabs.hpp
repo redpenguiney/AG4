@@ -1,5 +1,6 @@
 #pragma once
 #include <memory>
+#include <vector>
 #include <glm/vec3.hpp>
 
 class Mesh;
@@ -12,8 +13,8 @@ std::shared_ptr<DrawPass> GetDebugWireframePass();
 std::shared_ptr<DrawPass> GetDebugSolidPass();
 std::shared_ptr<ConvexMeshPhysicsGeometry> GetCubeCollisions();
 
-void BuildPit(glm::dvec3 pos, glm::vec3 size, float elasticity, float friction);
-void BuildCubeArray(glm::dvec3 origin, glm::dvec3 stride, glm::uvec3 nCubes, bool physics, float elasticity, float friction);
+std::vector<Gameobject*> BuildPit(glm::dvec3 pos, glm::vec3 size, float elasticity, float friction);
+std::vector<Gameobject*> BuildCubeArray(glm::dvec3 origin, glm::dvec3 stride, glm::uvec3 nCubes, bool physics, float elasticity, float friction);
 
 inline float freecamPitch = 0, freecamYaw = 0, freecamSpeed = 0;
 void Freecam();

@@ -213,15 +213,17 @@ bool AABBTree::OptimizeDirtyNode(Node* n) {
 
 	bool isLeafNode = true; // TOOD: Node::split exists?
 	for (auto& child : n->children) { 
-		if (OptimizeDirtyNode(child.get())) {
-			child = nullptr;
-		}
-		else if (isLeafNode) {
-			isLeafNode = false;
-			n->bounds = child->bounds;
-		}
-		else {
-			n->bounds.Grow(child->bounds);
+		if (child) {
+			if (OptimizeDirtyNode(child.get())) {
+				child = nullptr;
+			}
+			else if (isLeafNode) {
+				isLeafNode = false;
+				n->bounds = child->bounds; // yes, not Grow()
+			}
+			else {
+				n->bounds.Grow(child->bounds);
+			}
 		}
 	}
 

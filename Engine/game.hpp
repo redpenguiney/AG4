@@ -14,4 +14,4 @@ public:
 
 	// holds arbitrary globals.
 	std::unique_ptr<GameState> state;
-}
+};

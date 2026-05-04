@@ -94,13 +94,15 @@ std::shared_ptr<ConvexMeshPhysicsGeometry> GetCubeCollisions() {
 	return collisions;
 }
 
-void BuildPit(glm::dvec3 pos, glm::vec3 size, float elasticity, float friction) {
+std::vector<Gameobject*> BuildPit(glm::dvec3 pos, glm::vec3 size, float elasticity, float friction) {
 	GameobjectCreateParams p;
 	p.mesh = GetCubeMesh();
 	p.physicsMesh = GetCubeCollisions();
 
 	glm::vec4 floorColor(0, 1, 0, 1);
 	glm::vec4 wallColor(0.7, 0.3, 0.3, 1);
+
+	std::vector<Gameobject*> ret;
 
 	Gameobject* floor = Gameobject::New(p);
 	floor->elasticity = elasticity;
@@ -127,13 +129,19 @@ void BuildPit(glm::dvec3 pos, glm::vec3 size, float elasticity, float friction) 
 	wall2->SetInstanceAttribute(*p.mesh->format.GetAttribute("color"), wallColor);
 	wall2->SetInstanceAttribute(*p.mesh->format.GetAttribute(SpecialVertexAttributeNames::AUTOMATIC_TEXTURE_ARRAY_SELECTION), -1.0f);
 
+	ret.push_back(floor);
+	ret.push_back(wall1);
+	ret.push_back(wall2);
+	return ret;
 }
 
-void BuildCubeArray(glm::dvec3 origin, glm::dvec3 stride, glm::uvec3 nCubes, bool physics, float elasticity, float friction) {
+std::vector<Gameobject*> BuildCubeArray(glm::dvec3 origin, glm::dvec3 stride, glm::uvec3 nCubes, bool physics, float elasticity, float friction) {
 	GameobjectCreateParams p;
 	p.mesh = GetCubeMesh();
 	p.physicsMesh = GetCubeCollisions();
 	
+	std::vector<Gameobject*> ret;
+
 	for (unsigned i = 0; i < nCubes.x; i++) {
 		for (unsigned j = 0; j < nCubes.y; j++) {
 			for (unsigned k = 0; k < nCubes.z; k++) {
@@ -146,9 +154,13 @@ void BuildCubeArray(glm::dvec3 origin, glm::dvec3 stride, glm::uvec3 nCubes, boo
 				if (rand() < RAND_MAX / 2) color.x *= 0.5;
 				gameObj->SetInstanceAttribute(*p.mesh->format.GetAttribute("color"), color);
 				gameObj->SetInstanceAttribute(*p.mesh->format.GetAttribute(SpecialVertexAttributeNames::AUTOMATIC_TEXTURE_ARRAY_SELECTION), -1.0f);
+			
+				ret.push_back(gameObj);
 			}
 		}
 	}
+
+	return ret;
 }
 
 void Freecam() {
