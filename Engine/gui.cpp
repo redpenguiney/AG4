@@ -265,7 +265,7 @@ void GuiElement::MakeTextobject() {
             Assert(font);
             static int i = 0;
             std::shared_ptr<DrawPass> newPass(new DrawPass(*container->elementPasses[nullptr]));
-            newPass->name = "SCREEN_GUI_PRESENTATION_FONT " + std::to_string(i++);
+            newPass->name = "SCREEN_GUI_PRESENTATION_FONT_" + std::to_string(i++);
             newPass->dependencies.push_back("FRAMES_DRAWN");
             newPass->outputs.pop_back();
             newPass->uniformSupplier = SupplyTextUniforms;
@@ -296,7 +296,7 @@ container(&storeIn)
         Assert(background);
         static int i = 0;
         std::shared_ptr<DrawPass> newPass(new DrawPass(*storeIn.elementPasses[nullptr]));
-        newPass->name = "SCREEN_GUI_PRESENTATION_TEXTURED " + std::to_string(i++);
+        newPass->name = "SCREEN_GUI_PRESENTATION_TEXTURED_" + std::to_string(i++);
         container->elementPasses.emplace(background.get(), newPass);
     }
     params.renderPasses = { storeIn.elementPasses[background.get()],};

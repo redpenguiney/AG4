@@ -77,23 +77,31 @@ RenderGroup::~RenderGroup() {
 				pass->drawnObjects[groupI] = pass->drawnObjects.back();
 				pass->drawnObjects.pop_back();
 				
-				DebugLogInfo("Removed drawnobjects from pass ", pass->name);
+				//DebugLogInfo("Removed drawnobjects from pass ", pass->name, " ", pass->drawnObjects.size(), " remain.");
+				//for (auto& obj : pass->drawnObjects) {
+					//DebugLogInfo("\tGroup with ", obj->commands.size(), "");
+				//}
 				goto removed; // only breaks inner loop
 			}
 		}
 		Assert(false); // if we didn't remove something then drawPasses was wrong.
 		removed:;
+
+		if (pass->drawnObjects.empty()) {
+			DebugLogInfo("Pass ", pass->name, " is empty now.");
+
+		}
 	}
 
-	/*for (auto& p : drawPasses) {
-		Assert(drawPassNumUsers.contains(p.get()));
-		drawPassNumUsers[p.get()]--;
-		if (drawPassNumUsers[p.get()] == 0) {
-			drawPassNumUsers.erase(p.get());
-			DebugLogInfo("Erasing pass.");
-			GraphicsEngine::Get().renderGraph->RemovePass(p);
-		}
-	}*/
+	//for (auto& p : drawPasses) {
+	//	Assert(drawPassNumUsers.contains(p.get()));
+	//	drawPassNumUsers[p.get()]--;
+	//	if (drawPassNumUsers[p.get()] == 0) {
+	//		drawPassNumUsers.erase(p.get());
+	//		DebugLogInfo("Erasing pass.");
+	//		GraphicsEngine::Get().renderGraph->RemovePass(p);
+	//	}
+	//}
 }
 
 void RenderGroup::AddGameobject(Gameobject& obj, const GameobjectCreateParams& params) {
