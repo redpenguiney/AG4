@@ -2,6 +2,7 @@
 #include <variant>
 #include <memory>
 #include "event.hpp"
+#include <GameNetworkingSockets/steam/steamnetworkingsockets.h>
 
 enum class NetworkState {
 	Offline,
@@ -40,4 +41,16 @@ private:
 
 	NetworkingEngine();
 	NetworkingEngine(const NetworkingEngine&) = delete;
+};
+
+struct ServerNetworkInfo {
+	HSteamListenSocket listenSocket;
+
+	ServerNetworkInfo(unsigned port);
+
+	~ServerNetworkInfo();
+};
+
+struct ClientNetworkInfo {
+
 };

@@ -1,20 +1,6 @@
 #include "networking_engine.hpp"
-#include <GameNetworkingSockets/steam/steamnetworkingsockets.h>
 
-struct ServerNetworkInfo {
-    HSteamListenSocket listenSocket;
 
-    ServerNetworkInfo(unsigned port) {
-        SteamNetworkingIPAddr localaddr;
-        localaddr.Clear();
-		localaddr.m_port = port;
-        listenSocket = SteamNetworkingSockets()->CreateListenSocketIP(localaddr, 0, nullptr);
-    }
-
-    ~ServerNetworkInfo() {
-
-    }
-};
 
 const NetworkState NetworkingEngine::GetState() const {
     return state;
@@ -26,7 +12,17 @@ NetworkingEngine& NetworkingEngine::Get() {
 }
 
 void NetworkingEngine::Update() {
+    if (state == NetworkState::Offline) return;
+    if (std::holds_alternative<std::unique_ptr<ServerNetworkInfo>>(stateData)) {
 
+    }
+    else if (std::holds_alternative<std::unique_ptr<ClientNetworkInfo>>(stateData)) {
+
+    }
+    else {
+        Assert(false);
+        std::unreachable();
+    }
 }
 
 void NetworkingEngine::Host(unsigned port) {
@@ -50,5 +46,16 @@ void NetworkingEngine::SetState(NetworkState newState) {
 }
 
 NetworkingEngine::NetworkingEngine() {
+
+}
+
+ServerNetworkInfo::ServerNetworkInfo(unsigned port) {
+    SteamNetworkingIPAddr localaddr;
+    localaddr.Clear();
+    localaddr.m_port = port;
+    listenSocket = SteamNetworkingSockets()->CreateListenSocketIP(localaddr, 0, nullptr);
+}
+
+ServerNetworkInfo::~ServerNetworkInfo() {
 
 }
