@@ -215,7 +215,6 @@
     <ClInclude Include="indirect_draw_command.hpp" />
     <ClInclude Include="let_me_hash_a_tuple.hpp" />
     <ClInclude Include="light.hpp" />
-    <ClInclude Include="local_client.hpp" />
     <ClInclude Include="mainloop.hpp" />
     <ClInclude Include="memory_pool.hpp" />
     <ClInclude Include="log.hpp" />
@@ -226,7 +225,7 @@
     <ClInclude Include="physics_engine.hpp" />
     <ClInclude Include="physics_mesh.hpp" />
     <ClInclude Include="raycast.hpp" />
-    <ClInclude Include="remote_client.hpp" />
+    <ClInclude Include="player.hpp" />
     <ClInclude Include="renderbuffer.hpp" />
     <ClInclude Include="rendergroup.hpp" />
     <ClInclude Include="static_meshpool.hpp" />
