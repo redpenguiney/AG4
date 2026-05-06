@@ -141,6 +141,8 @@ GuiElement::~GuiElement() {
     }
 
     if (hover) {
+        onHoverEnd.FireNow(this);
+
         for (unsigned i = 0; i < elementsBeingHoveredOn.size(); i++) {
             if (elementsBeingHoveredOn[i] == this) {
                 elementsBeingHoveredOn[i] = elementsBeingHoveredOn.back();
@@ -155,13 +157,13 @@ void GuiElement::RefreshTransform() {
     glm::ivec2 objectCenterPosition = GetPixelCenterPosition();
     glm::ivec2 objectSize = GetPixelSize();
 
-    gameobject->SetPosition(glm::dvec3(objectCenterPosition, depth));
+    gameobject->SetPosition(glm::dvec3(objectCenterPosition, -depth));
     gameobject->SetScale(glm::dvec3(objectSize, 1.0));
     gameobject->SetRotation(glm::angleAxis(rotation, glm::vec3(0, 0, 1)));
 
     if (textobject) {
         //DebugLogInfo("Text placed at ", objectCenterPosition);
-        textobject->SetPosition(glm::dvec3(objectCenterPosition, depth - 0.001));
+        textobject->SetPosition(glm::dvec3(objectCenterPosition, -(depth - 0.001)));
         textobject->SetRotation(glm::angleAxis(rotation, glm::vec3(0, 0, 1)));
     }
 
@@ -264,7 +266,8 @@ void GuiElement::MakeTextobject() {
         if (!container->elementPasses.contains(font.get())) {
             Assert(font);
             static int i = 0;
-            std::shared_ptr<DrawPass> newPass(new DrawPass(*container->elementPasses[nullptr]));
+            std::shared_ptr<DrawPass> newPass = DrawPass::FromTemplate(*container->elementPasses[nullptr]);
+            newPass->drawnObjects.clear();
             newPass->name = "SCREEN_GUI_PRESENTATION_FONT_" + std::to_string(i++);
             newPass->dependencies.push_back("FRAMES_DRAWN");
             newPass->outputs.pop_back();
@@ -295,7 +298,7 @@ container(&storeIn)
     if (!storeIn.elementPasses.contains(background.get())) {
         Assert(background);
         static int i = 0;
-        std::shared_ptr<DrawPass> newPass(new DrawPass(*storeIn.elementPasses[nullptr]));
+        std::shared_ptr<DrawPass> newPass = DrawPass::FromTemplate(*storeIn.elementPasses[nullptr]);
         newPass->name = "SCREEN_GUI_PRESENTATION_TEXTURED_" + std::to_string(i++);
         container->elementPasses.emplace(background.get(), newPass);
     }

@@ -31,6 +31,7 @@
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
+    <EnableASAN>true</EnableASAN>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
@@ -44,6 +45,7 @@
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
+    <EnableASAN>true</EnableASAN>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
@@ -167,6 +169,7 @@
     <ClCompile Include="mesh_multifromfile.cpp" />
     <ClCompile Include="mesh_provider.cpp" />
     <ClCompile Include="mesh_voxels.cpp" />
+    <ClCompile Include="networking_engine.cpp" />
     <ClCompile Include="physics_engine.cpp" />
     <ClCompile Include="physics_mesh.cpp" />
     <ClCompile Include="raycast.cpp" />
@@ -219,6 +222,7 @@
     <ClInclude Include="mesh.hpp" />
     <ClInclude Include="meshold.hpp" />
     <ClInclude Include="mesh_format.hpp" />
+    <ClInclude Include="networking_engine.hpp" />
     <ClInclude Include="physics_engine.hpp" />
     <ClInclude Include="physics_mesh.hpp" />
     <ClInclude Include="raycast.hpp" />

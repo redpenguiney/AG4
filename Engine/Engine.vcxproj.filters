@@ -162,6 +162,9 @@
     <ClCompile Include="rendergraph_node.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="networking_engine.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="gameobject.hpp">
@@ -315,6 +318,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="game.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="networking_engine.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -201,8 +201,9 @@ protected:
 class DrawPass : public RenderPass {
 public:
 	DrawPass() = default;
-	DrawPass(const DrawPass& other) = default;
 	virtual ~DrawPass();
+
+	static std::shared_ptr<DrawPass> FromTemplate(const DrawPass& other);
 
 	// If FramebufferRenderTargetDescriptor:
 		// Remember to update outputs to contain ALL attachments of this renderTarget (not just the ones it writes to).
@@ -213,6 +214,8 @@ public:
 	std::vector<RenderGroup*> drawnObjects; // managed by RenderGroups, non-owning
 
 	RenderingParameters params;
+private:
+	DrawPass(const DrawPass& other) = default;
 };
 
 class ComputePass : public RenderPass {

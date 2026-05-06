@@ -22,7 +22,7 @@ void GraphicsEngine::RenderScene(double dt) {
     auto cameraNoFloatingOrigin = currentCamera.GetCamera();
     cameraNoFloatingOrigin[3] = glm::vec4(-currentCamera.position, 1);
     auto proj = currentCamera.GetProj(Window::Get().Aspect());
-    auto orthro = glm::ortho<float>(0, Window::Get().width, 0, Window::Get().height);
+    auto orthro = glm::ortho<float>(0, Window::Get().width, 0, Window::Get().height, -1000.0f, 1000.0f);
     ShaderProgram::SetCameraUniforms(proj * camera, proj * cameraNoFloatingOrigin, orthro); 
 
     Meshpool::PrepareDraw();

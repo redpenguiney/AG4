@@ -70,7 +70,9 @@ public:
 	// used by LayoutChildren____() functions.
 	int sortOrder = 0;
 
-	// Smaller/more negative depth shows up on top. Be wary of increments <= 0.001 since that is the increment used to put text in front of its respective element.
+	// Smaller/more negative depth shows up on top. 
+	// Don't use values less than -1000 or greater than 1000, those are the near/far planes for orthro. (see GraphicsEngine)
+	// Be wary of increments <= 0.001 since that is the increment used to put text in front of its respective element.
 	float depth = 0.0f;
 
 	glm::ivec2 pixelPosition = { 0, 0 };

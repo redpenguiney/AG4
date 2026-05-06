@@ -29,7 +29,7 @@ void main()
 
     gl_Position = orthro * modelMatrix * vec4(vertexPos, 1.0);
     //gl_Position.z = arb1;
-    gl_Position.z = 0;
+    //gl_Position.z = 0;
 
 
     fragmentColor = color;

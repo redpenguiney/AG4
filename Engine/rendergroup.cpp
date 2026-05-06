@@ -8,7 +8,7 @@ void RenderGroup::RemoveGameobject(Gameobject& obj) {
 	Assert(!commands.empty());
 	meshpool->RemoveInstance(obj.drawInstanceIndex);
 
-	DebugLogInfo("Removing gameobject from ", this, " with ", commands.size());
+	//DebugLogInfo("Removing gameobject from ", this, " with ", commands.size());
 
 	// TODO: data structure to accelerate this
 	for (unsigned i = 0; i < commands.size(); i++) {
@@ -45,7 +45,7 @@ void RenderGroup::RemoveGameobject(Gameobject& obj) {
 	}
 
 	if (commands.empty()) {
-		DebugLogInfo("Calling rendergroup destructor bc last object removed. (", drawPasses.size(), ")");
+		//DebugLogInfo("Calling rendergroup destructor bc last object removed. (", drawPasses.size(), ")");
 
 		for (unsigned i = 0; i < renderGroupsByMeshpool[meshpool.get()].size(); i++) {
 			if (renderGroupsByMeshpool[meshpool.get()][i].get() == this) {
@@ -68,7 +68,7 @@ void RenderGroup::RemoveGameobject(Gameobject& obj) {
 
 RenderGroup::~RenderGroup() {
 
-	DebugLogInfo("Destroying rendergroup ", this);
+	//DebugLogInfo("Destroying rendergroup ", this);
 
 	Assert(commands.empty()); //TODO: ???
 	for (auto& pass : drawPasses) {
@@ -87,10 +87,10 @@ RenderGroup::~RenderGroup() {
 		Assert(false); // if we didn't remove something then drawPasses was wrong.
 		removed:;
 
-		if (pass->drawnObjects.empty()) {
-			DebugLogInfo("Pass ", pass->name, " is empty now.");
+		//if (pass->drawnObjects.empty()) {
+			//DebugLogInfo("Pass ", pass->name, " is empty now.");
 
-		}
+		//}
 	}
 
 	//for (auto& p : drawPasses) {
@@ -126,7 +126,7 @@ RenderGroup::RenderGroup(std::vector<std::shared_ptr<DrawPass>> renderpasses, st
 		pass->drawnObjects.push_back(this);
 		if (!drawPassNumUsers.contains(pass.get())) {
 			drawPassNumUsers[pass.get()] = 0;
-			DebugLogInfo("New group ", this, " contains novel pass ", pass->name);
+			//DebugLogInfo("New group ", this, " contains novel pass ", pass->name);
 			GraphicsEngine::Get().renderGraph->AddPass(pass);
 		}
 		drawPassNumUsers[pass.get()]++;
@@ -163,12 +163,14 @@ void RenderGroup::FindRendergroupForGameobject(Gameobject& obj, const Gameobject
 
 	if (!group) {
 		group = new RenderGroup(params.renderPasses, params.mesh->pool, params.primitiveType);
-		DebugLogInfo("Made group ", group, " for ", params.renderPasses[0]->name);
-		if (renderGroupsByMeshpool.contains(params.mesh->pool.get())) DebugLogInfo("Already had meshpool in map.");
+		//DebugLogInfo("Made group ", group, " for ", params.renderPasses[0]->name);
+		//if (renderGroupsByMeshpool.contains(params.mesh->pool.get())) {
+			//DebugLogInfo("Already had meshpool in map.");
+		//}
 		renderGroupsByMeshpool[params.mesh->pool.get()].push_back(std::shared_ptr<RenderGroup>(group));
 	}
 	else {
-		DebugLogInfo("Already had group ", group, " for ", params.renderPasses[0]->name);
+		//DebugLogInfo("Already had group ", group, " for ", params.renderPasses[0]->name);
 	}
 
 	group->AddGameobject(obj, params);

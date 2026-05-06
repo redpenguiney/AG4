@@ -5,6 +5,7 @@
 #include "window.hpp"
 #include "physics_engine.hpp"
 #include "aabb_tree.hpp"
+#include <networking_engine.hpp>
 
 Mainloop& Mainloop::Get() {
 	static Mainloop m;
@@ -58,6 +59,7 @@ void Mainloop::Run() {
 		}
 
 		Window::Get().Update();
+		NetworkingEngine::Get().Update();
 		if (quitIfTryingToCloseWidnow && Window::Get().ShouldClose()) quit = true;
 	}
 }

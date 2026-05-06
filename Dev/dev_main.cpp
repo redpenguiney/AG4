@@ -12,6 +12,7 @@ std::shared_ptr<GuiElement> frame;
 class GameState {
 public:
 	std::vector<std::unique_ptr<Gameobject>> objs;
+	std::vector<std::shared_ptr<GuiElement>> uiElements;
 };
 
 Game::Game() {
@@ -68,34 +69,35 @@ Game::Game() {
 	auto& CL = ClusteredLighting::Get();
 	auto pointLight = std::make_shared<PointLight>();
 	pointLight->position = { 2.0, 2.0, 2.0 };
-	pointLight->intensity = 400.0f;
+	pointLight->intensity = 4.0f;
 	pointLight->color = { 1, 0, 0 };
 	auto spotLight = std::make_shared<SpotLight>();
 	spotLight->position = { 3, 0, 20 };
 	spotLight->direction = glm::normalize(glm::vec3{ 0.0f, 0.0f, -1.0f });
 	spotLight->innerAngle = glm::radians(3.0f);
 	spotLight->outerAngle = glm::radians(6.0f);
-	spotLight->intensity = 800.0f;
+	spotLight->intensity = 80.0f;
 	spotLight->color = glm::vec3(0, 1, 1);
-	//CL.lights.push_back(pointLight);
-	//CL.lights.push_back(spotLight);
+	CL.lights.push_back(pointLight);
+	CL.lights.push_back(spotLight);
 
-	//TextureCreateParams arialFontParams({ TextureSource("../fonts/arial.ttf"), });
-	//arialFontParams.fontHeight = 8;
-	//arialFontParams.format = Texture::Grayscale_8Bit;
-	//auto arialFont = std::make_shared<Texture>(arialFontParams, Texture::Texture2D);
+	TextureCreateParams arialFontParams({ TextureSource("../fonts/arial.ttf"), });
+	arialFontParams.fontHeight = 24;
+	arialFontParams.format = Texture::Grayscale_8Bit;
+	auto arialFont = std::make_shared<Texture>(arialFontParams, Texture::Texture2D);
 
-	//frame = GuiElement::New(*GetScreenGuiContainer(), nullptr, arialFont);
-	//frame->percentagePosition = { 0.5, 0.5 };
-	//frame->pixelSize = { 300, 150 };
-	//frame->backgroundColor = { 1, 1, 1, 0.0 };
-	//frame->text = "Honey is a free browser addon available on AAAAAAGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGoogle, Oprah, Firefox, Safari - if it's a browser. It has Honey.";
-	//frame->textColor = { 0, 1, 0, 1.0 };
-	//frame->vAlign = VerticalAlignMode::Center;
-	//frame->hAlign = HorizontalAlignMode::Center;
-	//frame->RefreshGraphics();
-	//frame->RefreshTransform();
-	//frame->RefreshText();
+	frame = GuiElement::New(*GetScreenGuiContainer(), nullptr, arialFont);
+	frame->percentagePosition = { 0.5, 0.5 };
+	frame->pixelSize = { 300, 150 };
+	frame->backgroundColor = { 1, 1, 1, 0.0 };
+	frame->text = "Honey.";
+	frame->textColor = { 0, 1, 0, 1.0 };
+	frame->vAlign = VerticalAlignMode::Center;
+	frame->hAlign = HorizontalAlignMode::Center;
+	frame->RefreshGraphics();
+	frame->RefreshTransform();
+	frame->RefreshText();
+	state->uiElements.push_back(frame);
 
 	GraphicsEngine::Get().currentCamera.position = { 1, 0, 5 };
 	////PhysicsEngine::Get().gravity = { 5, -5, 0 };

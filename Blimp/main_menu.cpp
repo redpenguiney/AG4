@@ -121,7 +121,7 @@ void GameState::MakeHostNewMenu() {
 		butt->percentagePosition = { 0.5, 0.5 };
 		butt->pixelPosition = { 4 + nOption * 64, 0 };
 		butt->anchorPoint = { -0.5, 0.0 };
-		butt->depth = buttonsContainer->depth - 1;
+		butt->depth = buttonsContainer->depth - 2;
 		butt->wrapText = false;
 		butt->hAlign = HorizontalAlignMode::Center;
 		butt->backgroundColor = glm::vec4(DARK_COLOR, 1.0f);
@@ -150,8 +150,8 @@ void GameState::MakeHostNewMenu() {
 	};
 
 	makeButton("Cancel", [this]() {
-		menuEventConnections.clear();
-		menuContainer = nullptr;
+		//menuEventConnections.clear();
+		//menuContainer = nullptr;
 		MakeMainMenu();
 	});
 	makeButton("Host", [this]() {});

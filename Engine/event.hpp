@@ -72,6 +72,7 @@ public:
 	};
 
 	// The provided function will be called whenever Fire() is called with the same object, until the returned Connection is destroyed.
+	// WARNING: if you fail to store this Connection, the function will be instantly disconnected. 
 	Connection Connect(Object* obj, ConnectableFunction f) {
 		unsigned id = connectionIdProvider.GetId();
 		connectedFunctions[obj].push_back(NamedConnectableFunction{
@@ -82,6 +83,7 @@ public:
 	}
 
 	// Without providing an object, the provided function will be called when Fire() is called with any object, until the returned Connection is destroyed.
+	// WARNING: if you fail to store this Connection, the function will be instantly disconnected.
 	Connection Connect(ConnectableFunction f) {
 		return Connect(nullptr, f);
 	}
@@ -94,6 +96,21 @@ public:
 			std::apply(func, args);
 		}
 	};
+
+	// Immediately calls all functions connected to this event.
+	void FireNow(Object* obj, eventArgs... args) {
+		if (connectedFunctions.contains(nullptr)) {
+			for (auto& func : connectedFunctions[nullptr]) {
+				std::apply(func.func, std::make_tuple(obj, args...));
+			}
+		}
+
+		if (connectedFunctions.contains(obj)) {
+			for (auto& func : connectedFunctions[obj]) {
+				std::apply(func.func, std::make_tuple(obj, args...));
+			}
+		}
+	}
 
 	// Adds the event to the queue, meaning that next time FlushQueue() is called, all functions connected to this event for the given object will be called.
 	void Fire(Object* obj, eventArgs... args) {

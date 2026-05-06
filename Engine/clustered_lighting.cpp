@@ -14,7 +14,7 @@ ClusteredLighting::ClusteredLighting() {
 
     GraphicsEngine::Get().AddUniformBuffer("lights", sizeof(Light) * 1024);
 
-    Mainloop::Get().preRender.Connect([this](Mainloop*, float) {
+    preRenderConnection = Mainloop::Get().preRender.Connect([this](Mainloop*, float) {
         std::vector<Light> gpuLights;
         gpuLights.resize(lights.size() + 1);
         for (size_t i = 0; i < lights.size(); i++) {

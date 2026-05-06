@@ -20,7 +20,10 @@ void BaseEvent::FlushEventQueue(int depth) {
 	//		i--;
 	//	}
 	//}
-	auto& q = EventInvocationQueue();
+
+	// we take ownership of the queue so that newly fired events don't invalidate the iterator.
+	// Newly fired events will go into the now empty EventInvocationQueue and be handled when we recursively call FlushEventQueue() at the end of this function.
+	auto q = std::move(EventInvocationQueue()); 
 	//DebugLogInfo("Handling ", q.size());
 	//if (q.size() > 1) {
 		//std::cout << "";
@@ -30,10 +33,10 @@ void BaseEvent::FlushEventQueue(int depth) {
 	for (auto& invoc : q) {
 		invoc->RunConnections();
 	}
-	//q.clear();
-	q.erase(q.begin(), q.begin() + priorSize); // we can't just clear the queue since invoking events could fire more events.
+	q.clear();
+	//q.erase(q.begin(), q.begin() + priorSize); // we can't just clear the queue since invoking events could fire more events.
 	// If the fired events we just handled fired more events, we should handle those immediately.
-	if (!q.empty()) {
+	if (!EventInvocationQueue().empty()) {
 		FlushEventQueue(depth + 1);
 
 	}

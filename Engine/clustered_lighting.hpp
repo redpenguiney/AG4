@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <glm/vec3.hpp>
+#include "event.hpp"
 
 class RenderPass;
 
@@ -54,7 +55,7 @@ public:
 	// TODO: different datastructure perhaps?
 	std::vector<std::shared_ptr<BaseLight>> lights;
 
-
+	Connection preRenderConnection;
 private:
 	ClusteredLighting();
 	~ClusteredLighting();
