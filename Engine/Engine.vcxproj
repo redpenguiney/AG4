@@ -172,6 +172,7 @@
     <ClCompile Include="networking_engine.cpp" />
     <ClCompile Include="physics_engine.cpp" />
     <ClCompile Include="physics_mesh.cpp" />
+    <ClCompile Include="player.cpp" />
     <ClCompile Include="raycast.cpp" />
     <ClCompile Include="renderbuffer.cpp" />
     <ClCompile Include="rendergraph.cpp" />
@@ -228,6 +229,7 @@
     <ClInclude Include="player.hpp" />
     <ClInclude Include="renderbuffer.hpp" />
     <ClInclude Include="rendergroup.hpp" />
+    <ClInclude Include="serialization.hpp" />
     <ClInclude Include="static_meshpool.hpp" />
     <ClInclude Include="meshpoolold.hpp" />
     <ClInclude Include="mesh_provider.hpp" />
