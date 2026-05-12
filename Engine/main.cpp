@@ -15,10 +15,18 @@
 #include "gui.hpp"
 #include "game.hpp"
 
-int main() {
+std::vector<const char*> ExtractLaunchArguments(int numArgs, const char** args) {
+	std::vector<const char*> argVec;
+	for (int i = 0; i < numArgs; i++) {
+		argVec.push_back(args[i]);
+	}
+	return argVec;
+}
+
+int main(int numArgs, const char** argArray) {
 	DebugLogInfo("Reached main() successfully."); // you know it's a bad sign when you need to print this sort of thing
 
-	std::vector<std::shared_ptr<Gameobject>> objects;
+	auto launchArgs = ExtractLaunchArguments(numArgs, argArray);
 	
 	//MemoryPool<Gameobject, const GameobjectCreateParams&>::Get();
 	//MemoryPool<Physobject, const PhysobjectCreateParams&>::Get();
@@ -106,7 +114,7 @@ int main() {
 		});
 
 	{
-		Game g;
+		Game g(launchArgs);
 		Mainloop::Get().Run();
 		// Game::~Game() runs here.
 	}

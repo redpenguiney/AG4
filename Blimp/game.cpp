@@ -6,7 +6,7 @@
 #include <vector>
 #include <networking_engine.hpp>
 
-Game::Game() {
+Game::Game(std::vector<const char*> args) {
 	state = std::make_unique<GameState>();
 	//state->MakeMainMenu();
 

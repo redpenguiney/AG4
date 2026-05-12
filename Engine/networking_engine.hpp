@@ -1,6 +1,8 @@
 #pragma once
 #include <variant>
 #include <memory>
+#include <optional>
+#include <string>
 #include "event.hpp"
 #include <GameNetworkingSockets/steam/steamnetworkingsockets.h>
 #include <player.hpp>
@@ -26,16 +28,24 @@ enum class DisconnectionReason: uint8_t {
 	Unknown = 1
 };
 
-struct ServerNetworkInfo;
-struct ClientNetworkInfo;
+struct Server;
+struct Client;
+
+struct ConnectionAttemptParams {
+	std::string ip; // include port, defaults to 0 if not specified.
+	int timeout; // in ms
+};
 
 class NetworkingEngine {
 public:
 	const NetworkState GetState() const;
-	const std::vector<Player>& GetPlayers() const;
+	//const std::vector<Player>& GetPlayers() const;
 
 	static NetworkingEngine& Get();
 	void Update();
+
+	bool IsHost();
+	bool IsClient();
 
 	// state must be Offline. Changes state to Server. Never fails.
 	void Host(unsigned port);
@@ -47,7 +57,7 @@ public:
 	// Changes state to ClientConnecting. Never fails. Will fire onNetworkStateChange when connection attempt fails or succeeds.
 	// On success, state will be set to Client.
 	// If it fails, state will be set back to Offline and it will also fire onConnectionFailure.
-	void TryJoin();
+	void TryJoin(ConnectionAttemptParams params);
 
 	~NetworkingEngine();
 	
@@ -55,29 +65,54 @@ public:
 	static inline Event<NetworkingEngine, NetworkState, NetworkState>& onNetworkStateChange = Event<NetworkingEngine, NetworkState, NetworkState>::New();
 	static inline Event<NetworkingEngine, ConnectionFailureReason, std::optional<std::string>>& onConnectionAttemptFailure = Event<NetworkingEngine, ConnectionFailureReason, std::optional<std::string>>::New();
 private:
+
 	// Size is always >0 and the first entry is always the local machine.
-	std::vector<Player> players;
+	//std::vector<Player> players;
 
 	void SetState(NetworkState newState);
 
 	NetworkState state = NetworkState::Offline;
 	// monostate for when offline
-	std::variant<std::unique_ptr<ServerNetworkInfo>, std::unique_ptr<ClientNetworkInfo>, std::monostate> stateData = std::monostate();
+	std::variant<std::unique_ptr<Server>, std::unique_ptr<Client>, std::monostate> stateData = std::monostate();
 
 	NetworkingEngine();
 	NetworkingEngine(const NetworkingEngine&) = delete;
 
-	void HandleRecievedMessage(Player& sender, SteamNetworkingMessage_t* message);
+	friend class Server;
+	friend class Client;
 };
 
-struct ServerNetworkInfo {
+struct ConnectionInfo {
+	HSteamNetConnection connection;
+
+	ConnectionInfo(HSteamNetConnection conn);
+	~ConnectionInfo();
+
+};
+
+class Server {
+public:
+	Server(unsigned port);
+	~Server();
+
+	void UpdateServer();
+private:
 	HSteamListenSocket listenSocket;
+	std::vector<std::unique_ptr<ConnectionInfo>> connections;
 
-	ServerNetworkInfo(unsigned port);
-
-	~ServerNetworkInfo();
+	void HandleRecievedMessage(SteamNetworkingMessage_t* msg);
+	static void SteamNetConnectionStatusChangedCallback(SteamNetConnectionStatusChangedCallback_t* pInfo);
 };
 
-struct ClientNetworkInfo {
+class Client {
+public:
+	Client(ConnectionAttemptParams params);
+	~Client();
+
+	void UpdateClient();
+private:
+	std::unique_ptr<ConnectionInfo> connection;
+
+	static void SteamNetConnectionStatusChangedCallback(SteamNetConnectionStatusChangedCallback_t* pInfo);
 
 };

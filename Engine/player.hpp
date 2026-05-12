@@ -1,6 +1,5 @@
 #pragma once
 
-struct ConnectionInfo;
 
 // Represents either a client connected to us or the local machine.
 class Player {
@@ -13,8 +12,5 @@ private:
 	// Generates the player for the local machine.
 	Player();
 
-	// nullptr if local machine
-	ConnectionInfo* connectionInfo;
-
-	friend class NetworkingEngine;
+	friend class Server;
 };

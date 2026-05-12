@@ -1,12 +1,34 @@
 #include "networking_engine.hpp"
 #include <GameNetworkingSockets/steam/isteamnetworkingutils.h>
 
-struct ConnectionInfo {
-	HSteamNetConnection connection;
+enum class MessageType : uint8_t {
+    
 };
 
-void SteamNetConnectionStatusChangedCallback(SteamNetConnectionStatusChangedCallback_t* pInfo) {
+void Client::SteamNetConnectionStatusChangedCallback(SteamNetConnectionStatusChangedCallback_t* pInfo) {
+    Assert(NetworkingEngine::Get().IsClient());
+    auto& client = *std::get<std::unique_ptr<Client>>(NetworkingEngine::Get().stateData);
+    if (pInfo->m_info.m_eState == ESteamNetworkingConnectionState::k_ESteamNetworkingConnectionState_Connected) {
+        DebugLogInfo("Connected!");
+        NetworkingEngine::Get().SetState(NetworkState::Client);
+    }
+    else {
+        DebugLogError("Anomalous connection state ", pInfo->m_info.m_eState);
+    }
 
+}
+
+void Server::SteamNetConnectionStatusChangedCallback(SteamNetConnectionStatusChangedCallback_t* pInfo) {
+    Assert(NetworkingEngine::Get().IsHost());
+    auto& server = *std::get<std::unique_ptr<Server>>(NetworkingEngine::Get().stateData);
+    if (pInfo->m_info.m_eState == ESteamNetworkingConnectionState::k_ESteamNetworkingConnectionState_Connecting) {
+        SteamNetworkingSockets()->AcceptConnection(pInfo->m_hConn);
+        auto info = new ConnectionInfo(pInfo->m_hConn);
+        server.connections.emplace_back(info);
+    }
+    else {
+        DebugLogError("Anomalous connection state ", pInfo->m_info.m_eState);
+    }
 }
 
 void SteamDebugCallback(ESteamNetworkingSocketsDebugOutputType eDebugOutputType, const char* pszMsg) {
@@ -17,9 +39,9 @@ const NetworkState NetworkingEngine::GetState() const {
     return state;
 }
 
-const std::vector<Player>& NetworkingEngine::GetPlayers() const {
-    return players;
-}
+//const std::vector<Player>& NetworkingEngine::GetPlayers() const {
+    //return players;
+//}
 
 NetworkingEngine& NetworkingEngine::Get() {
     static NetworkingEngine instance;
@@ -28,28 +50,17 @@ NetworkingEngine& NetworkingEngine::Get() {
 
 void NetworkingEngine::Update() {
     if (state == NetworkState::Offline) return;
-    if (std::holds_alternative<std::unique_ptr<ServerNetworkInfo>>(stateData)) {
-        SteamNetworkingSockets()->RunCallbacks();
+    if (std::holds_alternative<std::unique_ptr<Server>>(stateData)) {
 
-		auto& serverInfo = std::get<std::unique_ptr<ServerNetworkInfo>>(stateData);
-		SteamNetworkingMessage_t* message = nullptr;
-        for (Player& p : players) {
-            if (!p.connectionInfo) {
-				continue; // we aren't connected to this player (either because its the local machine or because we're the client and they're a fellow non-server client)
-            }
-            while (true) {
-                int result = SteamNetworkingSockets()->ReceiveMessagesOnConnection(p.connectionInfo->connection, &message, 1);
-                if (result == 0) break;
-                if (result == -1) {
-                    DebugLogError("YO WHAT WHY -1");
-                    break;
-                }
-				HandleRecievedMessage(p, message);
-            }
-        }
+		auto& serverInfo = std::get<std::unique_ptr<Server>>(stateData);
+        serverInfo->UpdateServer();
+		
     }
-    else if (std::holds_alternative<std::unique_ptr<ClientNetworkInfo>>(stateData)) {
-        SteamNetworkingSockets()->RunCallbacks();
+    else if (std::holds_alternative<std::unique_ptr<Client>>(stateData)) {
+    
+        auto& clientInfo = std::get<std::unique_ptr<Client>>(stateData);
+        clientInfo->UpdateClient();
+
     }
     else {
         Assert(false);
@@ -57,17 +68,26 @@ void NetworkingEngine::Update() {
     }
 }
 
+bool NetworkingEngine::IsHost() {
+    return state == NetworkState::Server || state == NetworkState::ServerShuttingDown;
+}
+
+bool NetworkingEngine::IsClient() {
+    return state == NetworkState::Client || state == NetworkState::ClientConnecting || state == NetworkState::ClientDisconnecting;
+}
+
 void NetworkingEngine::Host(unsigned port) {
     Assert(state == NetworkState::Offline);
-    stateData = std::make_unique<ServerNetworkInfo>(port);
+    stateData = std::make_unique<Server>(port);
 
 
     SetState(NetworkState::Server);
 }
 
-void NetworkingEngine::TryJoin() {
+void NetworkingEngine::TryJoin(ConnectionAttemptParams params) {
     Assert(state == NetworkState::Offline);
-	stateData = std::make_unique<ClientNetworkInfo>();
+	stateData = std::make_unique<Client>(params);
+
 
     SetState(NetworkState::ClientConnecting);
 }
@@ -94,28 +114,77 @@ NetworkingEngine::NetworkingEngine() {
     }
 
     SteamNetworkingUtils()->SetDebugOutputFunction(k_ESteamNetworkingSocketsDebugOutputType_Debug, SteamDebugCallback);
-	SteamNetworkingUtils()->SetGlobalCallback_SteamNetConnectionStatusChanged(SteamNetConnectionStatusChangedCallback);
-
-    players.push_back(Player());
 }
 
-void NetworkingEngine::HandleRecievedMessage(Player& sender, SteamNetworkingMessage_t* message) {
-    uint8_t* currentPacketPosition = reinterpret_cast<uint8_t*>(message->m_pData);
-	int packetSize = message->m_cbSize;
-
-    Assert(packetSize > 0);
-
-
-    message->Release();
-}
-
-ServerNetworkInfo::ServerNetworkInfo(unsigned port) {
+Server::Server(unsigned port) {
     SteamNetworkingIPAddr localaddr;
     localaddr.Clear();
     localaddr.m_port = port;
     listenSocket = SteamNetworkingSockets()->CreateListenSocketIP(localaddr, 0, nullptr);
+
+    SteamNetworkingUtils()->SetGlobalCallback_SteamNetConnectionStatusChanged(Server::SteamNetConnectionStatusChangedCallback);
 }
 
-ServerNetworkInfo::~ServerNetworkInfo() {
+Server::~Server() {
 	SteamNetworkingSockets()->CloseListenSocket(listenSocket);
+}
+
+void Server::UpdateServer() {
+    SteamNetworkingSockets()->RunCallbacks();
+    auto& NE = NetworkingEngine::Get();
+
+    // recieve messages
+    SteamNetworkingMessage_t* message = nullptr;
+    for (auto& p : connections) {
+        Assert(p);
+        while (true) {
+            int result = SteamNetworkingSockets()->ReceiveMessagesOnConnection(p->connection, &message, 1);
+            if (result == 0) break;
+            if (result == -1) {
+                DebugLogError("YO WHAT WHY -1");
+                break;
+            }
+            
+            HandleRecievedMessage(message);
+        }
+    }
+}
+
+void Server::HandleRecievedMessage(SteamNetworkingMessage_t* message) {
+    uint8_t* currentPacketPosition = reinterpret_cast<uint8_t*>(message->m_pData);
+    int bytesRemaining = message->m_cbSize;
+    Assert(bytesRemaining > 0);
+
+    
+
+    message->Release();
+}
+
+Client::Client(ConnectionAttemptParams params) {
+    SteamNetworkingIPAddr address;
+    address.ParseString(params.ip.c_str());
+
+    std::vector<SteamNetworkingConfigValue_t> options;
+    HSteamNetConnection conn = SteamNetworkingSockets()->ConnectByIPAddress(address, options.size(), options.data());
+    connection = std::unique_ptr<ConnectionInfo>(new ConnectionInfo(conn));
+
+    SteamNetworkingUtils()->SetGlobalCallback_SteamNetConnectionStatusChanged(Client::SteamNetConnectionStatusChangedCallback);
+}
+
+Client::~Client() {
+
+}
+
+void Client::UpdateClient() {
+    SteamNetworkingSockets()->RunCallbacks();
+
+
+}
+
+ConnectionInfo::ConnectionInfo(HSteamNetConnection conn): connection(conn) { 
+
+}
+
+ConnectionInfo::~ConnectionInfo() {
+    SteamNetworkingSockets()->CloseConnection(connection, 0, nullptr, false);
 }

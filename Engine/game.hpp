@@ -7,7 +7,7 @@ class GameState;
 class Game {
 public:
 	// Called when the game starts.
-	Game();
+	Game(std::vector<const char*> launchArgs);
 
 	// Called when the game ends.
 	~Game();

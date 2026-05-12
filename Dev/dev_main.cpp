@@ -15,7 +15,7 @@ public:
 	std::vector<std::shared_ptr<GuiElement>> uiElements;
 };
 
-Game::Game() {
+Game::Game(std::vector<const char*> launchArgs) {
 	state = std::make_unique<GameState>();
 
 	GameobjectCreateParams p;
