@@ -8,9 +8,7 @@
 
 Game::Game(std::vector<const char*> args) {
 	state = std::make_unique<GameState>();
-	//state->MakeMainMenu();
-
-	NetworkingEngine::Get().Host(13337);
+	state->MakeMainMenu();
 }
 
 Game::~Game() {

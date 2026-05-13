@@ -15,7 +15,7 @@
 #include "gui.hpp"
 #include "game.hpp"
 
-std::vector<const char*> ExtractLaunchArguments(int numArgs, const char** args) {
+std::vector<const char*> ExtractLaunchArguments(int numArgs, const char* args[]) {
 	std::vector<const char*> argVec;
 	for (int i = 0; i < numArgs; i++) {
 		argVec.push_back(args[i]);
@@ -23,11 +23,13 @@ std::vector<const char*> ExtractLaunchArguments(int numArgs, const char** args) 
 	return argVec;
 }
 
-int main(int numArgs, const char** argArray) {
+int main(int numArgs, const char* argArray[]) {
 	DebugLogInfo("Reached main() successfully."); // you know it's a bad sign when you need to print this sort of thing
 
 	auto launchArgs = ExtractLaunchArguments(numArgs, argArray);
 	
+	std::vector<std::shared_ptr<Gameobject>> objects;
+
 	//MemoryPool<Gameobject, const GameobjectCreateParams&>::Get();
 	//MemoryPool<Physobject, const PhysobjectCreateParams&>::Get();
 	Window::Get();

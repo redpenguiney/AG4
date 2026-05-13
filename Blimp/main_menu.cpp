@@ -2,6 +2,7 @@
 #include "texture.hpp"
 #include "window.hpp"
 #include "game_state.hpp"
+#include <networking_engine.hpp>
 
 glm::vec3 MAIN_COLOR(0.75, 0.4, 0.9);
 glm::vec3 DARK_COLOR(0.65, 0.3, 0.8);
@@ -47,8 +48,9 @@ void GameState::MakeHostNewMenu() {
 	optionsContainer->RefreshGraphics();
 	optionsContainer->RefreshTransform();
 
+	std::vector <TextboxElement*> options;
 	int nOption = 0;
-	auto makeTextboxMenuOption = [optionsContainer, mainTextFont, &nOption](std::string optionName, std::string defaultValue) {
+	auto makeTextboxMenuOption = [optionsContainer, mainTextFont, &nOption, &options](std::string optionName, std::string defaultValue) {
 		auto option = GuiElement::New(*GetScreenGuiContainer(), nullptr, nullptr);
 		option->SetParent(optionsContainer.get());
 		option->pixelSize = { 0, 30 };
@@ -88,6 +90,8 @@ void GameState::MakeHostNewMenu() {
 		entryField->textColor = glm::vec4(CONTRAST_COLOR, 1.0f);
 		entryField->clearOnFocus = false;
 		entryField->ApplyText(defaultValue);
+
+		options.push_back(entryField.get());
 	};
 
 	makeTextboxMenuOption("Port:", "41337");
@@ -154,7 +158,28 @@ void GameState::MakeHostNewMenu() {
 		//menuContainer = nullptr;
 		MakeMainMenu();
 	});
-	makeButton("Host", [this]() {});
+	makeButton("Host", [this, options]() {
+		int port = -1;
+		try {
+			char* endptr;
+			port = std::strtol(options[0]->text.c_str(), &endptr, 10);
+			if (*endptr != '\0') {
+				port = -1;
+			}
+		}
+		catch (...) {}
+
+		if (port < 0 || port > 65535) {
+			options[0]->ApplyText("Invalid port");
+		}
+		else {
+			HostServerParams params;
+			params.port = port;
+			NetworkingEngine::Get().Host(params);
+
+			MakeHostLoadingScreen();
+		}
+	});
 }
 
 void GameState::MakeHostSavedMenu() {
@@ -165,6 +190,10 @@ void GameState::MakeHostSavedMenu() {
 void GameState::MakeJoinMenu() {
 	menuContainer = nullptr;
 	menuEventConnections.clear();
+
+	NetworkingEngine::Get().TryJoin(ConnectionAttemptParams{
+		.ip = "127.0.0.1:41337",
+		});
 }
 
 void GameState::MakeSettingsMenu() {
@@ -174,6 +203,13 @@ void GameState::MakeCreditsMenu() {
 }
 
 void GameState::MakeModsMenu() {
+}
+
+void GameState::MakeHostLoadingScreen() {
+	menuContainer = nullptr;
+	menuEventConnections.clear();
+
+
 }
 
 void GameState::MakeMainMenu() {

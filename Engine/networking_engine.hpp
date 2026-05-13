@@ -36,6 +36,10 @@ struct ConnectionAttemptParams {
 	int timeout; // in ms
 };
 
+struct HostServerParams {
+	unsigned port = 13337;
+};
+
 class NetworkingEngine {
 public:
 	const NetworkState GetState() const;
@@ -48,8 +52,9 @@ public:
 	bool IsClient();
 
 	// state must be Offline. Changes state to Server. Never fails.
-	void Host(unsigned port);
-	// state must be Offline. Change state to ServerShuttingDown. Wait for onNetworkStateChange to fire with new state Offline before terminating process or rehosting/etc.
+	void Host(HostServerParams params);
+	
+	// state must be Server or ServerShuttingDown (does nothing in the latter case). Change state to ServerShuttingDown. Wait for onNetworkStateChange to fire with new state Offline before terminating process or rehosting/etc.
 	// Local process termination before this is complete is fine but will leave connected clients hanging until they timeout.
 	void ShutdownServer();
 
@@ -92,10 +97,11 @@ struct ConnectionInfo {
 
 class Server {
 public:
-	Server(unsigned port);
+	Server(HostServerParams params);
 	~Server();
 
 	void UpdateServer();
+	void ShutdownServer();
 private:
 	HSteamListenSocket listenSocket;
 	std::vector<std::unique_ptr<ConnectionInfo>> connections;

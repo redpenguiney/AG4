@@ -16,6 +16,8 @@ public:
 	void MakeCreditsMenu();
 	void MakeModsMenu();
 
+	void MakeHostLoadingScreen();
+
 	std::shared_ptr<GuiElement> menuContainer = nullptr;
 	std::vector<Connection> menuEventConnections;
 };

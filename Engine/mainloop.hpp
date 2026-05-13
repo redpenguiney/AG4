@@ -37,5 +37,5 @@ private:
 
 	void Run();
 
-	friend int main();
+	friend int main(int nArgs, const char* argArray[]);
 };
