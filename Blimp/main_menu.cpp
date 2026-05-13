@@ -191,9 +191,144 @@ void GameState::MakeJoinMenu() {
 	menuContainer = nullptr;
 	menuEventConnections.clear();
 
-	NetworkingEngine::Get().TryJoin(ConnectionAttemptParams{
-		.ip = "127.0.0.1:41337",
+	menuContainer = GuiElement::New(*GetScreenGuiContainer());
+	menuContainer->backgroundColor = glm::vec4(MAIN_COLOR, 1.0f);
+	menuContainer->anchorPoint = { 0.0, 0.0 };
+	menuContainer->percentagePosition = { 0.5, 0.5 };
+	menuContainer->pixelPosition = { 0, 0 };
+	menuContainer->pixelSize = { 450, 400 };
+	menuContainer->RefreshGraphics();
+	menuContainer->RefreshTransform();
+	auto headerFont = GetMenuFont<24>();
+	auto mainTextFont = GetMenuFont<18>();
+
+	auto optionsContainer = GuiElement::New(*GetScreenGuiContainer());
+	optionsContainer->SetParent(menuContainer.get());
+	optionsContainer->backgroundColor.w = 0;
+	optionsContainer->percentageSize = { 1, 0.8 };
+	optionsContainer->percentagePosition = { 0.5, 1.0 };
+	//optionsContainer->pixelPosition = {}
+	optionsContainer->pixelSize = { -10, 0 };
+	optionsContainer->anchorPoint = { 0, 0.5 };
+	optionsContainer->RefreshGraphics();
+	optionsContainer->RefreshTransform();
+
+	std::vector <TextboxElement*> options;
+	int nOption = 0;
+	auto makeTextboxMenuOption = [optionsContainer, mainTextFont, &nOption, &options](std::string optionName, std::string defaultValue) {
+		auto option = GuiElement::New(*GetScreenGuiContainer(), nullptr, nullptr);
+		option->SetParent(optionsContainer.get());
+		option->pixelSize = { 0, 30 };
+		option->percentageSize = { 1.0, 0 };
+		option->sortOrder = nOption++;
+		option->anchorPoint = { -0.5, 0.5 };
+		option->backgroundColor.w = 0;
+		option->RefreshGraphics();
+		option->RefreshTransform();
+
+		auto label = GuiElement::New(*GetScreenGuiContainer(), nullptr, mainTextFont);
+		label->SetParent(option.get());
+		label->percentageSize = { 0.6, 1 };
+		label->pixelSize = { -2, -4 };
+		label->percentagePosition = { 0, 0.5 };
+		label->pixelPosition = { 0, 0 };
+		label->anchorPoint = { -0.5, 0.0 };
+		label->depth = optionsContainer->depth - 1;
+		label->wrapText = false;
+		label->hAlign = HorizontalAlignMode::Left;
+		label->backgroundColor = glm::vec4(DARK_COLOR, 1.0f);
+		label->textColor = glm::vec4(CONTRAST_COLOR, 1.0f);
+		label->text = optionName;
+		label->RefreshText();
+
+		auto entryField = TextboxElement::New(*GetScreenGuiContainer(), nullptr, mainTextFont);
+		entryField->SetParent(option.get());
+		entryField->percentageSize = { 0.4, 1 };
+		entryField->pixelSize = { -2, -4 };
+		entryField->percentagePosition = { 1, 0.5 };
+		entryField->pixelPosition = { 0, 0 };
+		entryField->anchorPoint = { 0.5, 0.0 };
+		entryField->depth = optionsContainer->depth - 1;
+		entryField->wrapText = false;
+		entryField->hAlign = HorizontalAlignMode::Right;
+		entryField->backgroundColor = glm::vec4(0, 0, 0, 1.0f);
+		entryField->textColor = glm::vec4(CONTRAST_COLOR, 1.0f);
+		entryField->clearOnFocus = false;
+		entryField->ApplyText(defaultValue);
+
+		options.push_back(entryField.get());
+		};
+
+	makeTextboxMenuOption("IP:", "127.0.0.1:41337");
+	makeTextboxMenuOption("Password:", "abc");
+
+	optionsContainer->LayoutChildrenList(ListLayout{
+		.pixelStart = {0, -40},
+		.percentStart = {0.0, 1.0},
+		.pixelStride = {0, -30},
 		});
+	optionsContainer->RefreshTransform();
+
+	auto buttonsContainer = GuiElement::New(*GetScreenGuiContainer());
+	buttonsContainer->SetParent(menuContainer.get());
+	buttonsContainer->backgroundColor = glm::vec4(1, 1, 1, 1);
+	buttonsContainer->percentageSize = { 1, 0.2 };
+	buttonsContainer->percentagePosition = { 0.5, 0.2 };
+	buttonsContainer->pixelPosition = { 0, 5 };
+	buttonsContainer->pixelSize = { -10, -5 };
+	buttonsContainer->anchorPoint = { 0, 0.5 };
+	buttonsContainer->RefreshGraphics();
+	buttonsContainer->RefreshTransform();
+
+	nOption = 0;
+	auto makeButton = [this, buttonsContainer, mainTextFont, &nOption](std::string label, std::function<void()> onActivate) {
+		auto butt = GuiElement::New(*GetScreenGuiContainer(), nullptr, mainTextFont);
+		butt->SetParent(buttonsContainer.get());
+		butt->percentageSize = { 0, 0 };
+		butt->pixelSize = { 60, 30 };
+		butt->percentagePosition = { 0.5, 0.5 };
+		butt->pixelPosition = { 4 + nOption * 64, 0 };
+		butt->anchorPoint = { -0.5, 0.0 };
+		butt->depth = buttonsContainer->depth - 2;
+		butt->wrapText = false;
+		butt->hAlign = HorizontalAlignMode::Center;
+		butt->backgroundColor = glm::vec4(DARK_COLOR, 1.0f);
+		butt->textColor = glm::vec4(CONTRAST_COLOR, 1.0f);
+		butt->text = label;
+		butt->RefreshText();
+
+		auto hOnConnection = butt->onHoverBegin.Connect(butt.get(), [this](GuiElement* elem) {
+			elem->backgroundColor = glm::vec4(HIGHLIGHT_COLOR, 0.5f);
+			elem->RefreshGraphics();
+			Window::Get().UseCursor(Window::Get().systemSelectionCursor);
+			});
+		menuEventConnections.push_back(std::move(hOnConnection));
+		auto hOffConnection = butt->onHoverEnd.Connect(butt.get(), [this](GuiElement* elem) {
+			elem->backgroundColor = glm::vec4(DARK_COLOR, 0.5f);
+			elem->RefreshGraphics();
+			Window::Get().UseCursor(Window::Get().systemPointerCursor);
+			});
+		menuEventConnections.push_back(std::move(hOffConnection));
+		auto clickConnection = butt->onInputEnd.Connect(butt.get(), [onActivate](GuiElement*, InputObject input) {
+			if (input.input == InputObject::LMB) onActivate();
+			});
+		menuEventConnections.push_back(std::move(clickConnection));
+
+		nOption++;
+		};
+
+	makeButton("Return", [this]() {
+		//menuEventConnections.clear();
+		//menuContainer = nullptr;
+		MakeMainMenu();
+		});
+	makeButton("Connect", [this, options]() {
+		NetworkingEngine::Get().TryJoin(ConnectionAttemptParams{
+		.ip = options[0]->text,
+			});
+		});
+
+	
 }
 
 void GameState::MakeSettingsMenu() {
