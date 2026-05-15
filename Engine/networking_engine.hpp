@@ -63,6 +63,8 @@ public:
 	// On success, state will be set to Client.
 	// If it fails, state will be set back to Offline and it will also fire onConnectionFailure.
 	void TryJoin(ConnectionAttemptParams params);
+	// state must be ClientConnecting.
+	void CancelJoin();
 
 	~NetworkingEngine();
 	

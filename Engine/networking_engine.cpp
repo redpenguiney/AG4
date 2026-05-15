@@ -4,6 +4,7 @@
 enum SERVER_CLOSE_REASONS {
     UNKNOWN = 0,
     SERVER_SHUTDOWN = 1,
+
 };
 
 enum class MessageType : uint8_t {
@@ -18,15 +19,22 @@ void Client::SteamNetConnectionStatusChangedCallback(SteamNetConnectionStatusCha
         NetworkingEngine::Get().SetState(NetworkState::Client);
     }
     else if (pInfo->m_info.m_eState == ESteamNetworkingConnectionState::k_ESteamNetworkingConnectionState_ProblemDetectedLocally) {
-		DebugLogError("Local connection problem: ", pInfo->m_info.m_szEndDebug);
+		//DebugLogError("Local connection problem: ", pInfo->m_info.m_szEndDebug);
+		if (NetworkingEngine::Get().state == NetworkState::ClientConnecting) {
+            NetworkingEngine::Get().onConnectionAttemptFailure.Fire(&NetworkingEngine::Get(), ConnectionFailureReason::Unknown, pInfo->m_info.m_szEndDebug);
+        }
+        NetworkingEngine::Get().stateData = std::monostate();
+        NetworkingEngine::Get().SetState(NetworkState::Offline);
     }
     else {
-        DebugLogError("Anomalous connection state ", pInfo->m_info.m_eState);
+        DebugLogError("Client: Anomalous connection state ", pInfo->m_info.m_eState, " was ", pInfo->m_eOldState);
     }
 
 }
 
 void Server::SteamNetConnectionStatusChangedCallback(SteamNetConnectionStatusChangedCallback_t* pInfo) {
+    DebugLogInfo("We're in.");
+
     Assert(NetworkingEngine::Get().IsHost());
     auto& server = *std::get<std::unique_ptr<Server>>(NetworkingEngine::Get().stateData);
     if (pInfo->m_info.m_eState == ESteamNetworkingConnectionState::k_ESteamNetworkingConnectionState_Connecting) {
@@ -38,7 +46,7 @@ void Server::SteamNetConnectionStatusChangedCallback(SteamNetConnectionStatusCha
         return; // we're connected, no action required
     }
     else {
-        DebugLogError("Anomalous connection state ", pInfo->m_info.m_eState);
+        DebugLogError("Server: Anomalous connection state ", pInfo->m_info.m_eState, " was ", pInfo->m_eOldState);
     }
 }
 
@@ -112,6 +120,12 @@ void NetworkingEngine::TryJoin(ConnectionAttemptParams params) {
     SetState(NetworkState::ClientConnecting);
 }
 
+void NetworkingEngine::CancelJoin() {
+    Assert(state == NetworkState::ClientConnecting);
+    stateData = std::monostate{};
+	SetState(NetworkState::Offline);
+}
+
 NetworkingEngine::~NetworkingEngine() {
     stateData = std::monostate{};
     GameNetworkingSockets_Kill();
@@ -144,9 +158,14 @@ Server::Server(HostServerParams params) {
     SteamNetworkingIPAddr localaddr;
     localaddr.Clear();
     localaddr.m_port = params.port;
-    listenSocket = SteamNetworkingSockets()->CreateListenSocketIP(localaddr, 0, nullptr);
 
-    SteamNetworkingUtils()->SetGlobalCallback_SteamNetConnectionStatusChanged(Server::SteamNetConnectionStatusChangedCallback);
+    //SteamNetworkingUtils()->Set
+
+    std::vector<SteamNetworkingConfigValue_t> options;
+    SteamNetworkingConfigValue_t connectionStatusCallback;
+    connectionStatusCallback.SetPtr(k_ESteamNetworkingConfig_Callback_ConnectionStatusChanged, (void*)Server::SteamNetConnectionStatusChangedCallback);
+    options.push_back(connectionStatusCallback);
+    listenSocket = SteamNetworkingSockets()->CreateListenSocketIP(localaddr, options.size(), options.data());
 }
 
 Server::~Server() {
@@ -195,10 +214,11 @@ Client::Client(ConnectionAttemptParams params) {
     address.ParseString(params.ip.c_str());
 
     std::vector<SteamNetworkingConfigValue_t> options;
+    SteamNetworkingConfigValue_t connectionStatusCallback;
+	connectionStatusCallback.SetPtr(k_ESteamNetworkingConfig_Callback_ConnectionStatusChanged, (void*)Client::SteamNetConnectionStatusChangedCallback);
+	options.push_back(connectionStatusCallback);
     HSteamNetConnection conn = SteamNetworkingSockets()->ConnectByIPAddress(address, options.size(), options.data());
     connection = std::unique_ptr<ConnectionInfo>(new ConnectionInfo(conn));
-
-    SteamNetworkingUtils()->SetGlobalCallback_SteamNetConnectionStatusChanged(Client::SteamNetConnectionStatusChangedCallback);
 }
 
 Client::~Client() {
