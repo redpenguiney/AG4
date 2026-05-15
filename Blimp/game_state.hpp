@@ -18,6 +18,8 @@ public:
 
 	void MakeHostLoadingScreen();
 
+	void MakeClientLoadingScreen();
+
 	std::shared_ptr<GuiElement> menuContainer = nullptr;
 	std::vector<Connection> menuEventConnections;
 };

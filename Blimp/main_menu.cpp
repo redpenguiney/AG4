@@ -107,7 +107,7 @@ void GameState::MakeHostNewMenu() {
 
 	auto buttonsContainer = GuiElement::New(*GetScreenGuiContainer());
 	buttonsContainer->SetParent(menuContainer.get());
-	buttonsContainer->backgroundColor = glm::vec4(1, 1, 1, 1);
+	buttonsContainer->backgroundColor = glm::vec4(1, 1, 1, 0);
 	buttonsContainer->percentageSize = { 1, 0.2 };
 	buttonsContainer->percentagePosition = { 0.5, 0.2 };
 	buttonsContainer->pixelPosition = { 0, 5 };
@@ -271,7 +271,7 @@ void GameState::MakeJoinMenu() {
 
 	auto buttonsContainer = GuiElement::New(*GetScreenGuiContainer());
 	buttonsContainer->SetParent(menuContainer.get());
-	buttonsContainer->backgroundColor = glm::vec4(1, 1, 1, 1);
+	buttonsContainer->backgroundColor = glm::vec4(1, 1, 1, 0);
 	buttonsContainer->percentageSize = { 1, 0.2 };
 	buttonsContainer->percentagePosition = { 0.5, 0.2 };
 	buttonsContainer->pixelPosition = { 0, 5 };
@@ -285,9 +285,9 @@ void GameState::MakeJoinMenu() {
 		auto butt = GuiElement::New(*GetScreenGuiContainer(), nullptr, mainTextFont);
 		butt->SetParent(buttonsContainer.get());
 		butt->percentageSize = { 0, 0 };
-		butt->pixelSize = { 60, 30 };
+		butt->pixelSize = { 80, 30 };
 		butt->percentagePosition = { 0.5, 0.5 };
-		butt->pixelPosition = { 4 + nOption * 64, 0 };
+		butt->pixelPosition = { 4 + nOption * 84, 0 };
 		butt->anchorPoint = { -0.5, 0.0 };
 		butt->depth = buttonsContainer->depth - 2;
 		butt->wrapText = false;
@@ -326,6 +326,7 @@ void GameState::MakeJoinMenu() {
 		NetworkingEngine::Get().TryJoin(ConnectionAttemptParams{
 		.ip = options[0]->text,
 			});
+		MakeClientLoadingScreen();
 		});
 
 	
@@ -345,6 +346,85 @@ void GameState::MakeHostLoadingScreen() {
 	menuEventConnections.clear();
 
 
+}
+
+void GameState::MakeClientLoadingScreen() {
+	menuContainer = nullptr;
+	menuEventConnections.clear();
+
+	menuContainer = GuiElement::New(*GetScreenGuiContainer());
+	menuContainer->backgroundColor = glm::vec4(MAIN_COLOR, 1.0);
+	menuContainer->anchorPoint = { 0.0, 0.0 };
+	menuContainer->percentagePosition = { 0.5, 0.5 };
+	menuContainer->pixelPosition = { 0, 0 };
+	menuContainer->pixelSize = { 500, 200};
+	menuContainer->RefreshGraphics();
+
+	auto statusText = GuiElement::New(*GetScreenGuiContainer(), nullptr, GetMenuFont<18>());
+	statusText->SetParent(menuContainer.get());
+	statusText->backgroundColor.w = 0;
+	statusText-> percentageSize = { 1, 1 };
+	statusText->pixelSize = { -8, -64 };
+	statusText->anchorPoint = { 0.0, 0.0 };
+	statusText->percentagePosition = { 0.5, 0.5 };
+	statusText->text = "Connecting to server...";
+	statusText->textColor = glm::vec4(CONTRAST_COLOR, 1.0f);
+	statusText->hAlign = HorizontalAlignMode::Center;
+	statusText->vAlign = VerticalAlignMode::Center;
+	statusText->wrapText = true;
+	statusText->RefreshText();
+
+	auto cancelButton = GuiElement::New(*GetScreenGuiContainer(), nullptr, GetMenuFont<18>());
+	cancelButton->SetParent(menuContainer.get());
+	cancelButton->backgroundColor = glm::vec4(DARK_COLOR, 1.0f);
+	cancelButton->percentageSize = { 0, 0 };
+	cancelButton->pixelSize = { 80, 30 };
+	cancelButton->percentagePosition = { 0.5, 0 };
+	cancelButton->pixelPosition = { 0, 4 };
+	cancelButton->anchorPoint = { 0.0, -0.5 };
+	cancelButton->depth = menuContainer->depth - 1;
+	cancelButton->wrapText = false;
+	cancelButton->hAlign = HorizontalAlignMode::Center;
+	cancelButton->textColor = glm::vec4(CONTRAST_COLOR, 1.0f);
+	cancelButton->text = "Cancel";
+	cancelButton->RefreshText();
+	auto hOnConnection = cancelButton->onHoverBegin.Connect(cancelButton.get(), [this](GuiElement* elem) {
+		elem->backgroundColor = glm::vec4(HIGHLIGHT_COLOR, 0.5f);
+		elem->RefreshGraphics();
+		Window::Get().UseCursor(Window::Get().systemSelectionCursor);
+		});
+	menuEventConnections.push_back(std::move(hOnConnection));
+	auto hOffConnection = cancelButton->onHoverEnd.Connect(cancelButton.get(), [this](GuiElement* elem) {
+		elem->backgroundColor = glm::vec4(DARK_COLOR, 0.5f);
+		elem->RefreshGraphics();
+		Window::Get().UseCursor(Window::Get().systemPointerCursor);
+		});
+	menuEventConnections.push_back(std::move(hOffConnection));
+	auto clickConnection = cancelButton->onInputEnd.Connect(cancelButton.get(), [this](GuiElement*, InputObject input) {
+		if (input.input == InputObject::LMB) {
+			if (NetworkingEngine::Get().GetState() == NetworkState::ClientConnecting) NetworkingEngine::Get().CancelJoin();
+			MakeJoinMenu();
+		}
+		});
+	menuEventConnections.push_back(std::move(clickConnection));
+	menuContainer->RefreshTransform();
+
+	auto status = statusText.get();
+	auto failconn = NetworkingEngine::Get().onConnectionAttemptFailure.Connect([status](NetworkingEngine*, ConnectionFailureReason reason, std::optional<std::string> message) {
+		switch (reason) {
+			case ConnectionFailureReason::ConnectionRejectedByServer:
+				status->text = "Connection rejected by server:\n" + message.value_or("no further information.");
+				status->RefreshText();
+				break;
+			case ConnectionFailureReason::Unknown:
+				[[fallthrough]];
+			default:
+				status->text = "Connection attempt failed:\n" + message.value_or("no further information.");
+				status->RefreshText();
+				break;
+		}
+		});
+	menuEventConnections.push_back(std::move(failconn));
 }
 
 void GameState::MakeMainMenu() {
