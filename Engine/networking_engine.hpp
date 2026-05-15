@@ -83,6 +83,8 @@ private:
 	NetworkingEngine();
 	NetworkingEngine(const NetworkingEngine&) = delete;
 
+	static void SteamNetConnectionStatusChangedCallback(SteamNetConnectionStatusChangedCallback_t* pInfo);
+
 	friend class Server;
 	friend class Client;
 };
@@ -108,6 +110,8 @@ private:
 
 	void HandleRecievedMessage(SteamNetworkingMessage_t* msg);
 	static void SteamNetConnectionStatusChangedCallback(SteamNetConnectionStatusChangedCallback_t* pInfo);
+
+	friend class NetworkingEngine; // only for the steam callback
 };
 
 class Client {
@@ -121,4 +125,5 @@ private:
 
 	static void SteamNetConnectionStatusChangedCallback(SteamNetConnectionStatusChangedCallback_t* pInfo);
 
+	friend class NetworkingEngine; // only for the steam callback
 };

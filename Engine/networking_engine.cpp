@@ -136,6 +136,10 @@ NetworkingEngine::NetworkingEngine() {
     SteamNetworkingUtils()->SetDebugOutputFunction(k_ESteamNetworkingSocketsDebugOutputType_Debug, SteamDebugCallback);
 }
 
+void NetworkingEngine::SteamNetConnectionStatusChangedCallback(SteamNetConnectionStatusChangedCallback_t* pInfo) {
+
+}
+
 Server::Server(HostServerParams params) {
     SteamNetworkingIPAddr localaddr;
     localaddr.Clear();
