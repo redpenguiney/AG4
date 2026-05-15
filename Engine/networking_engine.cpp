@@ -148,10 +148,19 @@ NetworkingEngine::NetworkingEngine() {
     }
 
     SteamNetworkingUtils()->SetDebugOutputFunction(k_ESteamNetworkingSocketsDebugOutputType_Debug, SteamDebugCallback);
+    SteamNetworkingUtils()->SetGlobalCallback_SteamNetConnectionStatusChanged(NetworkingEngine::SteamNetConnectionStatusChangedCallback);
 }
 
 void NetworkingEngine::SteamNetConnectionStatusChangedCallback(SteamNetConnectionStatusChangedCallback_t* pInfo) {
-
+    if (std::holds_alternative<std::unique_ptr<Client>>(Get().stateData)) {
+        Client::SteamNetConnectionStatusChangedCallback(pInfo);
+    }
+    else if (std::holds_alternative<std::unique_ptr<Server>>(Get().stateData)) {
+        Server::SteamNetConnectionStatusChangedCallback(pInfo);
+    } else {
+        DebugLogError("Missing state yet connection callback fired???");
+        Assert(false);
+    }
 }
 
 Server::Server(HostServerParams params) {
@@ -162,9 +171,9 @@ Server::Server(HostServerParams params) {
     //SteamNetworkingUtils()->Set
 
     std::vector<SteamNetworkingConfigValue_t> options;
-    SteamNetworkingConfigValue_t connectionStatusCallback;
-    connectionStatusCallback.SetPtr(k_ESteamNetworkingConfig_Callback_ConnectionStatusChanged, (void*)Server::SteamNetConnectionStatusChangedCallback);
-    options.push_back(connectionStatusCallback);
+    //SteamNetworkingConfigValue_t connectionStatusCallback;
+    //connectionStatusCallback.SetPtr(k_ESteamNetworkingConfig_Callback_ConnectionStatusChanged, (void*)Server::SteamNetConnectionStatusChangedCallback);
+    //options.push_back(connectionStatusCallback);
     listenSocket = SteamNetworkingSockets()->CreateListenSocketIP(localaddr, options.size(), options.data());
 }
 
@@ -214,9 +223,9 @@ Client::Client(ConnectionAttemptParams params) {
     address.ParseString(params.ip.c_str());
 
     std::vector<SteamNetworkingConfigValue_t> options;
-    SteamNetworkingConfigValue_t connectionStatusCallback;
-	connectionStatusCallback.SetPtr(k_ESteamNetworkingConfig_Callback_ConnectionStatusChanged, (void*)Client::SteamNetConnectionStatusChangedCallback);
-	options.push_back(connectionStatusCallback);
+    //SteamNetworkingConfigValue_t connectionStatusCallback;
+	//connectionStatusCallback.SetPtr(k_ESteamNetworkingConfig_Callback_ConnectionStatusChanged, (void*)Client::SteamNetConnectionStatusChangedCallback);
+	//options.push_back(connectionStatusCallback);
     HSteamNetConnection conn = SteamNetworkingSockets()->ConnectByIPAddress(address, options.size(), options.data());
     connection = std::unique_ptr<ConnectionInfo>(new ConnectionInfo(conn));
 }

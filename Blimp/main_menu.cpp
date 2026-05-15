@@ -425,6 +425,14 @@ void GameState::MakeClientLoadingScreen() {
 		}
 		});
 	menuEventConnections.push_back(std::move(failconn));
+
+	auto connChange = NetworkingEngine::Get().onNetworkStateChange.Connect([this, status](NetworkingEngine*, NetworkState old, NetworkState now) {
+		if (old == NetworkState::ClientConnecting && now == NetworkState::Client) {
+			menuContainer = nullptr;
+			menuEventConnections.clear();
+		}
+		});
+	menuEventConnections.push_back(std::move(connChange));
 }
 
 void GameState::MakeMainMenu() {

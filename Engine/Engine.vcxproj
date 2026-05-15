@@ -178,6 +178,7 @@
     <ClCompile Include="rendergraph.cpp" />
     <ClCompile Include="rendergraph_node.cpp" />
     <ClCompile Include="rendergroup.cpp" />
+    <ClCompile Include="scene.cpp" />
     <ClCompile Include="shader_input_provider.cpp" />
     <ClCompile Include="shader_program.cpp" />
     <ClCompile Include="static_meshpool.cpp" />
@@ -229,6 +230,7 @@
     <ClInclude Include="player.hpp" />
     <ClInclude Include="renderbuffer.hpp" />
     <ClInclude Include="rendergroup.hpp" />
+    <ClInclude Include="scene.hpp" />
     <ClInclude Include="serialization.hpp" />
     <ClInclude Include="static_meshpool.hpp" />
     <ClInclude Include="meshpoolold.hpp" />
