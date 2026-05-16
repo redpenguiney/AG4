@@ -42,6 +42,10 @@ struct VertexAttribute {
 
     VertexScalarType type = VertexScalarType::f32;
 
+    inline unsigned ScalarOffset() const {
+        return offset / sizeof(VertexScalar);
+    }
+
     bool operator==(const VertexAttribute& other) const = default;
 };
 

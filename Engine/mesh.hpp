@@ -24,6 +24,11 @@ public:
 	const unsigned numVertices;
 	const unsigned numIndices;
 
+	// for development/debugging purposes only. Does not affect anything.
+	std::string name;
+
+	glm::vec3 OriginalSize() const;
+
 	~Mesh();
 
 private:

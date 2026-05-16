@@ -104,6 +104,10 @@ format(params.meshVertexFormat)
 
 }
 
+glm::vec3 Mesh::OriginalSize() const {
+	return originalSize;
+}
+
 Mesh::~Mesh() {
 	pool->RemoveMesh(this);
 }

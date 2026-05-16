@@ -6,6 +6,7 @@
 #include "utility.hpp"
 #include "clustered_lighting.hpp"
 #include "game.hpp"
+#include "scene.hpp"
 
 std::shared_ptr<GuiElement> frame;
 
@@ -13,6 +14,7 @@ class GameState {
 public:
 	std::vector<std::unique_ptr<Gameobject>> objs;
 	std::vector<std::shared_ptr<GuiElement>> uiElements;
+	std::unique_ptr<Scene> scene;
 };
 
 Game::Game(std::vector<const char*> launchArgs) {
@@ -26,6 +28,14 @@ Game::Game(std::vector<const char*> launchArgs) {
 	state->objs.emplace_back(DebugPoint({ 0.4, 0, 0 }, { 1, 0, 0 }));
 	state->objs.emplace_back(DebugPoint({ 0, 0.4, 0 }, { 0, 1, 0 }));
 	state->objs.emplace_back(DebugPoint({ 0, 0, 0.4 }, { 0, 0, 1 }));
+
+	LoadSceneParams sceneParams;
+	sceneParams.collapseSceneHierarchy = false;
+	sceneParams.filepath = "../models/tree.fbx";
+	state->scene = Scene::LoadScene(sceneParams);
+	for (auto& obj : state->scene->DebugPresent({0, 0, 0})) {
+		state->objs.push_back(std::unique_ptr<Gameobject>(obj));
+	}
 
 	Freecam();
 	/*{
@@ -42,10 +52,10 @@ Game::Game(std::vector<const char*> launchArgs) {
 	}*/
 
 	//BuildPit({ 1, 0, 0 }, { 80, 6, 80 }, 0.0, 0);
-	auto objs = BuildCubeArray({ 1, -2, 0 }, { 2, 1, 2 }, { 1, 5, 1 }, true, 0.0, 1.0);
-	for (auto& o : objs) {
-		state->objs.emplace_back(o);
-	}
+	//auto objs = BuildCubeArray({ 1, -2, 0 }, { 2, 1, 2 }, { 1, 5, 1 }, true, 0.0, 1.0);
+	//for (auto& o : objs) {
+		//state->objs.emplace_back(o);
+	//}
 	//PhysicsEngine::Get()
 
 	//for (int i = 0; i < 1; i++) {
