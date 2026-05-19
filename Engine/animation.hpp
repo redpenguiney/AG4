@@ -15,17 +15,32 @@ struct Bone {
     glm::mat4x4 baseBoneTransform; // bone transform in model space (when in bind pose)
 };
 
-struct BoneKeyframe {
+struct PosKeyframe {
     glm::vec3 translation;
-    glm::vec3 scale;
-    glm::quat rotation;
-
     float timestamp; 
+};
+
+struct RotKeyframe {
+    glm::quat rotation;
+    float timestamp;
+};
+
+struct ScaleKeyframe {
+    glm::vec3 scale;
+    float timestamp;
+};
+
+// The bone transforms of a specific gameobject's instance.
+struct Skeleton {
+    glm::mat4x4* boneTransforms; // array length implied by mesh of the gameobject. nullptr if n/a
 };
 
 // Each Animation has a BoneAnimation for every bone it affects.
 struct BoneAnimation {
-    std::vector<BoneKeyframe> keyframes; // sorted from start to end. 
+    // we store keyframes for each form of transformation seperately because that's how ASSIMP does it, it saves storage sometimes, and because supposedly it lets animations play nicely together more often.
+    std::vector<PosKeyframe> positions; // sorted from start to end. 
+    std::vector<RotKeyframe> rotations; // sorted from start to end. 
+    std::vector<ScaleKeyframe> scalings; // sorted from start to end. 
     unsigned int boneIndex; // index of the bone this animation affects
 };
 
@@ -41,5 +56,5 @@ class Animation {
     // interpolates between keyframes.
     // this transform is relative to the bone's parent.
     // if the animation does not have a bone corresponding to this id, returns nullopt.
-    std::optional<glm::mat4x4> BoneTransformAtTime(unsigned int boneId, float time) const;
+    std::optional<glm::mat4x4> BoneTransformAtTime(unsigned int boneId, float time, bool looped) const;
 };

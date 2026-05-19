@@ -6,6 +6,7 @@
 #include <mesh.hpp>
 #include <glm/gtx/matrix_decompose.hpp>
 #include "gameobject.hpp"
+#include <animation.hpp>
 
 std::unique_ptr<Scene> Scene::LoadScene(LoadSceneParams p) {
 	return std::unique_ptr<Scene>(new Scene(p));
@@ -24,16 +25,13 @@ glm::mat4x4 AssimpMatrixToGLM(const aiMatrix4x4& m) {
 	);
 }
 
-//static void HandleNodeSkeletons(const aiScene* scene, aiNode* node, glm::mat4x4 parentTransform, std::unordered_map<aiMesh*, MeshCreateParams>& meshConversion) {
-//	auto localTransform = AssimpMatrixToGLM(node->mTransformation);
-//	auto globalTransform = parentTransform * localTransform;
-//
-//	for (unsigned i = 0; i < node->mNumChildren; i++) {
-//		HandleNodeSkeletons(scene, node->mChildren[i], globalTransform, meshConversion);
-//	}
-//
-//
-//}
+glm::vec3 AssimpVecToGLM(const aiVector3D& vec) {
+	return glm::vec3(vec.x, vec.y, vec.z);
+}
+
+glm::quat AssimpQuatToGLM(const aiQuaternion& quat) {
+	return glm::quat(quat.w, quat.x, quat.y, quat.z);
+}
 
 static std::unique_ptr<SceneNode> HandleAssimpNode(const aiScene* scene, aiNode* node, glm::mat4x4 parentTransform, const std::unordered_map<aiMesh*, std::shared_ptr<Mesh>>& meshMap) {
 	auto localTransform = AssimpMatrixToGLM(node->mTransformation);
@@ -177,7 +175,7 @@ Scene::Scene(LoadSceneParams loadParams) {
 
 		if (assimpMesh->HasBones()) {
 			bool tooManyWeights = false;
-
+			std::unordered_map<std::string, unsigned> boneNamesToIds;
 			std::vector<uint8_t> boneCounts;
 			boneCounts.resize(params.vertices.size() / vertStride, 0);
 
@@ -197,7 +195,7 @@ Scene::Scene(LoadSceneParams loadParams) {
 
 			for (unsigned boneI = 0; boneI < assimpMesh->mNumBones; boneI++) {
 				aiBone* bone = assimpMesh->mBones[boneI];
-
+				boneNamesToIds[std::string(bone->mName.C_Str())] = boneI;
 				for (unsigned weightI = 0; weightI < bone->mNumWeights; weightI++) {
 					unsigned vertI = bone->mWeights[weightI].mVertexId;
 					unsigned i = boneCounts[vertI];
@@ -239,25 +237,70 @@ Scene::Scene(LoadSceneParams loadParams) {
 			if (tooManyWeights) {
 				DebugLogInfo("Mesh ", assimpMesh->mName.C_Str(), + " from scene ", loadParams.filepath, " has vertices with more than 4 bone influences. They have been adjusted to only consider 4 bones.");
 			}
+
+			std::vector<Animation> animations;
+			for (unsigned int animI = 0; animI < scene->mNumAnimations; animI++) {
+				aiAnimation* anim = scene->mAnimations[animI];
+
+				// todo: support non skeletal animation
+
+				// assimp does animations on a aiScene level; we do them on a per-mesh level, so we need to see if the animation affects this mesh
+				unsigned int numAffectedBones = 0;
+				for (unsigned int channelIndex = 0; channelIndex < anim->mNumChannels; channelIndex++) {
+					aiNodeAnim* channel = anim->mChannels[channelIndex];
+
+					if (boneNamesToIds.count(channel->mNodeName.C_Str())) {
+						numAffectedBones++;
+					}
+				}
+
+				if (numAffectedBones > 0) { // then the animation affects this mesh
+					Animation newAnimation;
+					for (unsigned int channelIndex = 0; channelIndex < anim->mNumChannels; channelIndex++) {
+						aiNodeAnim* channel = anim->mChannels[channelIndex];
+						
+						BoneAnimation boneAnim;
+						boneAnim.boneIndex = boneNamesToIds.at(std::string(channel->mNodeName.C_Str()));
+
+						for (unsigned keyframeI = 0; keyframeI < channel->mNumPositionKeys; keyframeI++) {
+							PosKeyframe keyframe {
+								.translation = AssimpVecToGLM(channel->mPositionKeys[keyframeI].mValue),
+								.timestamp = static_cast<float>(channel->mPositionKeys[keyframeI].mTime),
+							};
+							boneAnim.positions.push_back(keyframe);
+						}
+						for (unsigned keyframeI = 0; keyframeI < channel->mNumRotationKeys; keyframeI++) {
+							RotKeyframe keyframe{
+								.rotation = AssimpQuatToGLM(channel->mRotationKeys[keyframeI].mValue),
+								.timestamp = static_cast<float>(channel->mRotationKeys[keyframeI].mTime),
+							};
+							boneAnim.rotations.push_back(keyframe);
+						}
+						for (unsigned keyframeI = 0; keyframeI < channel->mNumScalingKeys; keyframeI++) {
+							ScaleKeyframe keyframe{
+								.scale = AssimpVecToGLM(channel->mScalingKeys[keyframeI].mValue),
+								.timestamp = static_cast<float>(channel->mScalingKeys[keyframeI].mTime),
+							};
+							boneAnim.scalings.push_back(keyframe);
+						}
+
+						//channel->mPostState == aiAni
+
+						newAnimation.boneAnimations.push_back(boneAnim);
+						
+					}
+				}
+			}
 		}
+
+		
 
 		meshConversion.insert({assimpMesh, std::move(params)});
 	}
 
-	for (unsigned int animI = 0; animI < scene->mNumAnimations; animI++) {
-		aiAnimation* anim = scene->mAnimations[animI];
-		
-		// todo: support non skeletal animation
+	//HandleNodeSkeletons(boneNamesToIds, scene, scene->mRootNode);
 
-		unsigned int numAffectedBones = 0;
-		for (unsigned int channelIndex = 0; channelIndex < anim->mNumChannels; channelIndex++) {
-			aiNodeAnim* channel = anim->mChannels[channelIndex];
-
-			if (boneNamesToIds.count(channel->mNodeName.C_Str())) {
-				numAffectedBones++;
-			}
-		}
-	}
+	
 
 	std::unordered_map<aiMesh*, std::shared_ptr<Mesh>> actualMeshes;
 	for (auto& [assimpMesh, params] : meshConversion) {

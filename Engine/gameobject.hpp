@@ -7,6 +7,7 @@
 #include "graphics_engine.hpp"
 #include "memory_pool.hpp"
 #include "collider.hpp"
+#include <animation.hpp>
 
 class Mesh;
 class RenderPass;
@@ -63,7 +64,7 @@ public:
 	glm::vec3 ObjectNormalToWorld(glm::vec3 objectNormal);
 	glm::vec3 WorldNormalToObject(glm::vec3 worldNormal);
 
-	float elasticity;
+	float elasticity;=
 	float friction;
 
 protected:
@@ -85,6 +86,7 @@ protected:
 	unsigned drawInstanceIndex; // undefined if not being drawn
 	Meshpool* meshpool; // nullptr if not being drawn
 	RenderGroup* renderGroup; // undefined if not being drawn
+	Skeleton skeleton; // todo: move elsewhere
 
 	// may be nullptr if no collisions
 	std::unique_ptr<Collider> collider;

@@ -2,6 +2,7 @@
 #include "rendergroup.hpp"
 #include <glm/gtx/quaternion.hpp>
 #include "static_meshpool.hpp"
+#include "mesh.hpp"
 
 Gameobject* Gameobject::New(const GameobjectCreateParams& params)
 {
@@ -22,9 +23,18 @@ Gameobject::Gameobject(const GameobjectCreateParams& params) {
 
     if (params.mesh) {
         RenderGroup::FindRendergroupForGameobject(*this, params);
+        
+        if (params.mesh->bones.size() > 0) {
+            skeleton.boneTransforms = new glm::mat4x4[params.mesh->bones.size()];
+            
+        }
+        else {
+            skeleton.boneTransforms = nullptr;
+        }
     }
     else {
         meshpool = nullptr;
+        skeleton.boneTransforms = nullptr;
     }
 
     if (params.physicsMesh) {
@@ -34,6 +44,7 @@ Gameobject::Gameobject(const GameobjectCreateParams& params) {
 
 Gameobject::~Gameobject() {
     if (meshpool) renderGroup->RemoveGameobject(*this);
+    if (skeleton.boneTransforms) delete[] skeleton.boneTransforms;
     live = false;
 }
 

@@ -3,7 +3,7 @@
 #include "assert.hpp"
 #include "glm/gtx/quaternion.hpp"
 
-std::optional<glm::mat4x4> Animation::BoneTransformAtTime(unsigned int boneId, float time) const {
+std::optional<glm::mat4x4> Animation::BoneTransformAtTime(unsigned int boneId, float time, bool looped) const {
 
     // find the bone in boneAnimations
     const BoneAnimation* boneAnim = nullptr;
@@ -18,37 +18,47 @@ std::optional<glm::mat4x4> Animation::BoneTransformAtTime(unsigned int boneId, f
         return std::nullopt;
     }
 
-   
-    if (boneAnim->keyframes.size() == 1) { // then we can't interpolate (only one keyframe), just return that keyframe
-        auto localMat = glm::translate(glm::identity<glm::mat4x4>(), boneAnim->keyframes[0].translation)
-            * glm::toMat4(boneAnim->keyframes[0].rotation)
-            * glm::scale(glm::identity<glm::mat4x4>(), boneAnim->keyframes[0].scale);
+    glm::vec3 interpolatedPos = boneAnim->positions.at(0).translation;
+    glm::vec3 interpolatedScl = boneAnim->scalings.at(0).scale;
+    glm::quat interpolatedRot = boneAnim->rotations.at(0).rotation;
 
-        return localMat;
-    }
-
-    // find the two keyframes closest to the requested time and return them
-    for (unsigned int i = 0; i < boneAnim->keyframes.size(); i++) {
-        const auto & keyframe = boneAnim->keyframes[i];
+    // for each transformation mode, find the two keyframes closest to the requested time and return them
+    for (unsigned int i = looped ? 0 : 1; i < boneAnim->positions.size(); i++) {
+        const auto& keyframe = boneAnim->positions[i];
         if (keyframe.timestamp > time) { // then this is the next keyframe we're going to reach.
-
-            Assert(i != 0); // we need to use the keyframe at i-1 so we can interpolate.
-
-            const auto & prevKeyframe = boneAnim->keyframes[i - 1];
+            const auto& prevKeyframe = boneAnim->positions[(i == 0 ? boneAnim->positions.size() : i) - 1];
 
             float interpolationFactor = (time - prevKeyframe.timestamp) / (keyframe.timestamp - prevKeyframe.timestamp);
-            glm::vec3 interpolatedPos = glm::mix(prevKeyframe.translation, keyframe.translation, interpolationFactor);
-            glm::vec3 interpolatedScl = glm::mix(prevKeyframe.scale, keyframe.scale, interpolationFactor);
-            glm::quat interpolatedRot = glm::normalize(glm::slerp(prevKeyframe.rotation, keyframe.rotation, interpolationFactor)); // TODO: normalizing necessary?
-
-            auto localMat = glm::translate(glm::identity<glm::mat4x4>(), interpolatedPos)
-                * glm::toMat4(interpolatedRot)
-                * glm::scale(glm::identity<glm::mat4x4>(), interpolatedScl);
-
-            return localMat;
+            interpolatedPos = glm::mix(prevKeyframe.translation, keyframe.translation, interpolationFactor);
+            break;
         }
     }
+    for (unsigned int i = looped ? 0 : 1; i < boneAnim->scalings.size(); i++) {
+        const auto& keyframe = boneAnim->scalings[i];
+        if (keyframe.timestamp > time) { // then this is the next keyframe we're going to reach.
+            const auto& prevKeyframe = boneAnim->scalings[(i == 0 ? boneAnim->scalings.size() : i) - 1];
+
+            float interpolationFactor = (time - prevKeyframe.timestamp) / (keyframe.timestamp - prevKeyframe.timestamp);
+            interpolatedScl = glm::mix(prevKeyframe.scale, keyframe.scale, interpolationFactor);
+            break;
+        }
+    }
+    for (unsigned int i = looped ? 0 : 1; i < boneAnim->rotations.size(); i++) {
+        const auto& keyframe = boneAnim->rotations[i];
+        if (keyframe.timestamp > time) { // then this is the next keyframe we're going to reach.
+            const auto& prevKeyframe = boneAnim->rotations[(i == 0 ? boneAnim->rotations.size() : i) - 1];
+
+            float interpolationFactor = (time - prevKeyframe.timestamp) / (keyframe.timestamp - prevKeyframe.timestamp);
+            interpolatedRot = glm::normalize(glm::slerp(prevKeyframe.rotation, keyframe.rotation, interpolationFactor)); // TODO: normalizing necessary?
+            break;
+        }
+    }
+
+    auto localMat = glm::translate(glm::identity<glm::mat4x4>(), interpolatedPos)
+        * glm::toMat4(interpolatedRot)
+        * glm::scale(glm::identity<glm::mat4x4>(), interpolatedScl);
+
+    return localMat;
     
-    DebugLogError("Bone does not have keyframe for time = ", time, ". Aborting.");
-    abort();
+    
 }
