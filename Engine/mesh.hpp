@@ -27,16 +27,21 @@ public:
 	// for development/debugging purposes only. Does not affect anything.
 	std::string name;
 
+	// returns vec3(1) if the mesh vertex positions were not normalized.
 	glm::vec3 OriginalSize() const;
+	// returns vec3(0) if the mesh vertex positions were not normalized. offset is scaled by OriginalSize()
+	glm::vec3 OriginalOffset() const; 
 
 	~Mesh();
+
+	const std::vector<Bone> bones;
 
 private:
 	 std::vector<VertexScalar> vertices;
 	const std::vector<unsigned> indices;
 
-	// -1 if the mesh vertex positions were not normalized.
 	glm::vec3 originalSize = { -1, -1, -1 };
+	glm::vec3 originalOffset = { 0, 0, 0 };
 
 	Mesh(MeshCreateParams params);
 	Mesh(const Mesh&) = delete;

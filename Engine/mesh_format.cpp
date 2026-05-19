@@ -64,12 +64,16 @@ unsigned MeshVertexFormat::ScalarsPerVertex() const {
 }
 
 
-MeshVertexFormat MeshVertexFormat::Default() {
+MeshVertexFormat MeshVertexFormat::Default(bool bones) {
     std::vector<VertexAttribute> attributes;
     attributes.push_back(VertexAttribute{ .name = SpecialVertexAttributeNames::VERTEX_POSITION, .nComponents = 3, .instanced = false });
     attributes.push_back(VertexAttribute{ .name = SpecialVertexAttributeNames::VERTEX_UV, .nComponents = 2, .instanced = false });
     attributes.push_back(VertexAttribute{ .name = SpecialVertexAttributeNames::VERTEX_NORMAL, .nComponents = 3, .instanced = false });
     attributes.push_back(VertexAttribute{ .name = SpecialVertexAttributeNames::VERTEX_TANGENT, .nComponents = 3, .instanced = false });
+    if (bones) {
+        attributes.push_back(VertexAttribute{ .name = "boneWeights", .nComponents = 4, .instanced = false });
+		attributes.push_back(VertexAttribute{ .name = "boneIDs", .nComponents = 4, .instanced = false, .type = VertexScalarType::i32 });
+    }
 
     attributes.push_back(VertexAttribute{ .name = SpecialVertexAttributeNames::MODEL_MATRIX, .nComponents = 16, .instanced = true });
     attributes.push_back(VertexAttribute{ .name = SpecialVertexAttributeNames::NORMAL_MATRIX, .nComponents = 9, .instanced = true });

@@ -21,7 +21,7 @@ struct SceneNode {
 
 	std::string name;
 	const glm::mat4 transform; // relative to parent
-	const glm::vec3 position; // global
+	const glm::vec3 position; // global but before applying Mesh::originalOffset
 	const glm::quat rotation; // global
 	const glm::vec3 scale; // global but before applying Mesh::originalSize
 

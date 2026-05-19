@@ -17,8 +17,8 @@ layout(location=10) in mat3 normalMatrix;
 // locations 10-12 are part of normalMatrix
 
 // 13 and 14 are arbitrary1 and 2
-layout(location = 13) in ivec4 boneIds;
-layout(location = 14) in vec4 weights;
+layout(location = 13) in ivec4 boneIDs;
+layout(location = 14) in vec4 boneWeights;
 
 // perspective has projection matrix and camera matrix
 uniform mat4 perspective;
@@ -46,11 +46,11 @@ out mat3 TBNmatrix; //TBN matrix is need to make normal mapping work when an obj
 void main()
 {
     uint offset = (gl_BaseInstance + gl_InstanceID - boneOffsetModifier) * maxBones;
-    ivec4 realBoneIds = boneIds;
+    ivec4 realBoneIds = boneIDs;
     vec4 totalPosition = vec4(0.0f);
     for(int i = 0 ; i < 4 ; i++)
     {
-        if(realBoneIds[i] == -1) {
+        if(realBoneIds[i] == -1) { // todo: we could just remove this and rely on excess bones having weight 0? still need to handle i == 0 case somehow tho 
             if (i == 0) {
                 totalPosition = vec4(vertexPos,1.0f);
                 break; 
@@ -66,7 +66,7 @@ void main()
         //m[1] = vec4(1);
         //m[2] = vec4(3);
         //vec4 localPosition = m * vec4(vertexPos, 1.0f);
-        totalPosition += localPosition * weights[i];
+        totalPosition += localPosition * boneWeights[i];
         // vec3 localNormal = mat3(finalBonesMatrices[realBoneIds[i] + offset]) * norm;
         //totalPosition = vec4(vertexPos, 1.0f);
         

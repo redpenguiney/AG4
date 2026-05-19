@@ -165,7 +165,7 @@ std::vector<Gameobject*> BuildCubeArray(glm::dvec3 origin, glm::dvec3 stride, gl
 
 void Freecam() {
 	// Freecam
-	static auto c = Mainloop::Get().preRender.Connect([](Mainloop*, float) {
+	static auto c = Window::Get().postInputProccessing.Connect([](Window*) {
 		freecamPitch += 0.01f * Window::Get().MOUSE_DELTA.y;
 		freecamYaw += 0.01f * Window::Get().MOUSE_DELTA.x;
 		freecamPitch = std::clamp(freecamPitch, -glm::radians(89.0f), glm::radians(89.0f));

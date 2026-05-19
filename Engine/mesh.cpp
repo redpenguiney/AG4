@@ -82,7 +82,7 @@ format(params.meshVertexFormat)
 		Assert(posAttribute);
 		Assert(posAttribute->nComponents <= 3);
 		Assert(posAttribute->type == VertexScalarType::f32);
-		glm::vec3 min = { 0, 0, 0 }, max = { 0, 0, 0 };
+		glm::vec3 min = { INFINITY, INFINITY, INFINITY }, max = { -INFINITY, -INFINITY, -INFINITY };
 		for (unsigned i = 0; i < numVertices; i++) {
 			for (unsigned j = 0; j < posAttribute->nComponents; j++) {
 				min[j] = std::min(min[j], vertices[i * stride + j].f);
@@ -96,16 +96,24 @@ format(params.meshVertexFormat)
 			}
 		}
 
-		for (unsigned j = 0; j < posAttribute->nComponents; j++) originalSize[j] = max[j] - min[j];
+		for (unsigned j = 0; j < posAttribute->nComponents; j++) {
+			originalSize[j] = max[j] - min[j];
+			originalOffset[j] = (max[j] + min[j]) / 2.0f;
+		}
 	}
 	else {
-		originalSize = { -1, -1, -1 };
+		originalSize = { 1, 1, 1 };
+		originalOffset = { 0, 0, 0 };
 	}
 
 }
 
 glm::vec3 Mesh::OriginalSize() const {
 	return originalSize;
+}
+
+glm::vec3 Mesh::OriginalOffset() const {
+	return originalOffset;
 }
 
 Mesh::~Mesh() {

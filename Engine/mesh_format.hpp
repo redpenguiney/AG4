@@ -56,6 +56,8 @@ namespace SpecialVertexAttributeNames {
     const inline std::string VERTEX_NORMAL = "vertexNormal";
     const inline std::string VERTEX_TANGENT = "vertexTangent";
     const inline std::string VERTEX_UV = "textureXY";
+    const inline std::string VERTEX_BONE_WEIGHTS = "boneWeights";
+	const inline std::string VERTEX_BONE_IDS = "boneIDs";
     const inline std::string AUTOMATIC_TEXTURE_ARRAY_SELECTION = "autoTextureZ";
 };
 
@@ -78,10 +80,10 @@ struct MeshVertexFormat {
     unsigned int GetInstancedVertexSize() const;
 
     // Returns a simple mesh vertex format that should work for normal people doing normal things in 3D.
-    // noninstanced: XYZ, TextureXY, NormalXYZ, TangentXYZ. 
+    // noninstanced: XYZ, TextureXY, NormalXYZ, TangentXYZ, maybe 4 bone weights and ids. 
     // instanced: model matrix, normal matrix, rgba, textureZ 
     // floating origin enabled
-    static MeshVertexFormat Default();
+    static MeshVertexFormat Default(bool bones = false);
 
     // Returns a simple mesh vertex format that should work for normal people doing normal things with GUI. 
     // noninstanced XYZ UV 

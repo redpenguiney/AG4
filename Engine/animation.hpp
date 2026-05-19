@@ -6,38 +6,22 @@
 #include <glm/gtc/quaternion.hpp>
 #include <glm/mat4x4.hpp>
 
-class Bone {
-    public:
-    std::string name; // for debug purposes
-    unsigned int id; // what is actually used by shaders/etc, as well as the index of this bone in its mesh.
-    
-    std::vector<unsigned int> childrenBoneIndices; // indices into the mesh's bone vector
-    int parentIndex; // -1 if not there
-
-    // mesh space to bone space (in bind pose)
-    glm::mat4x4 inverseBindTransform;
-
-    // where the bone is in the bind pose.
-    glm::mat4x4 baseBonePosition;
-    
+struct Bone {
+    std::string name;
+    int parentIndex; // -1 if (a) root
+    std::vector<int> childrenIndices;
+    int index; // (into Mesh::bones, shader array, and vertex bone ids)
+    glm::mat4x4 offsetMatrix; // mesh space to bone space (when the rig is t-posing or "in bind pose")
+    glm::mat4x4 baseBoneTransform; // bone transform in model space (when in bind pose)
 };
 
 struct BoneKeyframe {
-    //unsigned int boneIndex;
     glm::vec3 translation;
     glm::vec3 scale;
     glm::quat rotation;
 
-    float timestamp;
-    
+    float timestamp; 
 };
-
-//struct AnimationKeyframe {
-//    float timestamp; // in seconds from start of animation
-//    
-//    std::vector<BoneKeyframe> boneKeyframes;
-//
-//};
 
 // Each Animation has a BoneAnimation for every bone it affects.
 struct BoneAnimation {
@@ -45,7 +29,6 @@ struct BoneAnimation {
     unsigned int boneIndex; // index of the bone this animation affects
 };
 
-// Max 2^15 bones per animation.
 // Actual playing of animations is carried out by the graphics engine.
 class Animation {
     public:

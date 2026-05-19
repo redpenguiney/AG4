@@ -181,7 +181,6 @@ void RenderGraph::Render() {
 			buf->buf.Flip();
 		//}
 	}
-	
 }
 
 void RenderGraph::AddPass(std::shared_ptr<RenderPass> pass) {
