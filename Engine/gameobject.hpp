@@ -64,8 +64,10 @@ public:
 	glm::vec3 ObjectNormalToWorld(glm::vec3 objectNormal);
 	glm::vec3 WorldNormalToObject(glm::vec3 worldNormal);
 
-	float elasticity;=
+	float elasticity;
 	float friction;
+
+	std::shared_ptr<Mesh> GetMesh() const;
 
 protected:
 

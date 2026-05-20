@@ -9,6 +9,13 @@ Gameobject* Gameobject::New(const GameobjectCreateParams& params)
     return MemoryPool<Gameobject, const GameobjectCreateParams&>::Get().New(params);
 }
 
+std::shared_ptr<Mesh> Gameobject::GetMesh() const {
+    if (!meshpool) return nullptr;
+    else {
+
+    }
+}
+
 Gameobject::Gameobject(const GameobjectCreateParams& params) {
     live = true;
     normalMatDirty = true;
