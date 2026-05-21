@@ -104,8 +104,16 @@ Scene::Scene(LoadSceneParams loadParams) {
 	for (unsigned meshI = 0; meshI < scene->mNumMeshes; meshI++) {
 		aiMesh* assimpMesh = scene->mMeshes[meshI];
 
+		unsigned boneCapacity = 0;
+		if (assimpMesh->HasBones()) {
+			boneCapacity = 1;
+			while (boneCapacity < assimpMesh->mNumBones) {
+				boneCapacity *= 2;
+			}
+		}
+
 		MeshCreateParams params = MeshCreateParams::Default();
-		params.meshVertexFormat = MeshVertexFormat::Default(assimpMesh->HasBones());
+		params.meshVertexFormat = MeshVertexFormat::Default(boneCapacity);
 		params.generateNormals = false;
 		params.generateTangents = false;
 		params.normalizeSize = true;

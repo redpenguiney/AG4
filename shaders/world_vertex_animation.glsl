@@ -1,12 +1,10 @@
 #version 460 // TODO: version too high
 // #extension GL_ARB_shading_language_include : require
-// #include "phong.glsl"
-
 
 layout(location=0) in vec3 vertexPos;
-layout(location=1) in vec4 vertexColor;
+layout(location=1) in vec4 color;
 layout(location=2) in vec2 textureXY;
-layout(location=3) in float textureZ;
+layout(location=3) in float autoTextureZ;
 layout(location=4) in vec3 vertexNormal;
 layout(location=5) in vec3 vertexTangent;
 
@@ -24,7 +22,7 @@ layout(location = 14) in vec4 boneWeights;
 uniform mat4 perspective;
 uniform mat4 modelToLightSpace;
 
-layout(std140, binding = 2) readonly buffer boneSsbo {
+layout(std140, binding = 0) readonly buffer boneSsbo {
     mat4 finalBonesMatrices[];
 };
 //layout(std140, binding = 3) readonly buffer boneOffsetSsbo {
@@ -33,7 +31,7 @@ layout(std140, binding = 2) readonly buffer boneSsbo {
 
 uniform bool normalMappingEnabled;
 uniform uint maxBones;
-uniform uint boneOffsetModifier; // TODO: JUST USE MULTIPLE BUFFERING FOR BONES
+uniform int boneOffsetModifier; // TODO: JUST USE MULTIPLE BUFFERING FOR BONES
 
 out vec4 fragmentColor;
 out vec3 cameraToFragmentPosition;
@@ -45,7 +43,7 @@ out mat3 TBNmatrix; //TBN matrix is need to make normal mapping work when an obj
 
 void main()
 {
-    uint offset = (gl_BaseInstance + gl_InstanceID - boneOffsetModifier) * maxBones;
+    uint offset = (gl_BaseInstance + gl_InstanceID) * maxBones;
     ivec4 realBoneIds = boneIDs;
     vec4 totalPosition = vec4(0.0f);
     for(int i = 0 ; i < 4 ; i++)
@@ -53,9 +51,8 @@ void main()
         if(realBoneIds[i] == -1) { // todo: we could just remove this and rely on excess bones having weight 0? still need to handle i == 0 case somehow tho 
             if (i == 0) {
                 totalPosition = vec4(vertexPos,1.0f);
-                break; 
             }
-            continue;
+            break; 
         }
         //if(realBoneIds[i] + offset >= finalBonesMatrices.length()) {
         //    totalPosition = vec4(vertexPos,1.0f);
@@ -72,22 +69,17 @@ void main()
         
     }
     //totalPosition = vec4(vertexPos, 1.0f);
-    gl_Position = modelMatrix * totalPosition;
-    cameraToFragmentPosition = gl_Position.xyz;
-    gl_Position = perspective * gl_Position;
-    //fragmentColor = vec4(weights.xyz, 1);
-    fragmentColor = vertexColor;
+    vec4 p = modelMatrix * totalPosition;
+    cameraToFragmentPosition = p.xyz;
+    gl_Position = perspective * p;
+
+    fragmentColor = color;
     fragmentNormal = normalize(normalMatrix * vertexNormal);
-    fragmentTexCoords = vec3(textureXY, textureZ);
-    //lightSpaceCoords = modelToLightSpace * model * vec4(vertexPos, 1.0);
-    //fragmentColor = vec4(textureXY, 1, 1);
+    fragmentTexCoords = vec3(textureXY, autoTextureZ);
+
     vec3 T = normalize(vec3(modelMatrix * vec4(vertexTangent,   0.0)));
     vec3 B = cross(fragmentNormal, T);
     TBNmatrix = mat3(T, B, fragmentNormal);
     cameraToFragmentInTangentSpace = TBNmatrix * (cameraToFragmentPosition);
-
-    //if (realBoneIds.x != 7 && realBoneIds.y != 7 && realBoneIds.z != 7 && realBoneIds.w != 7) {
-    //    fragmentColor = vec4(0, 0, 0, 1);
-    //}
 }          
 

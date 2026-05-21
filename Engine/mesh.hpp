@@ -2,6 +2,7 @@
 #include <memory>
 #include <vector>
 #include "mesh_provider.hpp"
+#include "animation.hpp"
 
 class StaticMeshpool;
 class Meshpool;

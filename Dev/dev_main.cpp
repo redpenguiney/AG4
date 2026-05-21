@@ -7,6 +7,7 @@
 #include "clustered_lighting.hpp"
 #include "game.hpp"
 #include "scene.hpp"
+#include "shader_program.hpp"
 
 std::shared_ptr<GuiElement> frame;
 
@@ -29,12 +30,37 @@ Game::Game(std::vector<const char*> launchArgs) {
 	state->objs.emplace_back(DebugPoint({ 0, 0.4, 0 }, { 0, 1, 0 }));
 	state->objs.emplace_back(DebugPoint({ 0, 0, 0.4 }, { 0, 0, 1 }));
 
-	LoadSceneParams sceneParams;
-	sceneParams.collapseSceneHierarchy = false;
-	sceneParams.filepath = "../models/tree.fbx";
-	state->scene = Scene::LoadScene(sceneParams);
-	for (auto& obj : state->scene->DebugPresent({0, 0, 0})) {
-		state->objs.push_back(std::unique_ptr<Gameobject>(obj));
+	{
+		LoadSceneParams sceneParams;
+		sceneParams.collapseSceneHierarchy = false;
+		sceneParams.filepath = "../models/test_anims.fbx";
+		state->scene = Scene::LoadScene(sceneParams);
+
+		for (auto& obj : state->scene->DebugPresent({2, 0, 0})) {
+			state->objs.push_back(std::unique_ptr<Gameobject>(obj));
+		}
+
+		state->scene = nullptr;
+	}
+
+	{
+		//LoadSceneParams sceneParams;
+		//sceneParams.collapseSceneHierarchy = false;
+		//sceneParams.filepath = "../models/test_anims.fbx";
+		//state->scene = Scene::LoadScene(sceneParams);
+
+		//auto rig = state->scene->meshes[0];
+		//auto gparams = GameobjectCreateParams();
+		//gparams.mesh = rig;
+		//auto drawpass = DrawPass::FromTemplate(*GraphicsEngine::Get().defaultDrawingPasses[0]);
+		//drawpass->name += "_ANIMATED";
+		// Note: this is unknown behavior since there's no guarantee that this pass will run after defaultDrawingPasses[0]
+		//std::get<FramebufferRenderTargetDescriptor>(drawpass->renderTarget).colorAttachments[0].loadPolicy = AttachmentLoadPolicy::Load;
+		//std::get<FramebufferRenderTargetDescriptor>(drawpass->renderTarget).depthStencilAttachment->loadPolicy = AttachmentLoadPolicy::Load;
+		//drawpass->params.shader = ShaderProgram::New("../shaders/world_vertex_animation.glsl", "../shaders/world_fragment.glsl");
+		//gparams.renderPasses = { drawpass, };
+		//auto obj = Gameobject::New(gparams);
+		//state->objs.emplace_back(obj);
 	}
 
 	Freecam();
@@ -52,10 +78,10 @@ Game::Game(std::vector<const char*> launchArgs) {
 	}*/
 
 	//BuildPit({ 1, 0, 0 }, { 80, 6, 80 }, 0.0, 0);
-	//auto objs = BuildCubeArray({ 1, -2, 0 }, { 2, 1, 2 }, { 1, 5, 1 }, true, 0.0, 1.0);
-	//for (auto& o : objs) {
-		//state->objs.emplace_back(o);
-	//}
+	auto objs = BuildCubeArray({ 1, -2, 0 }, { 2, 1, 2 }, { 1, 5, 1 }, true, 0.0, 1.0);
+	for (auto& o : objs) {
+		state->objs.emplace_back(o);
+	}
 	//PhysicsEngine::Get()
 
 	//for (int i = 0; i < 1; i++) {

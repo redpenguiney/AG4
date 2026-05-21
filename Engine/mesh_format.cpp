@@ -12,7 +12,7 @@ unsigned int MeshVertexFormat::GetNonInstancedVertexSize() const {
     return noninstancedVertexSize;
 }
 
-MeshVertexFormat::MeshVertexFormat(std::vector<VertexAttribute> attribs, bool floatingOriginEnabled) : attributes(attribs), floatingOriginEnabled(floatingOriginEnabled) {
+MeshVertexFormat::MeshVertexFormat(std::vector<VertexAttribute> attribs, bool floatingOriginEnabled, unsigned maxBones) : attributes(attribs), floatingOriginEnabled(floatingOriginEnabled), boneCapacity(maxBones) {
 
     unsigned numModelMatrices = 0;
     unsigned numNormalMatrices = 0;
@@ -64,13 +64,13 @@ unsigned MeshVertexFormat::ScalarsPerVertex() const {
 }
 
 
-MeshVertexFormat MeshVertexFormat::Default(bool bones) {
+MeshVertexFormat MeshVertexFormat::Default(unsigned nBones) {
     std::vector<VertexAttribute> attributes;
     attributes.push_back(VertexAttribute{ .name = SpecialVertexAttributeNames::VERTEX_POSITION, .nComponents = 3, .instanced = false });
     attributes.push_back(VertexAttribute{ .name = SpecialVertexAttributeNames::VERTEX_UV, .nComponents = 2, .instanced = false });
     attributes.push_back(VertexAttribute{ .name = SpecialVertexAttributeNames::VERTEX_NORMAL, .nComponents = 3, .instanced = false });
     attributes.push_back(VertexAttribute{ .name = SpecialVertexAttributeNames::VERTEX_TANGENT, .nComponents = 3, .instanced = false });
-    if (bones) {
+    if (nBones > 0) {
         attributes.push_back(VertexAttribute{ .name = "boneWeights", .nComponents = 4, .instanced = false });
 		attributes.push_back(VertexAttribute{ .name = "boneIDs", .nComponents = 4, .instanced = false, .type = VertexScalarType::i32 });
     }
@@ -123,6 +123,10 @@ const VertexAttribute* MeshVertexFormat::GetAttribute(std::string name) const
 {
     for (const auto& a : attributes) if (a.name == name) return &a;
     return nullptr;
+}
+
+unsigned MeshVertexFormat::GetBoneCapacity() const {
+	return boneCapacity;
 }
 
 bool MeshVertexFormat::IsFloatingOriginEnabled() const {

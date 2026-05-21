@@ -62,3 +62,11 @@ std::optional<glm::mat4x4> Animation::BoneTransformAtTime(unsigned int boneId, f
     
     
 }
+
+Skeleton::Skeleton(unsigned nBones) {
+    boneTransforms = new glm::mat4x4[nBones];
+}
+
+Skeleton::~Skeleton() {
+	delete[] boneTransforms;
+}

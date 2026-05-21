@@ -70,6 +70,7 @@ public:
 	std::shared_ptr<Mesh> GetMesh() const;
 
 protected:
+	static inline std::unordered_map<Gameobject*, Skeleton> skeletons; // only contains gameobjects with skeletons.
 
 	Gameobject(const GameobjectCreateParams& params);
 	Gameobject(const Gameobject&) = delete;
@@ -79,7 +80,7 @@ protected:
 	glm::quat rotation;
 	glm::mat3x3 rotSclMatrix;
 	bool rotSclDirty; // indicates that the variable rotSclMatrix must be recalculated before being used
-	bool normalMatDirty; // indicates that the normal matrix must be uploaded to the graphics engine again. TODO could hold false for gameobjects with meshes that don't use normal matrix 
+	bool normalMatDirty; // indicates that the normal matrix must be uploaded to the graphics engine again. todo: could hold false for gameobjects with meshes that don't use normal matrix 
 	// Used by MemoryPool. Not the first member in order to A. exploit otherwise wasted padding bytes and B. avoid interfering with free list
 	bool live;
 	// indicates that the object's AABB in the AABB tree is outdated and must be updated.
@@ -88,7 +89,6 @@ protected:
 	unsigned drawInstanceIndex; // undefined if not being drawn
 	Meshpool* meshpool; // nullptr if not being drawn
 	RenderGroup* renderGroup; // undefined if not being drawn
-	Skeleton skeleton; // todo: move elsewhere
 
 	// may be nullptr if no collisions
 	std::unique_ptr<Collider> collider;

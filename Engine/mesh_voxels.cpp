@@ -1,8 +1,9 @@
 #include "mesh.hpp"
 #include "assert.hpp"
 
-
-
+#include <functional>
+#include <glm/vec3.hpp>
+#include <optional>
 
 // implementation for dual contouring to create mesh from terrain is in this file.
 

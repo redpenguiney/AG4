@@ -11,7 +11,7 @@ void Meshpool::StreamNormalMatrix(unsigned instance, glm::mat3x3 normalMatrix) {
 }
 
 void StaticMeshpool::CommitWrites() {
-	pendingInstanceWrites.ApplyWrites(instances.Data());
+	pendingWrites.ApplyWrites(instances.Data());
 	vertices.Commit();
 	instances.Commit();
 	indices.Commit();
@@ -138,6 +138,10 @@ vertices(GL_ARRAY_BUFFER, 1, currentVertexCapacity * f.GetNonInstancedVertexSize
 indices(GL_ELEMENT_ARRAY_BUFFER, 1, currentIndicesCapacity * sizeof(GLuint)),
 instances(GL_ARRAY_BUFFER, 3, currentInstanceCapacity* f.GetInstancedVertexSize())
 {
+	if (format.GetBoneCapacity() > 0) {
+		boneTransforms.emplace(GL_SHADER_STORAGE_BUFFER, 3, currentInstanceCapacity * format.GetBoneCapacity() * sizeof(glm::mat4x4));
+	}
+
 	pools.push_back(this);
 
 	for (auto& a : format.GetAttributes()) {
@@ -154,7 +158,7 @@ instances(GL_ARRAY_BUFFER, 3, currentInstanceCapacity* f.GetInstancedVertexSize(
 void Meshpool::UpdateVertexCapacity() {
 	vertices.Reallocate(currentVertexCapacity * format.GetNonInstancedVertexSize());
 	DestroyVAOs();
-	vertices.Bind(GL_ARRAY_BUFFER);
+	//vertices.Bind(GL_ARRAY_BUFFER);
 }
 
 void Meshpool::UpdateIndicesCapacity() {
@@ -163,8 +167,11 @@ void Meshpool::UpdateIndicesCapacity() {
 
 void Meshpool::UpdateInstanceCapacity() {
 	instances.Reallocate(currentInstanceCapacity * format.GetInstancedVertexSize());
+	if (boneTransforms.has_value()) {
+		boneTransforms->Reallocate(currentInstanceCapacity * format.GetBoneCapacity() * sizeof(glm::mat4x4));
+	}
 	DestroyVAOs();
-	instances.Bind(GL_ARRAY_BUFFER);
+	//instances.Bind(GL_ARRAY_BUFFER);
 }
 
 StaticMeshpool::StaticMeshpool(MeshVertexFormat f): Meshpool(f) {
@@ -206,7 +213,21 @@ void StaticMeshpool::RemoveMesh(Mesh*) {
 }
 
 void StaticMeshpool::SetInstancedVertexAttribute(unsigned instance, const VertexAttribute& attribute, VertexScalar* value) {
-	pendingInstanceWrites.AddWrite(attribute.nComponents, attribute.offset + instance * format.GetInstancedVertexSize(), instances.numBuffers, value);
+	pendingWrites.AddWrite(attribute.nComponents, attribute.offset + instance * format.GetInstancedVertexSize(), instances.numBuffers, value);
+}
+
+void StaticMeshpool::StreamInstancedVertexAttribute(unsigned instance, const VertexAttribute& attribute, VertexScalar* value) {
+	memcpy(instances.Data() + attribute.offset + instance * format.GetInstancedVertexSize(), value, attribute.nComponents * sizeof(VertexScalar));
+}
+
+void StaticMeshpool::SetBoneTransform(unsigned instance, unsigned boneIndex, const glm::mat4x4 transform) {
+	Assert(format.GetBoneCapacity() > boneIndex);
+	pendingWrites.AddWrite(16, (instance * format.GetBoneCapacity() + boneIndex) * sizeof(glm::mat4x4), boneTransforms->numBuffers, (VertexScalar*)&transform);
+}
+
+void StaticMeshpool::StreamBoneTransform(unsigned instance, unsigned boneIndex, const glm::mat4x4 transform) {
+	Assert(format.GetBoneCapacity() > boneIndex);
+	memcpy(boneTransforms->Data() + (instance * format.GetBoneCapacity() + boneIndex) * sizeof(glm::mat4x4), &transform, sizeof(glm::mat4x4));
 }
 
 unsigned StaticMeshpool::AddInstance() {

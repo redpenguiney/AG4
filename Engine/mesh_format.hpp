@@ -63,9 +63,11 @@ namespace SpecialVertexAttributeNames {
 
 // Describes which vertex attributes a mesh has, which of them are instanced, and in what order they are in.
 // Attribute offsets are always correct.
+// If passing maxSupportedBones == 0, either don't use skeletal animation or find your own way to pass bone transforms to the shader.
+    // You are strongly advised to round up maxSupportedBones to a power of 2 or 4 to prevent generation of unneccesary Meshpools.
 struct MeshVertexFormat {
 
-    MeshVertexFormat(std::vector<VertexAttribute> attribs, bool floatingOriginEnabled = true);
+    MeshVertexFormat(std::vector<VertexAttribute> attribs, bool floatingOriginEnabled = true, unsigned maxSupportedBones = 0);
     MeshVertexFormat(const MeshVertexFormat&) = default;
     MeshVertexFormat& operator=(const MeshVertexFormat&) = default;
 
@@ -83,7 +85,7 @@ struct MeshVertexFormat {
     // noninstanced: XYZ, TextureXY, NormalXYZ, TangentXYZ, maybe 4 bone weights and ids. 
     // instanced: model matrix, normal matrix, rgba, textureZ 
     // floating origin enabled
-    static MeshVertexFormat Default(bool bones = false);
+    static MeshVertexFormat Default(unsigned maxSupportedBones = 0);
 
     // Returns a simple mesh vertex format that should work for normal people doing normal things with GUI. 
     // noninstanced XYZ UV 
@@ -101,6 +103,8 @@ struct MeshVertexFormat {
     // Pointer is obviously invalidated if anything happens to the format object or its attributes.
     VertexAttribute* GetAttribute(std::string name);
     const VertexAttribute* GetAttribute(std::string name) const;
+    
+    unsigned GetBoneCapacity() const;
 
     bool operator==(const MeshVertexFormat& other) const = default;
 
@@ -111,4 +115,5 @@ private:
     std::vector<VertexAttribute> attributes;
     unsigned noninstancedVertexSize;
     unsigned instancedVertexSize;
+    unsigned boneCapacity;
 };

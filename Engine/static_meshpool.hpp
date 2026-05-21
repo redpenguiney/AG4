@@ -15,7 +15,7 @@ struct MeshpoolMeshStorageLocation {
 	unsigned nIndices;
 };
 
-// We use multiple buffering for instances (TODO: and sometimes vertices).
+// We use multiple buffering for instances and bone transforms (TODO: and sometimes vertices).
 // This is totally fine for vertex attributes that are updated every frame like object model matrices.
 // But when a user wants to just set something once and forget about it (like for object color), this is no good.
 // This class handles that issue.
@@ -35,6 +35,8 @@ private:
 
 class Meshpool {
 public:
+	constexpr static inline unsigned BONE_SSBO_BINDING_INDEX = 0;
+
 	virtual unsigned AddInstance() = 0; // returns base instance. You can combine calls with adjacent base instance values by increasing instance count.
 	virtual void RemoveInstance(unsigned instance) = 0;
 
@@ -48,7 +50,16 @@ public:
 	void StreamNormalMatrix(unsigned instance, glm::mat3x3);
 
 	// attribute must be part of this meshpool's format, and value must refer to an array with the correct number of scalar values.
+	// value will be copied immediately, so don't worry about invalidating the pointer after calling this.
 	virtual void SetInstancedVertexAttribute(unsigned instance, const VertexAttribute& attribute, VertexScalar* value) = 0;
+	// Like SetInstancedVertexAttribute(), but faster and provided data will only be valid for the next frame (due to multiple buffering). 
+	// If you're calling this, call it every frame.
+	virtual void StreamInstancedVertexAttribute(unsigned instance, const VertexAttribute& attribute, VertexScalar* value) = 0;
+
+	// boneIndex must be < format.GetBoneCapacity()
+	virtual void SetBoneTransform(unsigned instance, unsigned boneIndex, const glm::mat4x4 transform) = 0;
+	// Like SetBoneTransform(), but faster and provided data will only be valid for the next frame (due to multiple buffering).
+	virtual void StreamBoneTransform(unsigned instance, unsigned boneIndex, const glm::mat4x4 transform) = 0;
 
 	virtual ~Meshpool();
 	Meshpool(const Meshpool&) = delete;
@@ -76,6 +87,7 @@ protected:
 	BufferedBuffer vertices; // stores noninstanced vertex attributes of meshes (the per-mesh data)
 	BufferedBuffer indices; // stores mesh vertex indices (triangle definitions)
 	BufferedBuffer instances; // stores instanced vertex attributes (the per-object data)
+	std::optional<BufferedBuffer> boneTransforms; // per instance, nullopt if format.boneCapacity == 0.
 
 	void UpdateVertexCapacity(); // after changing currentVertexCapacity, call to update vertices to the correct size.
 	void UpdateIndicesCapacity(); // after changing currentIndicesCapacity, call to update indices to the correct size.
@@ -120,6 +132,10 @@ public:
 	void RemoveMesh(Mesh*) override;
 
 	void SetInstancedVertexAttribute(unsigned instance, const VertexAttribute& attribute, VertexScalar* value) override;
+	void StreamInstancedVertexAttribute(unsigned instance, const VertexAttribute& attribute, VertexScalar* value) override; // TODO untested
+
+	void SetBoneTransform(unsigned instance, unsigned boneIndex, const glm::mat4x4 transform) override;
+	void StreamBoneTransform(unsigned instance, unsigned boneIndex, const glm::mat4x4 transform) override;
 
 	void CommitWrites() override;
 	void FlipBuffers() override;
@@ -128,7 +144,7 @@ private:
 	std::vector<unsigned> availableInstanceSlots;
 	unsigned nextInstanceLocation = 0; // use if availableInstanceSlots is empty.
 
-	PendingWritesManager pendingInstanceWrites;
+	PendingWritesManager pendingWrites;
 
 	//std::vector<SlotSpace> availableVertexSpace; // in terms of vertices
 

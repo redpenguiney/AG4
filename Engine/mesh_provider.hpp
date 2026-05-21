@@ -1,14 +1,10 @@
 #pragma once
-#include <utility>
-#include <memory>
-#include <functional>
 #include <vector>
-#include <optional>
 #include "log.hpp"
 #include <glm/vec3.hpp>
 #include "texture_atlas.hpp"
-#include <GL/glew.h>
 #include "mesh_format.hpp"
+#include "animation.hpp"
 
 class Texture;
 

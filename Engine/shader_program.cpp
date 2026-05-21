@@ -157,13 +157,15 @@ ShaderProgram::ShaderProgram(const char* vertexPath, const char* fragmentPath):
         GLenum attribType;
         glGetActiveAttrib(shaderProgramId, i, longestAttribName, &nameLength, &attribSize, &attribType, nameBuffer);
         Assert(attribSize == 1); // we don't support array type attributes
+        std::string name(nameBuffer, nameLength);
 
+		if (name == "gl_VertexID" || name == "gl_InstanceID" || name == "gl_BaseInstance" || name == "gl_DrawID") continue; // inexplicably, these appear in the active attribute list but they're builtins so we obviously can't touch them
         if (nameLength != -1) {
             int bindingLocation = glGetAttribLocation(shaderProgramId, nameBuffer);
             Assert(bindingLocation != -1);
             inputVertexAttributes.push_back(ShaderActiveVertexAttribute{
                 .index = unsigned(bindingLocation),
-                .name = std::string(nameBuffer, nameLength),
+                .name = name,
                 .type = attribType,
                 .scalarType = ScalarTypeFromGLAttributeType(attribType),
                 .nArrays = NumArraysFromGLAttributeType(attribType),

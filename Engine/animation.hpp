@@ -32,7 +32,10 @@ struct ScaleKeyframe {
 
 // The bone transforms of a specific gameobject's instance.
 struct Skeleton {
-    glm::mat4x4* boneTransforms; // array length implied by mesh of the gameobject. nullptr if n/a
+    glm::mat4x4* boneTransforms; // array length implied by mesh of the gameobject. nullptr if n/a. Owned by Skeleton.
+
+    Skeleton(unsigned nBones);
+    ~Skeleton();
 };
 
 // Each Animation has a BoneAnimation for every bone it affects.

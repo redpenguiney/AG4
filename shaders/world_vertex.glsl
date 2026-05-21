@@ -33,8 +33,8 @@ void main()
     vec4 p = modelMatrix * vec4(vertexPos, 1.0);
     cameraToFragmentPosition = p.xyz;
     gl_Position = perspective * p;
+
     fragmentColor = color;
-    //fragmentColor = vec4(gl_Position.z/gl_Position.w, 1, 1, 1);
     fragmentNormal = normalize(normalMatrix * vertexNormal);
     fragmentTexCoords = vec3(textureXY, autoTextureZ);
 

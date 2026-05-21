@@ -203,6 +203,7 @@ public:
 	DrawPass() = default;
 	virtual ~DrawPass();
 
+	// Make sure you rename the pass, can't have two with the same name.
 	static std::shared_ptr<DrawPass> FromTemplate(const DrawPass& other);
 
 	// If FramebufferRenderTargetDescriptor:
