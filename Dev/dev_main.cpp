@@ -44,23 +44,23 @@ Game::Game(std::vector<const char*> launchArgs) {
 	}
 
 	{
-		//LoadSceneParams sceneParams;
-		//sceneParams.collapseSceneHierarchy = false;
-		//sceneParams.filepath = "../models/test_anims.fbx";
-		//state->scene = Scene::LoadScene(sceneParams);
+		LoadSceneParams sceneParams;
+		sceneParams.collapseSceneHierarchy = false;
+		sceneParams.filepath = "../models/test_anims.fbx";
+		state->scene = Scene::LoadScene(sceneParams);
 
-		//auto rig = state->scene->meshes[0];
-		//auto gparams = GameobjectCreateParams();
-		//gparams.mesh = rig;
-		//auto drawpass = DrawPass::FromTemplate(*GraphicsEngine::Get().defaultDrawingPasses[0]);
-		//drawpass->name += "_ANIMATED";
-		// Note: this is unknown behavior since there's no guarantee that this pass will run after defaultDrawingPasses[0]
-		//std::get<FramebufferRenderTargetDescriptor>(drawpass->renderTarget).colorAttachments[0].loadPolicy = AttachmentLoadPolicy::Load;
-		//std::get<FramebufferRenderTargetDescriptor>(drawpass->renderTarget).depthStencilAttachment->loadPolicy = AttachmentLoadPolicy::Load;
-		//drawpass->params.shader = ShaderProgram::New("../shaders/world_vertex_animation.glsl", "../shaders/world_fragment.glsl");
-		//gparams.renderPasses = { drawpass, };
-		//auto obj = Gameobject::New(gparams);
-		//state->objs.emplace_back(obj);
+		auto rig = state->scene->meshes[0];
+		auto gparams = GameobjectCreateParams();
+		gparams.mesh = rig;
+		auto drawpass = DrawPass::FromTemplate(*GraphicsEngine::Get().defaultDrawingPasses[0]);
+		drawpass->name += "_ANIMATED";
+		 //Note: this is unknown behavior since there's no guarantee that this pass will run after defaultDrawingPasses[0]
+		std::get<FramebufferRenderTargetDescriptor>(drawpass->renderTarget).colorAttachments[0].loadPolicy = AttachmentLoadPolicy::Load;
+		std::get<FramebufferRenderTargetDescriptor>(drawpass->renderTarget).depthStencilAttachment->loadPolicy = AttachmentLoadPolicy::Load;
+		drawpass->params.shader = ShaderProgram::New("../shaders/world_vertex_animation.glsl", "../shaders/world_fragment.glsl");
+		gparams.renderPasses = { drawpass, };
+		auto obj = Gameobject::New(gparams);
+		state->objs.emplace_back(obj);
 	}
 
 	Freecam();
