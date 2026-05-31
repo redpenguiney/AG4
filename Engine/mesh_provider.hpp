@@ -78,6 +78,8 @@ public:
     MeshCreateParams& operator=(MeshCreateParams&& other) noexcept = default;
 
 private:
+	friend class Mesh;
+	std::string defaultName = "unnamed";
 
     MeshCreateParams(const MeshCreateParams&) = delete;
     

@@ -7,6 +7,7 @@
 void RenderGroup::RemoveGameobject(Gameobject& obj) {
 	Assert(!commands.empty());
 	meshpool->RemoveInstance(obj.drawInstanceIndex);
+	meshUsers.erase(&obj);
 
 	//DebugLogInfo("Removing gameobject from ", this, " with ", commands.size());
 
@@ -52,7 +53,7 @@ void RenderGroup::RemoveGameobject(Gameobject& obj) {
 
 				auto p = meshpool.get();
 
-				renderGroupsByMeshpool[p][i] = renderGroupsByMeshpool[p].back(); // object is destructed after this line
+				renderGroupsByMeshpool[p][i] = renderGroupsByMeshpool[p].back(); // RenderGroup object is destructed after this line
 				renderGroupsByMeshpool[p].pop_back(); 
 
 				if (renderGroupsByMeshpool[p].empty()) renderGroupsByMeshpool.erase(p);
@@ -93,6 +94,8 @@ RenderGroup::~RenderGroup() {
 		//}
 	}
 
+	Assert(meshUsers.empty());
+
 	//for (auto& p : drawPasses) {
 	//	Assert(drawPassNumUsers.contains(p.get()));
 	//	drawPassNumUsers[p.get()]--;
@@ -116,6 +119,10 @@ void RenderGroup::AddGameobject(Gameobject& obj, const GameobjectCreateParams& p
 	command.baseInstance = obj.drawInstanceIndex;
 	command.instanceCount = 1;
 	AddDrawCommand(command);
+
+	meshUsers[&obj] = params.mesh;
+
+
 }
 
 RenderGroup::RenderGroup(std::vector<std::shared_ptr<DrawPass>> renderpasses, std::shared_ptr<Meshpool> meshpool, GLenum primitiveType) : primitiveType(primitiveType), drawPasses(renderpasses), meshpool(meshpool) {

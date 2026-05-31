@@ -80,7 +80,7 @@ MeshVertexFormat MeshVertexFormat::Default(unsigned nBones) {
     attributes.push_back(VertexAttribute{ .name = SpecialVertexAttributeNames::AUTOMATIC_TEXTURE_ARRAY_SELECTION, .nComponents = 1, .instanced = true });
     attributes.push_back(VertexAttribute{ .name = "color", .nComponents = 4, .instanced = true });
 
-    return MeshVertexFormat(attributes);
+    return MeshVertexFormat(attributes, true, nBones);
 }
 
 // noninstanced (XYZ, TextureXY).

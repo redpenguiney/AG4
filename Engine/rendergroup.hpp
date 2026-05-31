@@ -9,6 +9,7 @@ class ProcessedDrawPass;
 class Meshpool;
 class Gameobject;
 struct GameobjectCreateParams;
+class Mesh;
 
 class RenderGroup {
 public:
@@ -36,6 +37,9 @@ private:
 	void AddDrawCommand(IndirectDrawCommand cmd);
 
 	std::vector<IndirectDrawCommand> commands;
+
+	// Prevents people from having to hold sharedptrs to meshes to keep them rendered.
+	std::unordered_map<Gameobject*, std::shared_ptr<Mesh>> meshUsers;
 
 	// users are RenderGroups, not Gameobjects.
 	static inline std::unordered_map<DrawPass*, CheckedUint> drawPassNumUsers;

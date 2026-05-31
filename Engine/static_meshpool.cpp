@@ -159,6 +159,7 @@ void Meshpool::UpdateVertexCapacity() {
 	vertices.Reallocate(currentVertexCapacity * format.GetNonInstancedVertexSize());
 	DestroyVAOs();
 	//vertices.Bind(GL_ARRAY_BUFFER);
+	DebugLogInfo("Expanding meshpool.");
 }
 
 void Meshpool::UpdateIndicesCapacity() {
@@ -200,6 +201,8 @@ MeshpoolMeshStorageLocation StaticMeshpool::AddMesh(std::shared_ptr<Mesh> m) {
 
 	memcpy(vertices.Data() + firstVertex * format.GetNonInstancedVertexSize(), m->GetVertices().data(), m->GetVertices().size() * sizeof(VertexScalar));
 	memcpy(indices.Data() + firstIndex * sizeof(GLuint), m->GetIndices().data(), m->numIndices * sizeof(unsigned int));
+
+	//DebugLogInfo("Added to meshpool.");
 
 	return MeshpoolMeshStorageLocation{
 		.baseVertex = firstVertex,
@@ -254,7 +257,7 @@ void PendingWritesManager::AddWrite(unsigned nComponents, unsigned writeLocation
 	
 	// we have to check if we're already writing to the same location and if so replace that PendingWrite.
 	// otherwise, since ApplyWrites() doesn't preserve the order of the writes vector we could end up with the older data written.
-	for (auto& w : writes[nComponents]) {
+	for (auto& w : writes[nComponents]) { // todo: this seems slow, maybe ApplyWrites() should preserve order
 		if (w.writeLocation == writeLocation) {
 			w.writesLeft = nWrites;
 			// update data

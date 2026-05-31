@@ -22,7 +22,8 @@ MeshCreateParams MeshCreateParams::DefaultText() {
 }
 
 void MeshCreateParams::LoadObj(std::string path) {
-    
+	defaultName = "obj: \"" + path + "\"";
+
     tinyobj::ObjReaderConfig reader_config;
     tinyobj::ObjReader reader;
     bool success = reader.ParseFromFile(path, reader_config);
@@ -81,6 +82,8 @@ void MeshCreateParams::LoadObj(std::string path) {
 
 void MeshCreateParams::LoadText(Texture& fontmap, std::string text, TextFormatting formatting) {
     if (text.empty()) return;
+
+	defaultName = "text mesh: \"" + text + "\"";
 
     Assert(fontmap.glyphs.has_value());
 

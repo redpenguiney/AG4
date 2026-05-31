@@ -10,6 +10,8 @@ std::shared_ptr<Mesh> Mesh::New(MeshCreateParams params)
 	auto loc = ptr->pool->AddMesh(ptr);
 	ptr->baseVertex = loc.baseVertex;
 	ptr->firstIndex = loc.firstIndex;
+	DebugLogInfo("First index: ", ptr->firstIndex, " in pool ", ptr->pool->id);
+
 	return ptr;
 }
 
@@ -54,13 +56,17 @@ const std::vector<unsigned>& Mesh::GetIndices() {
 	return indices;
 }
 
-Mesh::Mesh(MeshCreateParams params):
-numVertices(params.vertices.size() / params.meshVertexFormat.ScalarsPerVertex()),
-numIndices(params.indices.size()),
-vertices(std::move(params.vertices)),
-indices(std::move(params.indices)),
-format(params.meshVertexFormat)
+
+Mesh::Mesh(MeshCreateParams params) :
+	numVertices(params.vertices.size() / params.meshVertexFormat.ScalarsPerVertex()),
+	numIndices(params.indices.size()),
+	vertices(std::move(params.vertices)),
+	indices(std::move(params.indices)),
+	format(params.meshVertexFormat),
+	name(params.defaultName)
 {
+	DebugLogInfo("Made mesh with default name ", name, " c=", format.GetBoneCapacity());
+
 	Assert(params.isStatic);
 	Assert(numVertices > 0);
 	Assert(numIndices > 0);
@@ -118,4 +124,5 @@ glm::vec3 Mesh::OriginalOffset() const {
 
 Mesh::~Mesh() {
 	pool->RemoveMesh(this);
+	DebugLogInfo("Mesh, ", name, " died.");
 }

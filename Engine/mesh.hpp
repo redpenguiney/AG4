@@ -7,6 +7,7 @@
 class StaticMeshpool;
 class Meshpool;
 
+// You do not need to hold onto a shared_ptr of a Mesh to keep the gameobjects using it rendered; RenderGroup does that for you.
 class Mesh {
 public:
 	static std::shared_ptr<Mesh> New(MeshCreateParams params);

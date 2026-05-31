@@ -105,7 +105,7 @@ Scene::Scene(LoadSceneParams loadParams) {
 		aiMesh* assimpMesh = scene->mMeshes[meshI];
 
 		unsigned boneCapacity = 0;
-		if (assimpMesh->HasBones()) {
+		if (assimpMesh->HasBones()) { // todo: pretty sure this makes it consider a bunch of bones that are totally irrelevant.
 			boneCapacity = 1;
 			while (boneCapacity < assimpMesh->mNumBones) {
 				boneCapacity *= 2;

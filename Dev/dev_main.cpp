@@ -8,6 +8,7 @@
 #include "game.hpp"
 #include "scene.hpp"
 #include "shader_program.hpp"
+#include "mesh.hpp"
 
 std::shared_ptr<GuiElement> frame;
 
@@ -36,46 +37,41 @@ Game::Game(std::vector<const char*> launchArgs) {
 		sceneParams.filepath = "../models/test_anims.fbx";
 		state->scene = Scene::LoadScene(sceneParams);
 
-		for (auto& obj : state->scene->DebugPresent({2, 0, 0})) {
+		/*for (auto& obj : state->scene->DebugPresent({2, 0, 0})) {
 			state->objs.push_back(std::unique_ptr<Gameobject>(obj));
-		}
+		}*/
 
 		state->scene = nullptr;
 	}
 
 	{
+		DebugLogInfo("RUINING EVERYTHING");
 		LoadSceneParams sceneParams;
 		sceneParams.collapseSceneHierarchy = false;
 		sceneParams.filepath = "../models/test_anims.fbx";
 		state->scene = Scene::LoadScene(sceneParams);
 
-		auto rig = state->scene->meshes[0];
-		auto gparams = GameobjectCreateParams();
-		gparams.mesh = rig;
-		auto drawpass = DrawPass::FromTemplate(*GraphicsEngine::Get().defaultDrawingPasses[0]);
-		drawpass->name += "_ANIMATED";
-		 //Note: this is unknown behavior since there's no guarantee that this pass will run after defaultDrawingPasses[0]
-		std::get<FramebufferRenderTargetDescriptor>(drawpass->renderTarget).colorAttachments[0].loadPolicy = AttachmentLoadPolicy::Load;
-		std::get<FramebufferRenderTargetDescriptor>(drawpass->renderTarget).depthStencilAttachment->loadPolicy = AttachmentLoadPolicy::Load;
-		drawpass->params.shader = ShaderProgram::New("../shaders/world_vertex_animation.glsl", "../shaders/world_fragment.glsl");
-		gparams.renderPasses = { drawpass, };
-		auto obj = Gameobject::New(gparams);
-		state->objs.emplace_back(obj);
+		//auto rig = state->scene->meshes[1];
+		//auto gparams = GameobjectCreateParams();
+		//gparams.mesh = rig;
+		//auto drawpass = DrawPass::FromTemplate(*GraphicsEngine::Get().defaultDrawingPasses[0]);
+		//drawpass->name += "_ANIMATED";
+		//// Note: this is unknown behavior since there's no guarantee that this pass will run after defaultDrawingPasses[0]
+		//std::get<FramebufferRenderTargetDescriptor>(drawpass->renderTarget).colorAttachments[0].loadPolicy = AttachmentLoadPolicy::Load;
+		//std::get<FramebufferRenderTargetDescriptor>(drawpass->renderTarget).depthStencilAttachment->loadPolicy = AttachmentLoadPolicy::Load;
+		//drawpass->params.shader = ShaderProgram::New("../shaders/world_vertex_animation.glsl", "../shaders/world_fragment.glsl");
+		//gparams.renderPasses = { drawpass, };
+		//auto obj = Gameobject::New(gparams);
+		//obj->SetScale(gparams.mesh->OriginalSize());
+		//obj->SetPosition({ -3, 0, 0 });
+		//obj->SetInstanceAttribute(*gparams.mesh->format.GetAttribute("color"), glm::vec4(1, 1, 1, 1));
+		//obj->SetInstanceAttribute(*gparams.mesh->format.GetAttribute(SpecialVertexAttributeNames::AUTOMATIC_TEXTURE_ARRAY_SELECTION), -1.0f);
+		//state->objs.emplace_back(obj);
+
+		//state->scene = nullptr;
 	}
 
 	Freecam();
-	/*{
-		Gameobject* gameObj = Gameobject::New(p);
-		gameObj->SetPosition({ 0, -3, 0 });
-		gameObj->SetScale({ 1, 1, 1 });
-		gameObj->SetRotation(glm::angleAxis(glm::radians(45.0f), glm::normalize(glm::vec3(0, 0, 1))));
-		glm::vec4 color(0, 0, 1, 1);
-		gameObj->SetInstanceAttribute(*p.mesh->format.GetAttribute("color"), color);
-		gameObj->SetInstanceAttribute(*p.mesh->format.GetAttribute(SpecialVertexAttributeNames::AUTOMATIC_TEXTURE_ARRAY_SELECTION), -1.0f);
-
-		std::shared_ptr<Gameobject> unique(gameObj);
-		objects.push_back(unique);
-	}*/
 
 	//BuildPit({ 1, 0, 0 }, { 80, 6, 80 }, 0.0, 0);
 	auto objs = BuildCubeArray({ 1, -2, 0 }, { 2, 1, 2 }, { 1, 5, 1 }, true, 0.0, 1.0);
@@ -117,7 +113,7 @@ Game::Game(std::vector<const char*> launchArgs) {
 	CL.lights.push_back(pointLight);
 	CL.lights.push_back(spotLight);
 
-	TextureCreateParams arialFontParams({ TextureSource("../fonts/arial.ttf"), });
+	/*TextureCreateParams arialFontParams({ TextureSource("../fonts/arial.ttf"), });
 	arialFontParams.fontHeight = 24;
 	arialFontParams.format = Texture::Grayscale_8Bit;
 	auto arialFont = std::make_shared<Texture>(arialFontParams, Texture::Texture2D);
@@ -133,7 +129,7 @@ Game::Game(std::vector<const char*> launchArgs) {
 	frame->RefreshGraphics();
 	frame->RefreshTransform();
 	frame->RefreshText();
-	state->uiElements.push_back(frame);
+	state->uiElements.push_back(frame);*/
 
 	GraphicsEngine::Get().currentCamera.position = { 1, 0, 5 };
 	////PhysicsEngine::Get().gravity = { 5, -5, 0 };
