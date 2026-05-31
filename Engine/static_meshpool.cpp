@@ -186,18 +186,19 @@ StaticMeshpool::~StaticMeshpool() {
 MeshpoolMeshStorageLocation StaticMeshpool::AddMesh(std::shared_ptr<Mesh> m) {
 	unsigned firstVertex = nextMeshFirstVertexLocation;
 	nextMeshFirstVertexLocation += m->numVertices;
-	if (firstVertex >= currentVertexCapacity) {
-		while (firstVertex >= currentVertexCapacity)
+	if (nextMeshFirstVertexLocation > currentVertexCapacity) {
+		DebugLogInfo("Too many verts.");
+		while (nextMeshFirstVertexLocation > currentVertexCapacity)
 			currentVertexCapacity *= 2;
 		UpdateVertexCapacity();
 	}
 	unsigned firstIndex = nextMeshFirstIndexLocation;
-	if (firstIndex >= currentIndicesCapacity) {
-		while (firstIndex >= currentIndicesCapacity)
+	nextMeshFirstIndexLocation += m->numIndices;
+	if (nextMeshFirstIndexLocation > currentIndicesCapacity) {
+		while (nextMeshFirstIndexLocation > currentIndicesCapacity)
 			currentIndicesCapacity *= 2;
 		UpdateIndicesCapacity();
 	}
-	nextMeshFirstIndexLocation += m->numIndices;
 
 	memcpy(vertices.Data() + firstVertex * format.GetNonInstancedVertexSize(), m->GetVertices().data(), m->GetVertices().size() * sizeof(VertexScalar));
 	memcpy(indices.Data() + firstIndex * sizeof(GLuint), m->GetIndices().data(), m->numIndices * sizeof(unsigned int));
