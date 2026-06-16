@@ -687,7 +687,7 @@ static std::optional<Collision> CollideSAT(Gameobject* a, Gameobject* b) {
     // todo: use glm::inverseTranspose()
     glm::mat3x3 normalAToB = glm::inverse(glm::transpose(glm::inverse(b->GetRotSclMatrix()))) * glm::transpose(glm::inverse(a->GetRotSclMatrix()));
     glm::mat3x3 normalBToA = glm::inverse(glm::transpose(glm::inverse(a->GetRotSclMatrix()))) * glm::transpose(glm::inverse(b->GetRotSclMatrix()));
-
+#pragma warning(disable: 4756)
     float greatestSeperation = -INFINITY;
     // in A space
     glm::vec3 collisionNormal;
@@ -773,6 +773,7 @@ static std::optional<Collision> CollideSAT(Gameobject* a, Gameobject* b) {
         }
     }
 
+#pragma warning(disable : 4756)
     Assert(greatestSeperation < 0 && greatestSeperation != -INFINITY);
     //DebugLogInfo("collision");
     glm::vec3 worldspaceNormal = a->ObjectNormalToWorld(collisionNormal);

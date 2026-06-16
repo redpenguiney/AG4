@@ -345,7 +345,7 @@ void GameState::MakeHostLoadingScreen() {
 	menuContainer = nullptr;
 	menuEventConnections.clear();
 
-
+	MakeGameplay();
 }
 
 void GameState::MakeClientLoadingScreen() {

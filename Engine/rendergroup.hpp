@@ -5,7 +5,7 @@
 #include "indirect_draw_command.hpp"
 
 class DrawPass;
-class ProcessedDrawPass;
+struct ProcessedDrawPass;
 class Meshpool;
 class Gameobject;
 struct GameobjectCreateParams;
@@ -23,6 +23,8 @@ public:
 	void RemoveGameobject(Gameobject& obj);
 
 	~RenderGroup();
+
+	const std::shared_ptr<Mesh>& GetMesh(Gameobject* obj);
 
 private:
 	void AddGameobject(Gameobject& obj, const GameobjectCreateParams& params);

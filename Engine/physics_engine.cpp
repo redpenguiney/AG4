@@ -130,10 +130,10 @@ void PhysicsEngine::StepSimulation(double timestep) {
 		for (unsigned posIter = 0; posIter < N_POS_ITERS; posIter++) {
 			
 			for (auto& collision : staticCollisions) {
-				collision.PositionPass(timestep, posIter);
+				collision.PositionPass((float)timestep, posIter);
 			}
 			for (auto& collision : dynamicCollisions) {
-				collision.PositionPass(timestep, posIter);
+				collision.PositionPass((float)timestep, posIter);
 			}
 
 			if (posIter != N_POS_ITERS - 1)
@@ -187,11 +187,11 @@ void PhysicsEngine::StepSimulation(double timestep) {
 
 			// Apply friction/restitution/etc.
 			for (auto& collision : staticCollisions) {
-				collision.VelocityPass(timestep);
+				collision.VelocityPass((float)timestep);
 				collision.nerf = 1.0f;
 			}
 			for (auto& collision : dynamicCollisions) {
-				collision.VelocityPass(timestep);
+				collision.VelocityPass((float)timestep);
 				collision.nerf = 1.0f;
 			}
 

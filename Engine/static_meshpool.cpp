@@ -11,16 +11,19 @@ void Meshpool::StreamNormalMatrix(unsigned instance, glm::mat3x3 normalMatrix) {
 }
 
 void StaticMeshpool::CommitWrites() {
-	pendingWrites.ApplyWrites(instances.Data());
+	pendingInstanceWrites.ApplyWrites(instances.Data());
+	if (boneTransforms) pendingBoneWrites.ApplyWrites(boneTransforms->Data());
 	vertices.Commit();
 	instances.Commit();
 	indices.Commit();
+	if (boneTransforms) boneTransforms->Commit();
 }
 
 void StaticMeshpool::FlipBuffers() {
 	vertices.Flip(); // TODO: for static meshpools we shouldn't always need to do this.
 	instances.Flip();
 	indices.Flip();
+	if (boneTransforms) boneTransforms->Flip();
 }
 
 void Meshpool::DestroyVAOs() {
@@ -133,7 +136,7 @@ format(f),
 id(idProvider.GetId()),
 currentVertexCapacity(1 << 16),
 currentIndicesCapacity(1 << 16),
-currentInstanceCapacity(1 << 16),
+currentInstanceCapacity(1 << 8),
 vertices(GL_ARRAY_BUFFER, 1, currentVertexCapacity * f.GetNonInstancedVertexSize()),
 indices(GL_ELEMENT_ARRAY_BUFFER, 1, currentIndicesCapacity * sizeof(GLuint)),
 instances(GL_ARRAY_BUFFER, 3, currentInstanceCapacity* f.GetInstancedVertexSize())
@@ -163,7 +166,7 @@ void Meshpool::UpdateVertexCapacity() {
 }
 
 void Meshpool::UpdateIndicesCapacity() {
-	indices.Reallocate(currentIndicesCapacity);
+	indices.Reallocate(currentIndicesCapacity * sizeof(GLuint));
 }
 
 void Meshpool::UpdateInstanceCapacity() {
@@ -217,7 +220,7 @@ void StaticMeshpool::RemoveMesh(Mesh*) {
 }
 
 void StaticMeshpool::SetInstancedVertexAttribute(unsigned instance, const VertexAttribute& attribute, VertexScalar* value) {
-	pendingWrites.AddWrite(attribute.nComponents, attribute.offset + instance * format.GetInstancedVertexSize(), instances.numBuffers, value);
+	pendingInstanceWrites.AddWrite(attribute.nComponents, attribute.offset + instance * format.GetInstancedVertexSize(), instances.numBuffers, value);
 }
 
 void StaticMeshpool::StreamInstancedVertexAttribute(unsigned instance, const VertexAttribute& attribute, VertexScalar* value) {
@@ -226,7 +229,7 @@ void StaticMeshpool::StreamInstancedVertexAttribute(unsigned instance, const Ver
 
 void StaticMeshpool::SetBoneTransform(unsigned instance, unsigned boneIndex, const glm::mat4x4 transform) {
 	Assert(format.GetBoneCapacity() > boneIndex);
-	pendingWrites.AddWrite(16, (instance * format.GetBoneCapacity() + boneIndex) * sizeof(glm::mat4x4), boneTransforms->numBuffers, (VertexScalar*)&transform);
+	pendingBoneWrites.AddWrite(16, (instance * format.GetBoneCapacity() + boneIndex) * sizeof(glm::mat4x4), boneTransforms->numBuffers, (VertexScalar*)&transform);
 }
 
 void StaticMeshpool::StreamBoneTransform(unsigned instance, unsigned boneIndex, const glm::mat4x4 transform) {
@@ -258,7 +261,7 @@ void PendingWritesManager::AddWrite(unsigned nComponents, unsigned writeLocation
 	
 	// we have to check if we're already writing to the same location and if so replace that PendingWrite.
 	// otherwise, since ApplyWrites() doesn't preserve the order of the writes vector we could end up with the older data written.
-	for (auto& w : writes[nComponents]) { // todo: this seems slow, maybe ApplyWrites() should preserve order
+	for (auto& w : writes[nComponents-1]) { // todo: this seems slow, maybe ApplyWrites() should preserve order
 		if (w.writeLocation == writeLocation) {
 			w.writesLeft = nWrites;
 			// update data
@@ -269,7 +272,7 @@ void PendingWritesManager::AddWrite(unsigned nComponents, unsigned writeLocation
 	// if that wasn't the case we just add the write
 	void* data = malloc(nComponents * sizeof(VertexScalar));
 	memcpy(data, valueToWrite, nComponents * sizeof(VertexScalar));
-	writes[nComponents].push_back(PendingWrite{
+	writes[nComponents-1].push_back(PendingWrite{
 		.data = data,
 		.writesLeft = nWrites,
 		.writeLocation = writeLocation,
@@ -277,8 +280,8 @@ void PendingWritesManager::AddWrite(unsigned nComponents, unsigned writeLocation
 }
 
 void PendingWritesManager::ApplyWrites(char* buffer) {
-	for (unsigned nComponents = 0; nComponents < writes.size(); nComponents++) {
-		auto& vec = writes[nComponents];
+	for (unsigned nComponents = 1; nComponents <= writes.size(); nComponents++) {
+		auto& vec = writes[nComponents-1];
 		for (unsigned i = 0; i < vec.size(); i++) {
 			memcpy(buffer + vec[i].writeLocation, vec[i].data, nComponents * sizeof(VertexScalar));
 			vec[i].writesLeft--;

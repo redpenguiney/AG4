@@ -67,7 +67,12 @@ public:
 	float elasticity;
 	float friction;
 
-	std::shared_ptr<Mesh> GetMesh() const;
+	std::shared_ptr<Mesh> GetMesh();
+
+	void SetBoneTransform(unsigned index, glm::mat4x4 transform);
+	
+	// animation needs to be from the mesh used by ths gameobject. obviously.
+	void PlayAnimation(const Animation& anim);
 
 protected:
 	static inline std::unordered_map<Gameobject*, Skeleton> skeletons; // only contains gameobjects with skeletons.
@@ -85,6 +90,7 @@ protected:
 	bool live;
 	// indicates that the object's AABB in the AABB tree is outdated and must be updated.
 	//bool aabbDirty;
+
 	
 	unsigned drawInstanceIndex; // undefined if not being drawn
 	Meshpool* meshpool; // nullptr if not being drawn
@@ -145,8 +151,8 @@ protected:
 
 	friend class Pool;
 	friend class PhysicsEngine;
-	friend class StaticCollisionConstraint;
-	friend class DynamicCollisionConstraint;
+	friend struct StaticCollisionConstraint;
+	friend struct DynamicCollisionConstraint;
 private:
 	void UpdateMass();
 };

@@ -107,6 +107,10 @@ RenderGroup::~RenderGroup() {
 	//}
 }
 
+const std::shared_ptr<Mesh>& RenderGroup::GetMesh(Gameobject* obj) {
+	return meshUsers.at(obj);
+}
+
 void RenderGroup::AddGameobject(Gameobject& obj, const GameobjectCreateParams& params) {
 	obj.drawInstanceIndex = meshpool->AddInstance();
 	obj.renderGroup = this;

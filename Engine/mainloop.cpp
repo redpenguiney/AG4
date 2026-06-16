@@ -44,10 +44,10 @@ void Mainloop::Run() {
 
 		GameobjectSAS().OptimizeTree();
 
-		preRender.Fire(this, elapsedTime);
+		preRender.Fire(this, (float)elapsedTime);
 		BaseEvent::FlushEventQueue();
 		GraphicsEngine::Get().RenderScene(elapsedTime);
-		postRender.Fire(this, elapsedTime);
+		postRender.Fire(this, (float)elapsedTime);
 		BaseEvent::FlushEventQueue();
 		// TODO: unsure about placement of flip buffers? 
 		// i think this yields until GPU done drawing and image on screen

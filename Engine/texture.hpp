@@ -34,7 +34,7 @@ struct Glyph {
 
 class Framebuffer;
 class TextureAtlas;
-class aiScene; // assimp can load models that have embedded textures. In those cases, the texture constructor needs to ask the assimp scene for the embedded texture.
+struct aiScene; // assimp can load models that have embedded textures. In those cases, the texture constructor needs to ask the assimp scene for the embedded texture.
 
 class Texture {
     public:

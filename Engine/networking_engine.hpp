@@ -28,8 +28,8 @@ enum class DisconnectionReason: uint8_t {
 	Unknown = 1
 };
 
-struct Server;
-struct Client;
+class Server;
+class Client;
 
 struct ConnectionAttemptParams {
 	std::string ip; // include port, defaults to 0 if not specified.

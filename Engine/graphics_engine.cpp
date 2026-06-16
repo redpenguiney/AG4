@@ -18,6 +18,7 @@ void GraphicsEngine::RenderScene(double dt) {
 
 
     WriteModelMatrices();
+    WriteBones();
     auto camera = currentCamera.GetCamera();
     auto cameraNoFloatingOrigin = currentCamera.GetCamera();
     cameraNoFloatingOrigin[3] = glm::vec4(-currentCamera.position, 1);
@@ -97,6 +98,24 @@ void GraphicsEngine::WriteModelMatrices() {
 
     write(Gameobject::Pool::Get().GetIterable());
     write(Physobject::Pool::Get().GetIterable());
+}
+
+void GraphicsEngine::WriteBones() {
+    for (auto& [obj, skeleton] : Gameobject::skeletons) {
+        if (obj->meshpool) { // todo: optimizations to be made here
+            if (skeleton.state == SkeletonState::Dirty) {
+                for (unsigned i = 0; i < skeleton.nBoneTransforms; i++) {
+                    obj->meshpool->SetBoneTransform(obj->drawInstanceIndex, i, skeleton.boneTransforms[i]);
+                }
+                skeleton.state = SkeletonState::Clean;
+            }
+            else if (skeleton.state == SkeletonState::StreamDirty) {
+                for (unsigned i = 0; i < skeleton.nBoneTransforms; i++) {
+                    obj->meshpool->StreamBoneTransform(obj->drawInstanceIndex, i, skeleton.boneTransforms[i]);
+                }
+            }
+        }
+    }
 }
 
 GraphicsEngine::GraphicsEngine() {

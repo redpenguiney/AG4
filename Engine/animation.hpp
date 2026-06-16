@@ -12,7 +12,7 @@ struct Bone {
     std::vector<int> childrenIndices;
     int index; // (into Mesh::bones, shader array, and vertex bone ids)
     glm::mat4x4 offsetMatrix; // mesh space to bone space (when the rig is t-posing or "in bind pose")
-    glm::mat4x4 baseBoneTransform; // bone transform in model space (when in bind pose)
+    glm::mat4x4 baseBoneTransform; // NOT the bone transform in model space (when in bind pose) because that's just the identity matrix. what is this???
 };
 
 struct PosKeyframe {
@@ -30,11 +30,21 @@ struct ScaleKeyframe {
     float timestamp;
 };
 
+enum class SkeletonState {
+    Clean, // no action needed
+    Dirty, // bones have changed, need to update to new state. RenderScene() will reset this to Clean.
+    StreamDirty, // bones have changed, but we're in the middle of an animation and their current transforms will only last for one frame, so stream them in. RenderScene() will leave state as StreamDirty.
+};
+
 // The bone transforms of a specific gameobject's instance.
 struct Skeleton {
-    glm::mat4x4* boneTransforms; // array length implied by mesh of the gameobject. nullptr if n/a. Owned by Skeleton.
+    glm::mat4x4* boneTransforms; // Owned by Skeleton.
+    SkeletonState state;
+    const unsigned nBoneTransforms;
 
     Skeleton(unsigned nBones);
+    Skeleton(const Skeleton&) = delete;
+    Skeleton(Skeleton&&);
     ~Skeleton();
 };
 

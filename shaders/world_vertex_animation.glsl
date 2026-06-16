@@ -31,7 +31,7 @@ layout(std140, binding = 0) readonly buffer boneSsbo {
 
 uniform bool normalMappingEnabled;
 uniform uint maxBones;
-uniform int boneOffsetModifier; // TODO: JUST USE MULTIPLE BUFFERING FOR BONES
+//uniform int boneOffsetModifier; // TODO: JUST USE MULTIPLE BUFFERING FOR BONES
 
 out vec4 fragmentColor;
 out vec3 cameraToFragmentPosition;
@@ -74,6 +74,7 @@ void main()
     gl_Position = perspective * p;
 
     fragmentColor = color;
+    fragmentColor = vec4(boneWeights.xyz, 1);
     fragmentNormal = normalize(normalMatrix * vertexNormal);
     fragmentTexCoords = vec3(textureXY, autoTextureZ);
 

@@ -16,6 +16,7 @@ union VertexScalar {
     VertexScalar(float v) : f(v) {}
     VertexScalar(unsigned v) : u(v) {}
     VertexScalar(int v) : i(v) {}
+#pragma warning( suppress : 26495)
     VertexScalar() {}
 };
 

@@ -149,6 +149,10 @@ void RenderGraph::Render() {
 				for (RenderGroup* renderGroup : drawPasses.at(src)->drawnObjects) {
 					renderGroup->meshpool->BindVAO(p.params.shader);
 					renderGroup->meshpool->indices.Bind(GL_ELEMENT_ARRAY_BUFFER);
+					if (renderGroup->meshpool->boneTransforms) {
+						p.params.shader->Uniform("maxBones", renderGroup->meshpool->format.GetBoneCapacity());
+						renderGroup->meshpool->boneTransforms->BindBase(GL_SHADER_STORAGE_BUFFER, Meshpool::BONE_SSBO_BINDING_INDEX);
+					}
 					for (auto& c : renderGroup->commands) {
 						//glPointSize(5);
 						//if (c.count == 6) {

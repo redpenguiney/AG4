@@ -36,6 +36,7 @@ private:
 	friend class RenderGroup;
 
 	void WriteModelMatrices();
+	void WriteBones();
 
 	std::shared_ptr<RenderGraph> renderGraph;
 

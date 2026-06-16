@@ -9,13 +9,20 @@ Gameobject* Gameobject::New(const GameobjectCreateParams& params)
     return MemoryPool<Gameobject, const GameobjectCreateParams&>::Get().New(params);
 }
 
-std::shared_ptr<Mesh> Gameobject::GetMesh() const {
+std::shared_ptr<Mesh> Gameobject::GetMesh() {
     if (!meshpool) return nullptr;
     else {
-
+        return renderGroup->GetMesh(this);
     }
 }
 
+void Gameobject::SetBoneTransform(unsigned index, glm::mat4x4 transform) {
+    auto& skeleton = skeletons.at(this);
+    skeleton.boneTransforms[index] = transform;
+    skeleton.state = SkeletonState::Dirty;
+}
+
+#pragma warning(disable : 26495)
 Gameobject::Gameobject(const GameobjectCreateParams& params) {
     live = true;
     normalMatDirty = true;
@@ -33,7 +40,10 @@ Gameobject::Gameobject(const GameobjectCreateParams& params) {
         
         if (params.mesh->bones.size() > 0) {
 			skeletons.emplace(std::make_pair(this, Skeleton(params.mesh->bones.size())));
-          
+            for (unsigned i = 0; i < params.mesh->bones.size(); i++) {
+                skeletons.at(this).boneTransforms[i] = glm::identity<glm::mat4x4>();
+            }
+            skeletons.at(this).state = SkeletonState::Dirty;
         }
     }
     else {

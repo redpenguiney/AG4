@@ -28,6 +28,7 @@ int main(int numArgs, const char* argArray[]) {
 
 	auto launchArgs = ExtractLaunchArguments(numArgs, argArray);
 	
+	// essential stuff like the postproc quad
 	std::vector<std::shared_ptr<Gameobject>> objects;
 
 	//MemoryPool<Gameobject, const GameobjectCreateParams&>::Get();
@@ -63,6 +64,7 @@ int main(int numArgs, const char* argArray[]) {
 		newPass->dependencies.push_back("lights");
 		newPass->renderTarget = frt;
 		newPass->outputs.push_back("FINAL_SCENE");
+		newPass->outputs.push_back("INITIAL_CLEAR");
 		newPass->outputs.push_back("FINAL_SCENE_DEPTH");
 		newPass->params.depthTestMode = DepthTestMode::LEqual;
 		newPass->params.cullMode = FaceCulling::Backface;
@@ -115,12 +117,10 @@ int main(int numArgs, const char* argArray[]) {
 		}
 		});
 
-	{
-		Game g(launchArgs);
-		Mainloop::Get().Run();
-		// Game::~Game() runs here.
-	}
-	// TODO cleanup?
+	// by making Game static, we enable users to also use local static variables and guarantee that they will be destroyed before Game is.
+	static Game g(launchArgs);
+	Mainloop::Get().Run();
+
 
 	DebugLogInfo("Main function body executed successfully.");
 }

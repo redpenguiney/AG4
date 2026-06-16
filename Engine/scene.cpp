@@ -203,6 +203,7 @@ Scene::Scene(LoadSceneParams loadParams) {
 
 			for (unsigned boneI = 0; boneI < assimpMesh->mNumBones; boneI++) {
 				aiBone* bone = assimpMesh->mBones[boneI];
+
 				boneNamesToIds[std::string(bone->mName.C_Str())] = boneI;
 				for (unsigned weightI = 0; weightI < bone->mNumWeights; weightI++) {
 					unsigned vertI = bone->mWeights[weightI].mVertexId;
@@ -297,12 +298,48 @@ Scene::Scene(LoadSceneParams loadParams) {
 						newAnimation.boneAnimations.push_back(boneAnim);
 						
 					}
+
+					params.animations.push_back(newAnimation);
 				}
 			}
+
+			// Form skeleton for mesh
+			for (int boneI = 0; boneI < int(assimpMesh->mNumBones); boneI++) {
+				aiBone* bone = assimpMesh->mBones[boneI];
+
+				glm::mat4x4 boneTransform = glm::identity<glm::mat4x4>();
+				auto current = bone->mNode;
+				do {
+					boneTransform = AssimpMatrixToGLM(current->mTransformation) * boneTransform;
+					current = current->mParent;
+				} while (current && current != bone->mArmature);
+
+				std::vector<int> children;
+				for (unsigned childI = 0; childI < bone->mNode->mNumChildren; childI++) {
+					aiNode* child = bone->mNode->mChildren[childI];
+					if (boneNamesToIds.contains(std::string(child->mName.C_Str()))) {
+						children.push_back(boneNamesToIds[std::string(child->mName.C_Str())]);
+					}
+				}
+
+				int parent = -1;
+				if (boneNamesToIds.contains(std::string(bone->mNode->mParent->mName.C_Str()))) {
+					parent = boneNamesToIds[std::string(bone->mNode->mParent->mName.C_Str())];
+				}
+
+				params.bones.push_back(Bone{
+					.name = std::string(bone->mName.C_Str()),
+					.parentIndex = parent,
+					.childrenIndices = children,
+					.index = boneI,
+					.offsetMatrix = AssimpMatrixToGLM(bone->mOffsetMatrix),
+					.baseBoneTransform = boneTransform,
+					});
+			}
+
 		}
 
 		
-
 		meshConversion.insert({assimpMesh, std::move(params)});
 	}
 
@@ -316,6 +353,12 @@ Scene::Scene(LoadSceneParams loadParams) {
 		meshes.back()->name = assimpMesh->mName.C_Str();
 		actualMeshes.insert({ assimpMesh, meshes.back() });
 	}
+
+	// make sure meshes are in determinstic order since assimp was being inconsistent
+	std::sort(meshes.begin(), meshes.end(), [](const std::shared_ptr<Mesh>& a, const std::shared_ptr<Mesh>& b) {
+		if (a->name != b->name) return a->name < b->name;
+		else return a->numVertices < b->numVertices;
+		});
 
 	root = HandleAssimpNode(scene, scene->mRootNode, glm::identity<glm::mat4x4>(), actualMeshes);
 

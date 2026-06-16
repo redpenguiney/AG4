@@ -10,7 +10,7 @@ std::shared_ptr<Mesh> Mesh::New(MeshCreateParams params)
 	auto loc = ptr->pool->AddMesh(ptr);
 	ptr->baseVertex = loc.baseVertex;
 	ptr->firstIndex = loc.firstIndex;
-	DebugLogInfo("First index: ", ptr->firstIndex, " in pool ", ptr->pool->id);
+	//DebugLogInfo("First index: ", ptr->firstIndex, " in pool ", ptr->pool->id);
 
 	return ptr;
 }
@@ -57,15 +57,18 @@ const std::vector<unsigned>& Mesh::GetIndices() {
 }
 
 
+#pragma warning(disable:26495) // baseVertex and firstIndex are set in New().
 Mesh::Mesh(MeshCreateParams params) :
 	numVertices(params.vertices.size() / params.meshVertexFormat.ScalarsPerVertex()),
 	numIndices(params.indices.size()),
 	vertices(std::move(params.vertices)),
 	indices(std::move(params.indices)),
 	format(params.meshVertexFormat),
-	name(params.defaultName)
+	name(params.defaultName),
+	bones(params.bones),
+	animations(params.animations)
 {
-	DebugLogInfo("Made mesh with default name ", name, " c=", format.GetBoneCapacity());
+	//DebugLogInfo("Made mesh with default name ", name, " bc=", format.GetBoneCapacity(), " actual b=", bones.size());
 
 	Assert(params.isStatic);
 	Assert(numVertices > 0);
@@ -78,7 +81,7 @@ Mesh::Mesh(MeshCreateParams params) :
 		}
 		if (!pool) pool = staticMeshpools.emplace_back(std::make_shared<StaticMeshpool>(format));
 	}
-	// baseVertex and firstIndex are set in New().
+	
 
 	// Preprocess mesh
 	// Mesh normalization
@@ -88,6 +91,7 @@ Mesh::Mesh(MeshCreateParams params) :
 		Assert(posAttribute);
 		Assert(posAttribute->nComponents <= 3);
 		Assert(posAttribute->type == VertexScalarType::f32);
+#pragma warning(disable:4756)
 		glm::vec3 min = { INFINITY, INFINITY, INFINITY }, max = { -INFINITY, -INFINITY, -INFINITY };
 		for (unsigned i = 0; i < numVertices; i++) {
 			for (unsigned j = 0; j < posAttribute->nComponents; j++) {
@@ -124,5 +128,5 @@ glm::vec3 Mesh::OriginalOffset() const {
 
 Mesh::~Mesh() {
 	pool->RemoveMesh(this);
-	DebugLogInfo("Mesh, ", name, " died.");
+	//DebugLogInfo("Mesh, ", name, " died.");
 }

@@ -32,12 +32,12 @@ public:
 	// returns vec3(1) if the mesh vertex positions were not normalized.
 	glm::vec3 OriginalSize() const;
 	// returns vec3(0) if the mesh vertex positions were not normalized. offset is scaled by OriginalSize()
-	glm::vec3 OriginalOffset() const; 
+	glm::vec3 OriginalOffset() const;
 
 	~Mesh();
 
 	const std::vector<Bone> bones;
-
+	const std::vector<Animation> animations;
 private:
 	 std::vector<VertexScalar> vertices;
 	const std::vector<unsigned> indices;

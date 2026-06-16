@@ -30,7 +30,7 @@ private:
 		unsigned writesLeft;
 		unsigned writeLocation;
 	};
-	std::array<std::vector<PendingWrite>, 16> writes;
+	std::array<std::vector<PendingWrite>, 16> writes; // nth index is for writes consisting of n-1 scalars
 };
 
 class Meshpool {
@@ -144,7 +144,8 @@ private:
 	std::vector<unsigned> availableInstanceSlots;
 	unsigned nextInstanceLocation = 0; // use if availableInstanceSlots is empty.
 
-	PendingWritesManager pendingWrites;
+	PendingWritesManager pendingInstanceWrites;
+	PendingWritesManager pendingBoneWrites; // some slight wastefulness here, don't really care tho
 
 	//std::vector<SlotSpace> availableVertexSpace; // in terms of vertices
 

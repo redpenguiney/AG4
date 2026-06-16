@@ -46,6 +46,7 @@ public:
     std::vector<VertexScalar> vertices = {};
     std::vector<unsigned> indices = {};
 	std::vector<Bone> bones = {};
+	std::vector<Animation> animations = {};
 
     // Scales all vertices named vertexPos into the range [-0.5, 0.5], and sets Mesh::originalSize.
 	// size should always be normalized for collisions/physics to work. Only set to false if you're making a weird mesh like the skybox or gui or something.
