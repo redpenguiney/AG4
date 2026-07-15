@@ -6,6 +6,8 @@
 #include <functional>
 #include "framebuffer.hpp"
 
+constexpr bool ANNOTATE_FRAMES_FOR_RENDERDOC = true;
+
 class BaseShaderProgram;
 class Meshpool;
 

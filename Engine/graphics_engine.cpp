@@ -19,10 +19,10 @@ void GraphicsEngine::RenderScene(double dt) {
 
     WriteModelMatrices();
     WriteBones();
-    auto camera = currentCamera.GetCamera();
-    auto cameraNoFloatingOrigin = currentCamera.GetCamera();
-    cameraNoFloatingOrigin[3] = glm::vec4(-currentCamera.position, 1);
-    auto proj = currentCamera.GetProj(Window::Get().Aspect());
+    auto camera = currentCamera->GetCamera();
+    auto cameraNoFloatingOrigin = currentCamera->GetCamera();
+    cameraNoFloatingOrigin[3] = glm::vec4(-currentCamera->position, 1);
+    auto proj = currentCamera->GetProj(Window::Get().Aspect());
     auto orthro = glm::ortho<float>(0, Window::Get().width, 0, Window::Get().height, -1000.0f, 1000.0f);
     ShaderProgram::SetCameraUniforms(proj * camera, proj * cameraNoFloatingOrigin, orthro); 
 
@@ -77,7 +77,7 @@ void GraphicsEngine::WriteModelMatrices() {
                 
                 glm::vec3 relPos;
                 if (obj.meshpool->format.IsFloatingOriginEnabled()) {
-                    relPos = obj.Position() - currentCamera.position;
+                    relPos = obj.Position() - currentCamera->position;
                 }
                 else {
                     relPos = obj.Position();
@@ -121,6 +121,7 @@ void GraphicsEngine::WriteBones() {
 GraphicsEngine::GraphicsEngine() {
     defaultDrawingPasses = {};  
     renderGraph = std::shared_ptr<RenderGraph>(new RenderGraph());  
+    currentCamera = std::make_shared<Camera>();
 }
 
 GraphicsEngine::~GraphicsEngine() {

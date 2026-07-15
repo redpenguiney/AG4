@@ -130,3 +130,12 @@ Mesh::~Mesh() {
 	pool->RemoveMesh(this);
 	//DebugLogInfo("Mesh, ", name, " died.");
 }
+
+const Bone* Mesh::GetBone(std::string name) const
+{
+	for (auto& b : bones) {
+		if (b.name == name) return &b;
+	}
+
+	return nullptr;
+}

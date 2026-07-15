@@ -30,7 +30,7 @@ ClusteredLighting::ClusteredLighting() {
                 else {
                     worldPos = pl->position;
                 }
-                glm::vec3 relPos = worldPos - GraphicsEngine::Get().currentCamera.position;
+                glm::vec3 relPos = worldPos - GraphicsEngine::Get().currentCamera->position;
                 gpuLights[i].pos = relPos;
                 gpuLights[i].lightType = 1.0f;
             }

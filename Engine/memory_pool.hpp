@@ -82,6 +82,8 @@ public:
 	}
 
 	~MemoryPool() {
+		DebugLogInfo("Deallocating gameobject pool.");
+
 		for (auto& p : pages) {
 			free(p);
 		}

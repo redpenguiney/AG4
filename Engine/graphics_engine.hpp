@@ -11,7 +11,7 @@ class StaticMeshpool;
 class GraphicsEngine {
 public:
 	// Change at your discretion.
-	Camera currentCamera;
+	std::shared_ptr<Camera> currentCamera;
 
 	static GraphicsEngine& Get();
 

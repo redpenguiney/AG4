@@ -13,6 +13,8 @@ struct Bone {
     int index; // (into Mesh::bones, shader array, and vertex bone ids)
     glm::mat4x4 offsetMatrix; // mesh space to bone space (when the rig is t-posing or "in bind pose")
     glm::mat4x4 baseBoneTransform; // NOT the bone transform in model space (when in bind pose) because that's just the identity matrix. what is this???
+
+    glm::vec3 direction;
 };
 
 struct PosKeyframe {

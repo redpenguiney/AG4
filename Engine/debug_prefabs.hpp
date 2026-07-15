@@ -3,6 +3,7 @@
 #include <vector>
 #include <glm/vec3.hpp>
 
+class Camera;
 class Mesh;
 class DrawPass;
 class ConvexMeshPhysicsGeometry;
@@ -17,7 +18,7 @@ std::vector<Gameobject*> BuildPit(glm::dvec3 pos, glm::vec3 size, float elastici
 std::vector<Gameobject*> BuildCubeArray(glm::dvec3 origin, glm::dvec3 stride, glm::uvec3 nCubes, bool physics, float elasticity, float friction);
 
 inline float freecamPitch = 0, freecamYaw = 0, freecamSpeed = 0;
-void Freecam();
+std::shared_ptr<Camera> GetFreecam();
 
 Gameobject* DebugPoint(glm::dvec3 pos, glm::vec3 color = {1, 1, 1});
 Gameobject* DebugLine(glm::dvec3 a, glm::dvec3 b, glm::vec3 color = { 1, 1, 1 });

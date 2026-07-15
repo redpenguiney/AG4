@@ -109,7 +109,8 @@ bool Window::IsMouseLocked() const {
 void Window::Update() {
     PRESS_BEGAN_KEYS.clear();
     PRESS_ENDED_KEYS.clear();
-
+    PRESS_BEGAN_EVENTS.clear();
+    PRESS_ENDED_EVENTS.clear();
     /*LMB_BEGAN = false;
     LMB_ENDED = false;
     RMB_BEGAN = false;
@@ -293,14 +294,16 @@ void Window::KeyCallback(GLFWwindow* window, int key, int scancode, int action, 
     //DebugLogInfo("INPUT = ", input.input);
 
     if (action == GLFW_PRESS) {
-        Window::Get().PRESS_BEGAN_KEYS.insert(input);
+        Window::Get().PRESS_BEGAN_KEYS.insert(input.input);
         Window::Get().PRESSED_KEYS.insert(input.input);
         Window::Get().inputDown.Fire(&Window::Get(), input);
+        Window::Get().PRESS_BEGAN_EVENTS.insert(input);
     }
     else if (action == GLFW_RELEASE) {
-        Window::Get().PRESS_ENDED_KEYS.insert(input);
+        Window::Get().PRESS_ENDED_KEYS.insert(input.input);
         Window::Get().PRESSED_KEYS.erase(input.input);
         Window::Get().inputUp.Fire(&Window::Get(), input);
+        Window::Get().PRESS_ENDED_EVENTS.insert(input);
     }
 }
 
@@ -320,14 +323,16 @@ void Window::MouseButtonCallback(GLFWwindow* window, int button, int action, int
         input.input = InputObject::InputType(InputObject::LMB + button);
 
         if (action == GLFW_RELEASE) {
-            Window::Get().PRESS_ENDED_KEYS.insert(input);
+            Window::Get().PRESS_ENDED_KEYS.insert(input.input);
             Window::Get().PRESSED_KEYS.erase(input.input);
             Window::Get().inputUp.Fire(&Window::Get(), input);
+            Window::Get().PRESS_ENDED_EVENTS.insert(input);
         }
         else if (action == GLFW_PRESS) {
-            Window::Get().PRESS_BEGAN_KEYS.insert(input);
+            Window::Get().PRESS_BEGAN_KEYS.insert(input.input);
             Window::Get().PRESSED_KEYS.insert(input.input);
             Window::Get().inputDown.Fire(&Window::Get(), input);
+            Window::Get().PRESS_BEGAN_EVENTS.insert(input);
         }
     }
 
@@ -347,8 +352,10 @@ void Window::ScrollCallback(GLFWwindow* window, double deltaScrollX, double delt
 
    Window::Get().onScroll.Fire(&Window::Get(), deltaScrollX, deltaScrollY);
    Window::Get().inputDown.Fire(&Window::Get(), input);
-   Window::Get().PRESS_BEGAN_KEYS.insert(input);
-   Window::Get().PRESS_ENDED_KEYS.insert(input);
+   Window::Get().PRESS_BEGAN_KEYS.insert(input.input);
+   Window::Get().PRESS_ENDED_KEYS.insert(input.input);
+   Window::Get().PRESS_BEGAN_EVENTS.insert(input);
+   Window::Get().PRESS_ENDED_EVENTS.insert(input);
 }
 
 void Window::ResizeCallback(GLFWwindow* window, int newWindowWidth, int newWindowHeight) { // called on window resize

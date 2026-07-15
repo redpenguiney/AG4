@@ -36,6 +36,9 @@ public:
 
 	~Mesh();
 
+	// Gets bone with given name, or nullptr if not found
+	const Bone* GetBone(std::string name) const;
+
 	const std::vector<Bone> bones;
 	const std::vector<Animation> animations;
 private:

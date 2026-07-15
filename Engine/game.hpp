@@ -1,5 +1,6 @@
 #pragma once
 #include <memory>
+#include <vector>
 
 // Defined in a seperate project which defines the actual game.
 class GameState;

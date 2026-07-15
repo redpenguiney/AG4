@@ -2,6 +2,8 @@
 #include "gameobject.hpp"
 #include "scene.hpp"
 #include "shader_program.hpp"
+#include "mesh.hpp"
+#include <mainloop.hpp>
 
 static std::unique_ptr<Scene>& GetHumanoidMesh() {
 	LoadSceneParams sceneParams;
@@ -24,8 +26,15 @@ static std::shared_ptr<DrawPass> GetHumanoidDrawPass() {
 	return drawpass;
 }
 
-Body::Body() {
+Body::Body(std::unique_ptr<BodyController> c):
+	controller(std::move(c))
+{
 	{
+		controller->body = this;
+
+		updateConn = Mainloop::Get().preRender.Connect([this](Mainloop*, float dt) { controller->Update(dt); });
+		fixedUpdateConn = Mainloop::Get().prePhysics.Connect([this](Mainloop*, float dt) { controller->FixedUpdate(dt); });
+
 		auto& scene = GetHumanoidMesh();
 		std::shared_ptr<Mesh> mainBody = scene->meshes[0];
 
@@ -34,7 +43,38 @@ Body::Body() {
 		static auto pass = GetHumanoidDrawPass();
 		params.renderPasses = { pass, };
 		
-		gameobjects.push_back(std::unique_ptr<Physobject>(Physobject::New(params)));
+		std::unique_ptr<Physobject> obj(Physobject::New(params));
+		obj->SetScale(mainBody->OriginalSize());
+		obj->SetInstanceAttribute(*mainBody->format.GetAttribute("color"), {1, 1, 1, 1});
+		obj->SetInstanceAttribute(*mainBody->format.GetAttribute(SpecialVertexAttributeNames::AUTOMATIC_TEXTURE_ARRAY_SELECTION), -1.0f);
+		gameobjects.push_back(std::move(obj));
+
+		for (auto& b : mainBody->bones) {
+			//DebugLogInfo("BONE ", b.name);
+		}
+
+		/*IKBone hip;
+		hip.parent = nullptr;
+		hip.baseDirection = { 0, 1, 0 };
+		hip.currentPosition = { 0, 0, 0 };
+		hip.currentRotation = glm::identity<glm::quat>();
+		hip.boneIndex = mainBody->GetBone("mixamorig:Hips")->index;*/
+
+
 	}
+
+}
+
+LocalPlayerController::LocalPlayerController() {
+	camera = std::make_shared<Camera>();
+}
+
+void LocalPlayerController::Update(float dt) {
+	camera->position = body->gameobjects[0]->Position() + glm::dvec3(0, 1, 0);
+	camera->rotation = body->gameobjects[0]->Rotation();
+}
+
+void LocalPlayerController::FixedUpdate(float dt)
+{
 
 }

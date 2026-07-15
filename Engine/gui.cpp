@@ -77,13 +77,13 @@ void GuiElement::InitGuiEvents() {
 
         bool leftClick = false;
 
-        for (auto& p : w->PRESS_BEGAN_KEYS) {
+        for (auto& p : w->PRESS_BEGAN_EVENTS) {
             if (p.input == InputObject::LMB) leftClick = true;
             for (auto& ui : elementsBeingHoveredOn) {
                 onInputBegin.Fire(ui, p);
             }
         }
-        for (auto& p : w->PRESS_ENDED_KEYS) {
+        for (auto& p : w->PRESS_ENDED_EVENTS) {
             for (auto& ui : elementsBeingHoveredOn) {
                 onInputEnd.Fire(ui, p);
             }
@@ -108,7 +108,7 @@ void GuiElement::InitGuiEvents() {
         textboxFocusDone:;
 
         if (currentlyFocused) {
-            for (auto& p : w->PRESS_BEGAN_KEYS) {
+            for (auto& p : w->PRESS_BEGAN_EVENTS) {
                 if (auto s = InputToString(p)) {
                     currentlyFocused->text += s.value();
                 }
@@ -118,7 +118,7 @@ void GuiElement::InitGuiEvents() {
                     }
                 }
             }
-            if (!w->PRESS_BEGAN_KEYS.empty()) {
+            if (!w->PRESS_BEGAN_EVENTS.empty()) {
                 currentlyFocused->RefreshText();
             }
         }

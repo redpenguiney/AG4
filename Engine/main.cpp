@@ -31,8 +31,8 @@ int main(int numArgs, const char* argArray[]) {
 	// essential stuff like the postproc quad
 	std::vector<std::shared_ptr<Gameobject>> objects;
 
-	//MemoryPool<Gameobject, const GameobjectCreateParams&>::Get();
-	//MemoryPool<Physobject, const PhysobjectCreateParams&>::Get();
+	MemoryPool<Gameobject, const GameobjectCreateParams&>::Get();
+	MemoryPool<Physobject, const PhysobjectCreateParams&>::Get();
 	Window::Get();
 	GraphicsEngine::Get();
 	GameobjectSAS();

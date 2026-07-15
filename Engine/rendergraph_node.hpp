@@ -158,7 +158,7 @@ enum class PolygonFillMode {
 struct RenderingParameters {
 	std::shared_ptr<ShaderProgram> shader;
 
-	bool blending;
+	bool blending = false;
 
 	FaceCulling cullMode = FaceCulling::Backface;
 

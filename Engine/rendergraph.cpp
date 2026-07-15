@@ -32,16 +32,27 @@ void RenderGraph::Render() {
 		Compile();
 	}
 
+	if (ANNOTATE_FRAMES_FOR_RENDERDOC) glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, -1, "COMMITING HARDWARE BUFFERS");
 	for (auto& buf : hardwareBuffers) {
 		//if (buf->ubo) {
 			buf->buf.Commit();
 		//}
 	}
+	if (ANNOTATE_FRAMES_FOR_RENDERDOC) glPopDebugGroup();
 
+	if (ANNOTATE_FRAMES_FOR_RENDERDOC) glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, -1, "RENDERING PROCESSED PASSES");
 	for (auto& pass : renderOrder) {
 
 		if (std::holds_alternative<ProcessedDrawPass>(pass)) {
 			auto& p = std::get<ProcessedDrawPass>(pass);
+
+			if (ANNOTATE_FRAMES_FOR_RENDERDOC) {
+				std::string src = "DRAWPASS(";
+				for (auto& name : p.sources) src += name + ",";
+				if (!p.sources.empty()) src.pop_back();
+				src += ")";
+				glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, -1, src.c_str());
+			}
 
 			if (p.dependencyWriteMemoryBarrierBits != 0) {
 				glMemoryBarrier(p.dependencyWriteMemoryBarrierBits);
@@ -146,6 +157,7 @@ void RenderGraph::Render() {
 			}
 
 			for (auto& src : p.sources) {
+				if (ANNOTATE_FRAMES_FOR_RENDERDOC) glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, -1, (std::string("RENDERGROUPS(") + src + ")").c_str());
 				for (RenderGroup* renderGroup : drawPasses.at(src)->drawnObjects) {
 					renderGroup->meshpool->BindVAO(p.params.shader);
 					renderGroup->meshpool->indices.Bind(GL_ELEMENT_ARRAY_BUFFER);
@@ -165,7 +177,11 @@ void RenderGraph::Render() {
 						glDrawElementsInstancedBaseVertexBaseInstance(renderGroup->primitiveType, c.count, GL_UNSIGNED_INT, (void*)(unsigned int)((c.firstIndex + firstIndexOffset)), c.instanceCount, c.baseVertex + baseVertexOffset, c.baseInstance + instanceOffset);
 					}
 				}
+
+				if (ANNOTATE_FRAMES_FOR_RENDERDOC) glPopDebugGroup();
 			}
+
+			if (ANNOTATE_FRAMES_FOR_RENDERDOC) glPopDebugGroup();
 		}
 		else {
 			auto& p = std::get<ProcessedComputePass>(pass);
@@ -178,13 +194,17 @@ void RenderGraph::Render() {
 			p.shader->Dispatch(p.workgroupSize);
 		}
 	}
+	if (ANNOTATE_FRAMES_FOR_RENDERDOC) glPopDebugGroup();
 	
+	if (ANNOTATE_FRAMES_FOR_RENDERDOC) glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, -1, "FLIPPING HARDWARE BUFFERS");
 	// todo: could defer this call probably
 	for (auto& buf : hardwareBuffers) {
 		//if (buf->ubo) {
 			buf->buf.Flip();
 		//}
 	}
+
+	if (ANNOTATE_FRAMES_FOR_RENDERDOC) glPopDebugGroup();
 }
 
 void RenderGraph::AddPass(std::shared_ptr<RenderPass> pass) {
@@ -306,6 +326,7 @@ void RenderGraph::CreateAttachment(FramebufferAttachmentFormatDescriptor attachm
 
 void RenderGraph::DeclareUniformBuffer(std::string name, size_t size) {
 	LogicalBufferResource rsrc;
+	rsrc.ubo = true;
 	rsrc.name = name;
 	rsrc.requestedSize = size;
 	rsrc.access.firstWritePassIndex = -1;
@@ -537,7 +558,7 @@ void RenderGraph::Compile() {
 						glBlendFunci(i, static_cast<GLenum>(a.blendingSrcFactor), static_cast<GLenum>(a.blendingDstFactor));
 					}
 
-					if (target.depthStencilAttachment) {
+					if (target.depthStencilAttachment && target.depthStencilAttachment->loadPolicy == AttachmentLoadPolicy::Clear) {
 						glClearDepth(target.depthStencilAttachment->clearColor.x);
 						glClearStencil(target.depthStencilAttachment->clearColor.y);
 						glClear(GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT); // TODO WHAT IF THEY DONT WANNA CLEAR BOTH

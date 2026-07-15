@@ -70,7 +70,8 @@ public:
 	std::shared_ptr<Mesh> GetMesh();
 
 	void SetBoneTransform(unsigned index, glm::mat4x4 transform);
-	
+
+	std::tuple<glm::dvec3, glm::quat, glm::vec3> GetBoneWorldTransform(unsigned index);
 	// animation needs to be from the mesh used by ths gameobject. obviously.
 	void PlayAnimation(const Animation& anim);
 

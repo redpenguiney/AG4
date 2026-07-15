@@ -159,10 +159,12 @@ public:
 
     // User input stuff.
     // index is key enums provided by GLFW
-    // TODO: these maps are def not thread safe, probably needs a rwlock
+    // TODO: these maps/vectors are def not thread safe, probably needs a rwlock
     std::unordered_set<InputObject::InputType> PRESSED_KEYS;
-    std::unordered_set<InputObject> PRESS_BEGAN_KEYS;
-    std::unordered_set<InputObject> PRESS_ENDED_KEYS;
+    std::unordered_set<InputObject::InputType> PRESS_BEGAN_KEYS;
+    std::unordered_set<InputObject::InputType> PRESS_ENDED_KEYS;
+    std::unordered_set<InputObject> PRESS_BEGAN_EVENTS;
+    std::unordered_set<InputObject> PRESS_ENDED_EVENTS;
 
     /*bool IsPressed(int key);
     bool IsPressBegan(int key);
