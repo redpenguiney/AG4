@@ -19,7 +19,7 @@ void GameState::MakeGameplay() {
 
 	GraphicsEngine::Get().currentCamera = freecam;
 	static auto c = Window::Get().postInputProccessing.Connect([freecam, worldcam](Window*) {
-		if (Window::Get().PRESS_BEGAN_KEYS.contains(InputObject::F)) {
+		if (Window::Get().PRESS_BEGAN_KEYS.contains(InputType::F)) {
 			if (GraphicsEngine::Get().currentCamera == worldcam) {
 				GraphicsEngine::Get().currentCamera = freecam;
 			}
@@ -27,7 +27,7 @@ void GameState::MakeGameplay() {
 				GraphicsEngine::Get().currentCamera = worldcam;
 			}
 		}
-		else if (Window::Get().PRESS_BEGAN_KEYS.contains(InputObject::Space)) {
+		else if (Window::Get().PRESS_BEGAN_KEYS.contains(InputType::Space)) {
 			Mainloop::Get().physicsPaused = !Mainloop::Get().physicsPaused;
 		}
 	});

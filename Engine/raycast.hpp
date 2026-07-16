@@ -14,7 +14,8 @@ struct RaycastResult {
 };
 
 struct RaycastParams {
-
+	// if true, given the opportunity the raycasting will be done against gameobject's rendered meshes rather than against the physics geometry.
+	bool preferMesh = false;
 };
 
 RaycastResult Raycast(glm::dvec3 origin, glm::dvec3 direction, RaycastParams params);

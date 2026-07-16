@@ -18,3 +18,5 @@ private:
 };
 
 glm::dvec3 LookVector(double pitch, double yaw);
+
+glm::dvec3 ClosestPointOnLine1ToLine2(glm::dvec3 origin1, glm::dvec3 dir1, glm::dvec3 origin2, glm::dvec3 dir2);

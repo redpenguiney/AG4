@@ -7,80 +7,82 @@
 #include "cursor.hpp"
 #include <optional>
 
+enum class InputType: int {
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K,
+    L,
+    M,
+    N,
+    O,
+    P,
+    Q,
+    R,
+    S,
+    T,
+    U,
+    V,
+    W,
+    X,
+    Y,
+    Z,
+
+    One,
+    Two,
+    Three,
+    Four,
+    Five,
+    Six,
+    Seven,
+    Eight,
+    Nine,
+    Zero,
+
+    Space,
+    Tab,
+    Escape,
+    Grave,
+    LBracket,
+    RBracket,
+
+    Ctrl,
+    Shift,
+    Alt,
+
+    LMB,// mouse button 1
+    RMB,// mouse button 2
+    MMB,// mouse button 3
+    MB4,
+    MB5,
+    MB6,
+    MB7,
+    MB8,
+
+    Scroll, // Note that capitalized is always false for Scroll events due to glfw/laziness limitations.
+
+    LeftArrow,
+    RightArrow,
+    UpArrow,
+    DownArrow,
+
+    Backspace,
+
+    Unknown
+};
+
 // Object representing any kind of input.
 class InputObject {
 public:
 
-    enum InputType {
-        A,
-        B,
-        C,
-        D,
-        E,
-        F,
-        G,
-        H,
-        I,
-        J,
-        K,
-        L,
-        M,
-        N,
-        O,
-        P,
-        Q,
-        R,
-        S,
-        T,
-        U,
-        V,
-        W,
-        X,
-        Y,
-        Z,
-
-        One,
-        Two,
-        Three,
-        Four,
-        Five,
-        Six,
-        Seven,
-        Eight,
-        Nine,
-        Zero,
-
-        Space,
-        Tab,
-        Escape,
-        Grave,
-        LBracket,
-        RBracket,
-
-        Ctrl,
-        Shift,
-        Alt,
-
-        LMB,// mouse button 1
-        RMB,// mouse button 2
-        MMB,// mouse button 3
-        MB4,
-        MB5,
-        MB6,
-        MB7,
-        MB8,
-
-        Scroll, // Note that capitalized is always false for Scroll events due to glfw/laziness limitations.
-
-        LeftArrow,
-        RightArrow,
-        UpArrow,
-        DownArrow,
-
-        Backspace,
-
-        Unknown
-    };
+    
 
     InputType input;
 
@@ -96,14 +98,20 @@ public:
 
 std::optional<std::string> InputToString(InputObject input);
 
-// hash inputobject so it can go in unordered map
-// TODO: add direction member to hash function
+// hash InputObject and InputType so they can go in unordered map
+// todo: add direction member to hash function
 template <>
 struct std::hash<InputObject> {
     std::size_t operator()(const InputObject& io) const noexcept {
         size_t h1 = io.capitalized + io.altDown * 8 + io.ctrlDown * 256 + io.shiftDown * 2048;
-        size_t h2 = io.input;
+        size_t h2 = static_cast<size_t>(io.input);
         return h1 ^ (h2 << 1);
+    }
+};
+template <>
+struct std::hash<InputType> {
+    std::size_t operator()(const InputType& io) const noexcept {
+        return static_cast<size_t>(io);
     }
 };
 
@@ -138,7 +146,8 @@ public:
 
     ~Window();
 
-    float Aspect() const { return float(width) / float(height); }
+    inline float Aspect() const { return float(width) / float(height); }
+    inline glm::uvec2 Size() const { return { width, height }; }
 
     // Processes user input and fires PostInputProcessing
     void Update();
@@ -160,9 +169,9 @@ public:
     // User input stuff.
     // index is key enums provided by GLFW
     // TODO: these maps/vectors are def not thread safe, probably needs a rwlock
-    std::unordered_set<InputObject::InputType> PRESSED_KEYS;
-    std::unordered_set<InputObject::InputType> PRESS_BEGAN_KEYS;
-    std::unordered_set<InputObject::InputType> PRESS_ENDED_KEYS;
+    std::unordered_set<InputType> PRESSED_KEYS;
+    std::unordered_set<InputType> PRESS_BEGAN_KEYS;
+    std::unordered_set<InputType> PRESS_ENDED_KEYS;
     std::unordered_set<InputObject> PRESS_BEGAN_EVENTS;
     std::unordered_set<InputObject> PRESS_ENDED_EVENTS;
 

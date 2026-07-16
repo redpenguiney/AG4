@@ -146,7 +146,7 @@ void GameState::MakeHostNewMenu() {
 			});
 		menuEventConnections.push_back(std::move(hOffConnection));
 		auto clickConnection = butt->onInputEnd.Connect(butt.get(), [onActivate](GuiElement*, InputObject input) {
-			if (input.input == InputObject::LMB) onActivate();
+			if (input.input == InputType::LMB) onActivate();
 			});
 		menuEventConnections.push_back(std::move(clickConnection));
 
@@ -310,7 +310,7 @@ void GameState::MakeJoinMenu() {
 			});
 		menuEventConnections.push_back(std::move(hOffConnection));
 		auto clickConnection = butt->onInputEnd.Connect(butt.get(), [onActivate](GuiElement*, InputObject input) {
-			if (input.input == InputObject::LMB) onActivate();
+			if (input.input == InputType::LMB) onActivate();
 			});
 		menuEventConnections.push_back(std::move(clickConnection));
 
@@ -401,7 +401,7 @@ void GameState::MakeClientLoadingScreen() {
 		});
 	menuEventConnections.push_back(std::move(hOffConnection));
 	auto clickConnection = cancelButton->onInputEnd.Connect(cancelButton.get(), [this](GuiElement*, InputObject input) {
-		if (input.input == InputObject::LMB) {
+		if (input.input == InputType::LMB) {
 			if (NetworkingEngine::Get().GetState() == NetworkState::ClientConnecting) NetworkingEngine::Get().CancelJoin();
 			MakeJoinMenu();
 		}
@@ -467,7 +467,7 @@ void GameState::MakeMainMenu() {
 			elem->backgroundColor = glm::vec4(HIGHLIGHT_COLOR, 0.5f);
 			elem->RefreshGraphics();
 			Window::Get().UseCursor(Window::Get().systemSelectionCursor);
-			});
+			}); 
 		menuEventConnections.push_back(std::move(hOnConnection));
 		auto hOffConnection = butt->onHoverEnd.Connect(butt.get(), [this](GuiElement* elem) {
 			elem->backgroundColor = glm::vec4(MAIN_COLOR, 0.5f);
@@ -476,7 +476,7 @@ void GameState::MakeMainMenu() {
 			});
 		menuEventConnections.push_back(std::move(hOffConnection));
 		auto clickConnection = butt->onInputEnd.Connect(butt.get(), [onActivate](GuiElement*, InputObject input) {
-			if (input.input == InputObject::LMB) onActivate();
+			if (input.input == InputType::LMB) onActivate();
 			});
 		menuEventConnections.push_back(std::move(clickConnection));
 		};

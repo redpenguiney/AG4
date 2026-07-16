@@ -78,7 +78,7 @@ void GuiElement::InitGuiEvents() {
         bool leftClick = false;
 
         for (auto& p : w->PRESS_BEGAN_EVENTS) {
-            if (p.input == InputObject::LMB) leftClick = true;
+            if (p.input == InputType::LMB) leftClick = true;
             for (auto& ui : elementsBeingHoveredOn) {
                 onInputBegin.Fire(ui, p);
             }
@@ -112,7 +112,7 @@ void GuiElement::InitGuiEvents() {
                 if (auto s = InputToString(p)) {
                     currentlyFocused->text += s.value();
                 }
-                else if (p.input == InputObject::Backspace) {
+                else if (p.input == InputType::Backspace) {
                     if (!currentlyFocused->text.empty()) {
                         currentlyFocused->text.pop_back();
                     }

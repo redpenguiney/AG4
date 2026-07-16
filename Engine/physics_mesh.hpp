@@ -14,11 +14,11 @@ public:
 	BasePhysicsGeometry() = default;
 	virtual ~BasePhysicsGeometry() = default;
 
-	// todo: very expensive function. cache so that if multiple rigidbodies with same BasePhysicsGeometry and size are made, they can reuse the same calculation
+	// todo: very expensive function (for large meshes). cache so that if multiple rigidbodies with same BasePhysicsGeometry and size are made, they can reuse the same calculation
 	glm::mat3x3 GetMomentOfInertia(glm::vec3 objectScale, float objectMass);
 
 	// Returned distance is actually distance squared
-	virtual RaycastResult Raycast(glm::dvec3 origin, glm::dvec3 direction, Gameobject* object) = 0;
+	virtual RaycastResult Raycast(glm::dvec3 origin, glm::dvec3 direction, Gameobject* object, RaycastParams params) = 0;
 
 	virtual void AddLocalMomentOfInertiaContribution(glm::vec3& centerOfMass, float& Ia, float& Ib, float& Ic, float& Iap, float& Ibp, float& Icp, glm::vec3 objectScale, float density) = 0;
 	virtual float Volume(glm::vec3 objectScale) = 0;
@@ -26,7 +26,7 @@ public:
 
 class ConvexPhysicsGeometry : public BasePhysicsGeometry {
 public:
-	virtual RaycastResult Raycast(glm::dvec3 origin, glm::dvec3 direction, Gameobject* object) = 0;
+	virtual RaycastResult Raycast(glm::dvec3 origin, glm::dvec3 direction, Gameobject* object, RaycastParams params) = 0;
 
 	// returns furthest point on surface in that direction, used for collision detection
 	virtual glm::vec3 Support(glm::vec3 direction) const = 0;
@@ -44,7 +44,7 @@ class SpherePhysicsGeometry : public ConvexPhysicsGeometry {
 public:
 	static std::shared_ptr<SpherePhysicsGeometry> Get();
 	
-	RaycastResult Raycast(glm::dvec3 origin, glm::dvec3 direction, Gameobject* object) override;
+	RaycastResult Raycast(glm::dvec3 origin, glm::dvec3 direction, Gameobject* object, RaycastParams params) override;
 
 	virtual glm::vec3 Support(glm::vec3 direction) const override;
 	virtual void AddLocalMomentOfInertiaContribution(glm::vec3& centerOfMass, float& Ia, float& Ib, float& Ic, float& Iap, float& Ibp, float& Icp, glm::vec3 objectScale, float density) override;
@@ -63,7 +63,7 @@ struct Polygon {
 // TODO: version with octree or something for faster raycasting
 class ConvexMeshPhysicsGeometry : public ConvexPhysicsGeometry {
 public:
-	RaycastResult Raycast(glm::dvec3 origin, glm::dvec3 direction, Gameobject* object) override;
+	RaycastResult Raycast(glm::dvec3 origin, glm::dvec3 direction, Gameobject* object, RaycastParams params) override;
 
 	const std::vector<std::array<glm::vec3, 3>> triangles;
 
@@ -80,12 +80,14 @@ public:
 	const std::array<std::vector<glm::vec3>, 8> supportVertices;
 	static std::shared_ptr<ConvexMeshPhysicsGeometry> FromMesh(const std::shared_ptr<Mesh>& m);
 
+	const std::shared_ptr<Mesh> source;
+
 	virtual float Volume(glm::vec3 objectScale) override;
 	virtual glm::vec3 Support(glm::vec3 direction) const override;
 	virtual void AddLocalMomentOfInertiaContribution(glm::vec3& centerOfMass, float& Ia, float& Ib, float& Ic, float& Iap, float& Ibp, float& Icp, glm::vec3 objectScale, float density) override;
 
 private:
-	ConvexMeshPhysicsGeometry(std::vector<std::array<glm::vec3, 3>> tris, std::array<std::vector<glm::vec3>, 8> supportVerts, std::vector<Polygon> polygons, std::vector<glm::vec3> edges);
+	ConvexMeshPhysicsGeometry(const std::shared_ptr<Mesh>& src, std::vector<std::array<glm::vec3, 3>> tris, std::array<std::vector<glm::vec3>, 8> supportVerts, std::vector<Polygon> polygons, std::vector<glm::vec3> edges);
 };
 
 // Collisions can be done precisely betwen the boundary of a concave mesh and a convex physics mesh via many triangle-convex collisions.

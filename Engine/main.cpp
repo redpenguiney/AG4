@@ -112,7 +112,7 @@ int main(int numArgs, const char* argArray[]) {
 	//Mainloop::Get().stepPhysics = true;
 	Mainloop::Get().physicsPaused = true;
 	Window::Get().inputUp.Connect([](auto, InputObject input) {
-		if (input.input == InputObject::Tab) {
+		if (input.input == InputType::Tab) {
 			Window::Get().SetMouseLocked(!Window::Get().IsMouseLocked());
 		}
 		});

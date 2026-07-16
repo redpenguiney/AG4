@@ -53,9 +53,13 @@ Gameobject::Gameobject(const GameobjectCreateParams& params) {
     if (params.physicsMesh) {
         collider = std::make_unique<Collider>(params.physicsMesh, this);
     }
+
+    onGameobjectCreated.FireNow(this);
 }
 
 Gameobject::~Gameobject() {
+    onGameobjectDestroyed.FireNow(this);
+
     if (meshpool) renderGroup->RemoveGameobject(*this);
     if (skeletons.contains(this)) skeletons.erase(this);
     live = false;
@@ -137,7 +141,7 @@ bool Gameobject::Live() {
     return live;
 }
 
-const Collider* const Gameobject::GetCollider() const {
+Collider* const Gameobject::GetCollider() const {
     return collider.get();
 }
 

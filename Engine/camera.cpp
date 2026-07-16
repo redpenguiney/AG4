@@ -20,11 +20,17 @@ glm::mat4x4 Camera::GetCamera() {
     return glm::mat4x4(rotation);
 }
 
-glm::vec3 Camera::ProjectToScreen(glm::dvec3 point, float aspect) {
+glm::vec3 Camera::ProjectPointToScreen(glm::dvec3 point, float aspect) {
     glm::vec3 relPos = point - position;
     glm::vec4 clipSpacePoint = GetProj(aspect) * GetCamera() * glm::vec4(relPos.x, relPos.y, relPos.z, 1.0);
     return (1.0f + glm::vec3(clipSpacePoint/clipSpacePoint.w))/2.0f;
 }
+
+//glm::vec2 Camera::ProjectDirectionToScreen(glm::vec3 direction, float aspect)
+//{
+//    glm::vec3 camSpaceDir = glm::inverse(rotation) * direction;
+//    return glm::vec2();
+//}
 
 glm::vec3 Camera::ProjectToWorld(glm::vec2 screenPos, glm::ivec2 windowSize)
 {

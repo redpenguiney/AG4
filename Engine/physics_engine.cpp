@@ -43,11 +43,12 @@ void PhysicsEngine::StepSimulation(double timestep) {
 				Physobject& obj = page[i].obj;
 				if (!obj.Live()) continue;
 
-				if (obj.collider) {
+				if (obj.collider && obj.collider->canCollide) {
 					// 
 					auto potentiallyColliding = GameobjectSAS().QueryAABB(obj.collider->aabb);
 					for (auto other : potentiallyColliding) {
 						if (other == obj.collider.get()) continue;
+						if (!other->canCollide) continue;
 						if (alreadyCheckedCollisions.contains({ &obj, other->object }) || alreadyCheckedCollisions.contains({ other->object, &obj })) {
 							continue;
 						}

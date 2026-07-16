@@ -8,6 +8,7 @@
 #include "memory_pool.hpp"
 #include "collider.hpp"
 #include <animation.hpp>
+#include "event.hpp"
 
 class Mesh;
 class RenderPass;
@@ -60,7 +61,7 @@ public:
 
 	using Pool = MemoryPool<Gameobject, const GameobjectCreateParams&>;
 
-	const Collider* const GetCollider() const;
+	Collider* const GetCollider() const;
 	glm::vec3 ObjectNormalToWorld(glm::vec3 objectNormal);
 	glm::vec3 WorldNormalToObject(glm::vec3 worldNormal);
 
@@ -74,6 +75,12 @@ public:
 	std::tuple<glm::dvec3, glm::quat, glm::vec3> GetBoneWorldTransform(unsigned index);
 	// animation needs to be from the mesh used by ths gameobject. obviously.
 	void PlayAnimation(const Animation& anim);
+
+	// fired immediately at the end of the constructor. do not dynamic_cast the gameobject.
+	static inline Event<Gameobject>& onGameobjectCreated = Event<Gameobject>::New();
+
+	// fired immediately at the beginning of the destructor, gameobject will still be valid when this is called. do not dynamic_cast the gameobject.
+	static inline Event<Gameobject>& onGameobjectDestroyed = Event<Gameobject>::New();
 
 protected:
 	static inline std::unordered_map<Gameobject*, Skeleton> skeletons; // only contains gameobjects with skeletons.

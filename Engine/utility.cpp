@@ -1,5 +1,6 @@
 #include "utility.hpp"
 #include <chrono>
+#include <glm/geometric.hpp>
 
 double Time() {
     using namespace std::chrono;
@@ -14,6 +15,12 @@ glm::dvec3 LookVector(double pitch, double yaw) {
         -cos(yaw) * cos(pitch)
 
     );
+}
+
+glm::dvec3 ClosestPointOnLine1ToLine2(glm::dvec3 origin1, glm::dvec3 dir1, glm::dvec3 origin2, glm::dvec3 dir2) {
+    glm::dvec3 norm = glm::normalize(glm::cross(dir1, dir2));
+    double t1 = glm::dot(glm::cross(dir2, norm), origin2 - origin1);
+    return origin1 + dir1 * t1;
 }
 
 IdProvider::IdProvider() {

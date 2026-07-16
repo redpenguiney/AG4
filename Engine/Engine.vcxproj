@@ -208,6 +208,7 @@
     <ClInclude Include="compute_shader_program.hpp" />
     <ClInclude Include="constraint.hpp" />
     <ClInclude Include="cursor.hpp" />
+    <ClInclude Include="debug_editing_tools.hpp" />
     <ClInclude Include="debug_prefabs.hpp" />
     <ClInclude Include="event.hpp" />
     <ClInclude Include="framebuffer.hpp" />

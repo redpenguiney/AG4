@@ -9,6 +9,7 @@
 #include "scene.hpp"
 #include "shader_program.hpp"
 #include "mesh.hpp"
+#include <debug_editing_tools.hpp>
 
 std::shared_ptr<GuiElement> frame;
 
@@ -27,9 +28,12 @@ Game::Game(std::vector<const char*> launchArgs) {
 	p.physicsMesh = GetCubeCollisions();
 
 	state->objs.emplace_back(DebugPoint({ 0, 0, 0 }, { 1, 1, 1 }));
-	state->objs.emplace_back(DebugPoint({ 0.4, 0, 0 }, { 1, 0, 0 }));
-	state->objs.emplace_back(DebugPoint({ 0, 0.4, 0 }, { 0, 1, 0 }));
-	state->objs.emplace_back(DebugPoint({ 0, 0, 0.4 }, { 0, 0, 1 }));
+	//state->objs.emplace_back(DebugPoint({ 0.4, 0, 0 }, { 1, 0, 0 }));
+	//state->objs.emplace_back(DebugPoint({ 0, 0.4, 0 }, { 0, 1, 0 }));
+	//state->objs.emplace_back(DebugPoint({ 0, 0, 0.4 }, { 0, 0, 1 }));
+	state->objs.emplace_back(DebugArrow({ 0, 0, 0 }, { 1, 0, 0 }, { 1, 0, 0 }));
+	state->objs.emplace_back(DebugArrow({ 0, 0, 0 }, { 0, 1, 0 }, { 0, 1, 0 }));
+	state->objs.emplace_back(DebugArrow({ 0, 0, 0 }, { 0, 0, 1 }, { 0, 0, 1 }));
 
 	/*{
 		LoadSceneParams sceneParams;
@@ -45,7 +49,6 @@ Game::Game(std::vector<const char*> launchArgs) {
 	}*/
 
 	{
-		DebugLogInfo("RUINING EVERYTHING");
 		LoadSceneParams sceneParams;
 		sceneParams.collapseSceneHierarchy = false;
 		sceneParams.filepath = "../models/test_anims.fbx";
@@ -76,13 +79,15 @@ Game::Game(std::vector<const char*> launchArgs) {
 		state->scene = nullptr;
 	}
 
-	Freecam();
+	GraphicsEngine::Get().currentCamera = GetFreecam();
 
 	//BuildPit({ 1, 0, 0 }, { 80, 6, 80 }, 0.0, 0);
 	auto objs = BuildCubeArray({ 1, -2, 0 }, { 2, 1, 2 }, { 1, 5, 1 }, true, 0.0, 1.0);
 	for (auto& o : objs) {
 		state->objs.emplace_back(o);
 	}
+
+	TransformHandles(state->objs.back().get());
 	//PhysicsEngine::Get()
 
 	//for (int i = 0; i < 1; i++) {
@@ -136,23 +141,23 @@ Game::Game(std::vector<const char*> launchArgs) {
 	frame->RefreshText();
 	state->uiElements.push_back(frame);*/
 
-	GraphicsEngine::Get().currentCamera.position = { 1, 0, 5 };
+	GraphicsEngine::Get().currentCamera->position = { 1, 0, 5 };
 	////PhysicsEngine::Get().gravity = { 5, -5, 0 };
 
 
 	////Mainloop::Get().stepPhysics = true;
 	//Mainloop::Get().physicsPaused = true;
 	static auto c = Window::Get().inputUp.Connect([this](Window*, InputObject input) {
-		if (input.input == InputObject::Space) Mainloop::Get().physicsPaused = !Mainloop::Get().physicsPaused;
+		if (input.input == InputType::Space) Mainloop::Get().physicsPaused = !Mainloop::Get().physicsPaused;
 
-		if (input.input == InputObject::T) {
+		if (input.input == InputType::T) {
 			if (state->objs.size() > 0) state->objs.pop_back();
 		}
-		else if (input.input == InputObject::Y) {
+		else if (input.input == InputType::Y) {
 			state->objs.emplace_back(DebugPoint({ 0, 0, state->objs.size() }, { 1, 1, 1 }));
 		}
-		if (input.input == InputObject::LMB) {
-			auto result = Raycast(GraphicsEngine::Get().currentCamera.position, LookVector(freecamPitch, freecamYaw), RaycastParams());
+		if (input.input == InputType::LMB) {
+			auto result = Raycast(GraphicsEngine::Get().currentCamera->position, LookVector(freecamPitch, freecamYaw), RaycastParams());
 			if (result.object) {
 				//DebugLogInfo("Result ", result.distance, " ", result.hitNormal, " ", result.hitPos, " ", result.object);
 				if (auto phys = dynamic_cast<Physobject*>(result.object)) {

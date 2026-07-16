@@ -14,6 +14,7 @@ public:
 	const std::shared_ptr<BasePhysicsGeometry> physicsMesh;
 	Gameobject* object;
 	std::bitset<32> collisionLayers = 1u;
+	bool canCollide = true; // if false, only for raycasting/manual queries, not physics
 private:
 	friend class Gameobject;
 	friend class AABBTree;

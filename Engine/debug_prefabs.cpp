@@ -16,10 +16,23 @@ static std::shared_ptr<Mesh> CubeMesh() {
 	return cubeMesh;
 }
 
+static std::shared_ptr<Mesh> ArrowMesh() {
+	auto mparams = MeshCreateParams::Default();
+	mparams.LoadObj("../models/arrowhandle.obj");
+	auto arrowMesh = Mesh::New(std::move(mparams));
+	return arrowMesh;
+}
+
 std::shared_ptr<Mesh> GetCubeMesh()
 {
 	static auto cubeMesh = CubeMesh();
 	return cubeMesh;
+}
+
+std::shared_ptr<Mesh> GetArrowMesh()
+{
+	static auto arrowMesh = ArrowMesh();
+	return arrowMesh;
 }
 
 static std::shared_ptr<ShaderProgram> GetDebugShader() {
@@ -91,6 +104,11 @@ std::shared_ptr<DrawPass> GetDebugSolidPass() {
 
 std::shared_ptr<ConvexMeshPhysicsGeometry> GetCubeCollisions() {
 	static auto collisions = ConvexMeshPhysicsGeometry::FromMesh(GetCubeMesh());
+	return collisions;
+}
+
+std::shared_ptr<ConvexMeshPhysicsGeometry> GetArrowCollisions() {
+	static auto collisions = ConvexMeshPhysicsGeometry::FromMesh(GetArrowMesh());
 	return collisions;
 }
 
@@ -167,7 +185,7 @@ std::shared_ptr<Camera> ImplGetFreecam() {
 	auto cam = std::make_shared<Camera>();
 
 	static auto c = Window::Get().postInputProccessing.Connect([cam](Window*) {
-		if (Window::Get().PRESS_BEGAN_KEYS.contains(InputObject::Tab)) Window::Get().SetMouseLocked(!Window::Get().IsMouseLocked());
+		if (Window::Get().PRESS_BEGAN_KEYS.contains(InputType::Tab)) Window::Get().SetMouseLocked(!Window::Get().IsMouseLocked());
 
 		if (Window::Get().IsMouseLocked()) {
 
@@ -180,9 +198,9 @@ std::shared_ptr<Camera> ImplGetFreecam() {
 		}
 
 		if (GraphicsEngine::Get().currentCamera == cam) {
-			float forward = (Window::Get().PRESSED_KEYS.contains(InputObject::W) ? 1.0f : 0.0f) - (Window::Get().PRESSED_KEYS.contains(InputObject::S) ? 1.0f : 0.0f);
-			float right = (Window::Get().PRESSED_KEYS.contains(InputObject::D) ? 1.0f : 0.0f) - (Window::Get().PRESSED_KEYS.contains(InputObject::A) ? 1.0f : 0.0f);
-			float up = (Window::Get().PRESSED_KEYS.contains(InputObject::Q) ? 1.0f : 0.0f) - (Window::Get().PRESSED_KEYS.contains(InputObject::E) ? 1.0f : 0.0f);
+			float forward = (Window::Get().PRESSED_KEYS.contains(InputType::W) ? 1.0f : 0.0f) - (Window::Get().PRESSED_KEYS.contains(InputType::S) ? 1.0f : 0.0f);
+			float right = (Window::Get().PRESSED_KEYS.contains(InputType::D) ? 1.0f : 0.0f) - (Window::Get().PRESSED_KEYS.contains(InputType::A) ? 1.0f : 0.0f);
+			float up = (Window::Get().PRESSED_KEYS.contains(InputType::Q) ? 1.0f : 0.0f) - (Window::Get().PRESSED_KEYS.contains(InputType::E) ? 1.0f : 0.0f);
 
 			if (forward == 0 && right == 0 && up == 0) freecamSpeed = 0;
 			freecamSpeed += 0.1;
@@ -203,6 +221,25 @@ std::shared_ptr<Camera> GetFreecam() {
 	static std::shared_ptr<Camera> freecamCamera = ImplGetFreecam();
 
 	return freecamCamera;
+}
+
+Gameobject* DebugArrow(glm::vec3 pos, glm::vec3 direction, glm::vec3 color) {
+	Assert(glm::length(direction) != 0);
+	direction = glm::normalize(direction);
+
+	GameobjectCreateParams p;
+	p.mesh = GetArrowMesh();
+	p.physicsMesh = GetArrowCollisions();
+	p.renderPasses = { GetDebugSolidPass(), };
+	Gameobject* gameObj = Gameobject::New(p);
+	gameObj->SetScale(GetArrowMesh()->OriginalSize() * 0.25f);
+	glm::vec3 currentDir(0, 1, 0);
+	gameObj->GetCollider()->canCollide = false;
+	gameObj->SetRotation(glm::rotation(currentDir, direction));
+	gameObj->SetPosition(pos + direction * 0.5f);
+	gameObj->SetInstanceAttribute(*p.mesh->format.GetAttribute("color"), { color.x, color.y, color.z, 1 });
+	gameObj->SetInstanceAttribute(*p.mesh->format.GetAttribute(SpecialVertexAttributeNames::AUTOMATIC_TEXTURE_ARRAY_SELECTION), -1.0f);
+	return gameObj;
 }
 
 Gameobject* DebugPoint(glm::dvec3 pos, glm::vec3 color) {

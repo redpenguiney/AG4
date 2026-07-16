@@ -7,7 +7,7 @@
 #include <glm/gtx/hash.hpp>
 #include <unordered_set>
 
-RaycastResult ConvexMeshPhysicsGeometry::Raycast(glm::dvec3 rayOrigin, glm::dvec3 direction, Gameobject* object) {
+RaycastResult ConvexMeshPhysicsGeometry::Raycast(glm::dvec3 rayOrigin, glm::dvec3 direction, Gameobject* object, RaycastParams params) {
     constexpr float epsilon = std::numeric_limits<float>::epsilon();
 
     // convert direction and position into object space
@@ -16,6 +16,8 @@ RaycastResult ConvexMeshPhysicsGeometry::Raycast(glm::dvec3 rayOrigin, glm::dvec
     glm::vec3 rayRelPos = glm::vec3(rayOrigin - object->Position());
     rayRelPos = toObjectSpace * rayRelPos;
     glm::vec3 rayRelDir = toObjectSpace * glm::vec3(direction);
+
+    Assert(!params.preferMesh); // TODO
 
     for (size_t i = 0; i < triangles.size(); i++) {
         // from https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
@@ -148,7 +150,7 @@ std::shared_ptr<ConvexMeshPhysicsGeometry> ConvexMeshPhysicsGeometry::FromMesh(c
         }
     }
     std::vector<glm::vec3> edges(uniqueEdgeDirections.begin(), uniqueEdgeDirections.end());
-    return std::shared_ptr<ConvexMeshPhysicsGeometry>(new ConvexMeshPhysicsGeometry(triangles, supportVerts, polygons, edges));
+    return std::shared_ptr<ConvexMeshPhysicsGeometry>(new ConvexMeshPhysicsGeometry(m, triangles, supportVerts, polygons, edges));
 }
 
 
@@ -269,17 +271,18 @@ void ConvexMeshPhysicsGeometry::AddLocalMomentOfInertiaContribution(glm::vec3& c
 }
 
 ConvexMeshPhysicsGeometry::ConvexMeshPhysicsGeometry(
+    const std::shared_ptr<Mesh>& src,
     std::vector<std::array<glm::vec3, 3>> tris, 
     std::array<std::vector<glm::vec3>, 8> support, 
     std::vector<Polygon> polygons, 
     std::vector<glm::vec3> edges)
     : 
-    triangles(tris), supportVertices(support), polygons(polygons), uniqueEdgeDirections(edges) 
+    source(src), triangles(tris), supportVertices(support), polygons(polygons), uniqueEdgeDirections(edges) 
 {
 
 }
 
-RaycastResult SpherePhysicsGeometry::Raycast(glm::dvec3 rayOrigin, glm::dvec3 rayDirection, Gameobject* object) {
+RaycastResult SpherePhysicsGeometry::Raycast(glm::dvec3 rayOrigin, glm::dvec3 rayDirection, Gameobject* object, RaycastParams params) {
     // convert direction and position into object space
     // notice that we use floats here
     glm::vec3 rayRelPos = glm::vec3(rayOrigin - object->Position());

@@ -27,9 +27,11 @@ class Camera {
     // Used for stuff like making a health bar gui appear over an enemy's head
     // aspect is window width/height.
     // returned z-coordinate will be outside the range [0, 1] if the point isn't within this camera's frustrum
-    glm::vec3 ProjectToScreen(glm::dvec3, float aspect);
+    glm::vec3 ProjectPointToScreen(glm::dvec3 point, float aspect);
 
-    // Takes a point in screen space (the range [0, 1]) and returns a normal vector facing into the screen.
+    //glm::vec2 ProjectDirectionToScreen(glm::vec3 direction, float aspect);
+
+    // Takes a point in screen space (the range [0, 1]) and returns a normal vector facing out of the screen.
     // Window size is in pixels.
     glm::vec3 ProjectToWorld(glm::vec2 point, glm::ivec2 windowSize);
 };
