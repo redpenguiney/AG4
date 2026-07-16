@@ -42,7 +42,7 @@ std::vector<Collider*> AABBTree::QueryRay(glm::dvec3 direction, glm::dvec3 origi
 {
 	std::vector<Collider*> list;
 
-	CollectRayIntersections(list, &root, 1.0/(direction), origin);
+	CollectRayIntersections(list, &root, 1.0 / (direction), origin);
 	return list;
 }
 

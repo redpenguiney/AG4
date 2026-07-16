@@ -10,6 +10,7 @@ RaycastResult Raycast(glm::dvec3 origin, glm::dvec3 direction, RaycastParams par
 	bestResult.distance = INFINITY;
 	bestResult.object = nullptr;
 	for (auto& collider: hitColliders) {
+		if (!params.collisionLayers.test(collider->layer)) continue;
 		auto result = collider->physicsMesh->Raycast(origin, direction, collider->object, params);
 		if (result.object && result.distance < bestResult.distance) {
 			bestResult = result;

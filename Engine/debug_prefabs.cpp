@@ -23,6 +23,13 @@ static std::shared_ptr<Mesh> ArrowMesh() {
 	return arrowMesh;
 }
 
+static std::shared_ptr<Mesh> HulaHoopMesh() {
+	auto mparams = MeshCreateParams::Default();
+	mparams.LoadObj("../models/rotatehandle.obj");
+	auto hulahoopMesh = Mesh::New(std::move(mparams));
+	return hulahoopMesh;
+}
+
 std::shared_ptr<Mesh> GetCubeMesh()
 {
 	static auto cubeMesh = CubeMesh();
@@ -33,6 +40,12 @@ std::shared_ptr<Mesh> GetArrowMesh()
 {
 	static auto arrowMesh = ArrowMesh();
 	return arrowMesh;
+}
+
+std::shared_ptr<Mesh> GetHulaHoopMesh() 
+{
+	static auto hulahoopMesh = HulaHoopMesh();
+	return hulahoopMesh;
 }
 
 static std::shared_ptr<ShaderProgram> GetDebugShader() {
@@ -109,6 +122,11 @@ std::shared_ptr<ConvexMeshPhysicsGeometry> GetCubeCollisions() {
 
 std::shared_ptr<ConvexMeshPhysicsGeometry> GetArrowCollisions() {
 	static auto collisions = ConvexMeshPhysicsGeometry::FromMesh(GetArrowMesh());
+	return collisions;
+}
+
+std::shared_ptr<ConvexMeshPhysicsGeometry> GetHulaHoopCollisions() {
+	static auto collisions = ConvexMeshPhysicsGeometry::FromMesh(GetHulaHoopMesh());
 	return collisions;
 }
 
@@ -237,6 +255,26 @@ Gameobject* DebugArrow(glm::vec3 pos, glm::vec3 direction, glm::vec3 color) {
 	gameObj->GetCollider()->canCollide = false;
 	gameObj->SetRotation(glm::rotation(currentDir, direction));
 	gameObj->SetPosition(pos + direction * 0.5f);
+	gameObj->SetInstanceAttribute(*p.mesh->format.GetAttribute("color"), { color.x, color.y, color.z, 1 });
+	gameObj->SetInstanceAttribute(*p.mesh->format.GetAttribute(SpecialVertexAttributeNames::AUTOMATIC_TEXTURE_ARRAY_SELECTION), -1.0f);
+	return gameObj;
+}
+
+Gameobject* DebugHulaHoop(glm::vec3 pos, glm::vec3 direction, glm::vec3 color)
+{
+	Assert(glm::length(direction) != 0);
+	direction = glm::normalize(direction);
+
+	GameobjectCreateParams p;
+	p.mesh = GetHulaHoopMesh();
+	p.physicsMesh = GetHulaHoopCollisions();
+	p.renderPasses = { GetDebugSolidPass(), };
+	Gameobject* gameObj = Gameobject::New(p);
+	gameObj->SetScale(glm::vec3(0.05f, 2.0f, 2.0f));
+	glm::vec3 currentDir(1, 0, 0);
+	gameObj->GetCollider()->canCollide = false;
+	gameObj->SetRotation(glm::rotation(currentDir, direction));
+	gameObj->SetPosition(pos);
 	gameObj->SetInstanceAttribute(*p.mesh->format.GetAttribute("color"), { color.x, color.y, color.z, 1 });
 	gameObj->SetInstanceAttribute(*p.mesh->format.GetAttribute(SpecialVertexAttributeNames::AUTOMATIC_TEXTURE_ARRAY_SELECTION), -1.0f);
 	return gameObj;

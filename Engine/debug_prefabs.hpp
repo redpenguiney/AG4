@@ -11,6 +11,7 @@ class Gameobject;
 
 std::shared_ptr<Mesh> GetCubeMesh();
 std::shared_ptr<Mesh> GetArrowMesh();
+std::shared_ptr<Mesh> GetHulaHoopMesh();
 
 std::shared_ptr<DrawPass> GetDebugWireframePass();
 std::shared_ptr<DrawPass> GetDebugSolidPass();
@@ -23,6 +24,7 @@ inline float freecamPitch = 0, freecamYaw = 0, freecamSpeed = 0;
 std::shared_ptr<Camera> GetFreecam();
 
 Gameobject* DebugArrow(glm::vec3 pos, glm::vec3 direction, glm::vec3 color);
+Gameobject* DebugHulaHoop(glm::vec3 pos, glm::vec3 direction, glm::vec3 color);
 Gameobject* DebugPoint(glm::dvec3 pos, glm::vec3 color = {1, 1, 1});
 Gameobject* DebugLine(glm::dvec3 a, glm::dvec3 b, glm::vec3 color = { 1, 1, 1 });
 Gameobject* DebugTriangle(glm::dvec3 a, glm::dvec3 b, glm::dvec3 c, glm::vec3 color = { 1, 1, 1 });

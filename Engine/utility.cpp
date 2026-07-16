@@ -23,6 +23,10 @@ glm::dvec3 ClosestPointOnLine1ToLine2(glm::dvec3 origin1, glm::dvec3 dir1, glm::
     return origin1 + dir1 * t1;
 }
 
+glm::dvec3 PlaneRayIntersection(glm::dvec3 planePoint, glm::dvec3 planeNormal, glm::dvec3 rayPoint, glm::dvec3 rayDir) {
+    return rayPoint + glm::dot(planeNormal, planePoint - rayPoint) * rayDir / glm::dot(rayDir, planeNormal);
+}
+
 IdProvider::IdProvider() {
     largestId = 0;
 }

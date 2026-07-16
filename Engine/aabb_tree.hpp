@@ -4,6 +4,8 @@
 #include <array>
 #include "aabb.hpp"
 #include "assert.hpp"
+#include <bitset>
+#include "collision_layers.hpp"
 
 //#define DEBUG_AABBTREE_VISUALIZATION 1
 

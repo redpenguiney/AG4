@@ -44,11 +44,11 @@ void PhysicsEngine::StepSimulation(double timestep) {
 				if (!obj.Live()) continue;
 
 				if (obj.collider && obj.collider->canCollide) {
-					// 
 					auto potentiallyColliding = GameobjectSAS().QueryAABB(obj.collider->aabb);
 					for (auto other : potentiallyColliding) {
 						if (other == obj.collider.get()) continue;
 						if (!other->canCollide) continue;
+						if (!collisionLayerMatrix[obj.collider->layer].test(other->layer)) continue;
 						if (alreadyCheckedCollisions.contains({ &obj, other->object }) || alreadyCheckedCollisions.contains({ other->object, &obj })) {
 							continue;
 						}
@@ -212,7 +212,21 @@ void PhysicsEngine::StepSimulation(double timestep) {
 	simulate(Physobject::Pool::Get().GetIterable()); // note: not extendable to subclasses this way. do not copy paste
 }
 
+bool PhysicsEngine::GetLayerCollisionEnabled(unsigned layer1, unsigned layer2)
+{
+	return collisionLayerMatrix[layer1].test(layer2);
+}
+
+void PhysicsEngine::SetLayerCollisionEnabled(unsigned layer1, unsigned layer2, bool collides) {
+	collisionLayerMatrix[layer1].set(layer2, collides);
+	collisionLayerMatrix[layer2].set(layer1, collides);
+}
+
 PhysicsEngine::PhysicsEngine(): rng() {
+	for (auto& v : collisionLayerMatrix) {
+		v.reset();
+	}
+	SetLayerCollisionEnabled(0, 0, true);
 }
 
 PhysicsEngine::~PhysicsEngine() {

@@ -5,7 +5,8 @@ struct HandlesState {
 	Gameobject* gripped = nullptr;
 	glm::dvec3 cursorGripOffset;
 	glm::dvec3 originalPos;
-	std::unique_ptr<Gameobject> posX, posY, posZ;
+	glm::quat originalRot;
+	std::unique_ptr<Gameobject> posX, posY, posZ, rotX, rotY, rotZ;
 
 	std::vector<Connection> connections;
 
@@ -18,6 +19,7 @@ void TransformHandles(Gameobject* target) {
 
 	auto transformAxis = [&](glm::dvec3 dir) -> Gameobject* {
 		Gameobject* arrow = DebugArrow(target->Position(), dir, dir);
+		arrow->GetCollider()->layer = 1;
 
 		state->connections.push_back(Mainloop::Get().preRender.Connect([arrow, target, dir, state = state.get()](Mainloop*, float) {
 			if (state->gripped == arrow) {
@@ -42,16 +44,51 @@ void TransformHandles(Gameobject* target) {
 	state->posY = std::unique_ptr<Gameobject>(transformAxis({ 0, 1, 0 }));
 	state->posZ = std::unique_ptr<Gameobject>(transformAxis({ 0, 0, 1 }));
 
+	auto rotateAxis = [&](glm::dvec3 dir) -> Gameobject* {
+		Gameobject* rotateHandle = DebugHulaHoop(target->Position(), dir, dir);
+		rotateHandle->GetCollider()->layer = 1;
+
+		state->connections.push_back(Mainloop::Get().preRender.Connect([rotateHandle, target, dir, state = state.get()](Mainloop*, float) {
+			if (state->gripped == rotateHandle) {
+				rotateHandle->SetInstanceAttribute(*GetHulaHoopMesh()->format.GetAttribute("color"), { 1, 1, 1, 1 });
+
+				glm::dvec3 priorDir = state->cursorGripOffset - dir * glm::dot(state->cursorGripOffset, dir);
+
+				glm::dvec3 currentCursorDir = GraphicsEngine::Get().currentCamera->ProjectToWorld(Window::Get().MOUSE_POS, Window::Get().Size());
+				
+				
+				glm::dvec3 currentDir = PlaneRayIntersection(target->Position(), dir, GraphicsEngine::Get().currentCamera->position, currentCursorDir) - target->Position();
+
+				glm::quat dDir = glm::rotation(glm::vec3(glm::normalize(priorDir)), glm::vec3(glm::normalize(currentDir)));
+				target->SetRotation(dDir * state->originalRot);
+			}
+			else {
+				rotateHandle->SetInstanceAttribute(*GetHulaHoopMesh()->format.GetAttribute("color"), { dir.x, dir.y, dir.z, 1 });
+			}
+			rotateHandle->SetPosition(target->Position());
+			}));
+		
+
+		return rotateHandle;
+		};
+
+	state->rotX = std::unique_ptr<Gameobject>(rotateAxis({ 1, 0, 0 }));
+	state->rotY = std::unique_ptr<Gameobject>(rotateAxis({ 0, 1, 0 }));
+	state->rotZ = std::unique_ptr<Gameobject>(rotateAxis({ 0, 0, 1 }));
+
 	state->connections.push_back(Window::Get().inputDown.Connect([state = state.get(), target](Window* w, InputObject input) {
 
 		if (!w->IsMouseLocked() && input.input == InputType::LMB) {
 			glm::vec3 rayDir = GraphicsEngine::Get().currentCamera->ProjectToWorld(w->MOUSE_POS, w->Size());
 			RaycastParams params;
+			params.collisionLayers = 2;
 			auto result = Raycast(GraphicsEngine::Get().currentCamera->position, rayDir, params);
 			if (result.object) {
-				if (result.object == state->posX.get() || result.object == state->posY.get() || result.object == state->posZ.get()) {
+				if (result.object == state->posX.get() || result.object == state->posY.get() || result.object == state->posZ.get() ||
+					result.object == state->rotX.get() || result.object == state->rotY.get() || result.object == state->rotZ.get()) {
 					state->gripped = result.object;
 					state->originalPos = target->Position();
+					state->originalRot = target->Rotation();
 					state->cursorGripOffset = result.hitPos - state->originalPos;
 				}
 			}

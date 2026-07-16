@@ -4,5 +4,5 @@
 #include <window.hpp>
 #include <mainloop.hpp>
 
-
+struct HandlesState;
 void TransformHandles(Gameobject* target);

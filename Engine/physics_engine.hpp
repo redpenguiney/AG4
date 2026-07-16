@@ -3,6 +3,9 @@
 #include "constraint.hpp"
 #include <vector>
 #include <random>
+#include <bitset>
+#include <array>
+#include "collision_layers.hpp"
 
 class Gameobject;
 
@@ -16,8 +19,13 @@ public:
 
 	glm::dvec3 gravity = { 0.0, -4.81, 0.0 };
 
+	bool GetLayerCollisionEnabled(unsigned layer1, unsigned layer2);
+	void SetLayerCollisionEnabled(unsigned layer1, unsigned layer2, bool collides);
 
 private:
+	// always symmetric
+	std::array<std::bitset<NUM_COLLISION_LAYERS>, NUM_COLLISION_LAYERS> collisionLayerMatrix;
+
 	std::vector<DynamicCollisionConstraint> dynamicCollisions;
 	std::vector<StaticCollisionConstraint> staticCollisions;
 	std::default_random_engine rng;

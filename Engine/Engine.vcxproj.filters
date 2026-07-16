@@ -341,5 +341,8 @@
     <ClInclude Include="debug_editing_tools.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="collision_layers.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
