@@ -4,6 +4,7 @@
 #include "buffered_buffer.hpp"
 #include <unordered_map>
 #include <array>
+#include <set>
 
 class Mesh;
 class ShaderProgram;
@@ -117,6 +118,8 @@ private:
 struct SlotSpace {
 	unsigned first;
 	unsigned count;
+
+	bool operator<(const SlotSpace other) const;
 };
 
 class StaticMeshpool : public Meshpool {
@@ -141,13 +144,17 @@ public:
 	void FlipBuffers() override;
 
 private:
+	unsigned GetVertexLocationForNewMesh(unsigned nVerts); // retvalue in terms of vertices
+	unsigned GetIndexLocationForNewMesh(unsigned nIndices); // retvalue in terms of indices
+
 	std::vector<unsigned> availableInstanceSlots;
 	unsigned nextInstanceLocation = 0; // use if availableInstanceSlots is empty.
 
 	PendingWritesManager pendingInstanceWrites;
 	PendingWritesManager pendingBoneWrites; // some slight wastefulness here, don't really care tho
 
-	//std::vector<SlotSpace> availableVertexSpace; // in terms of vertices
+	std::multiset<SlotSpace> availableVertexSpaces; // in terms of vertices. sorted by count.
+	std::multiset<SlotSpace> availableIndexSpaces; // in terms of indices. sorted by count.
 
 	std::unordered_map<Mesh*, unsigned> meshFirstVertexLocations; // index of the first vertex of each mesh 
 	std::unordered_map<Mesh*, unsigned> meshFirstIndexLocations; // index of the first index of each mesh 

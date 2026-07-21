@@ -26,6 +26,59 @@ void StaticMeshpool::FlipBuffers() {
 	if (boneTransforms) boneTransforms->Flip();
 }
 
+unsigned StaticMeshpool::GetVertexLocationForNewMesh(unsigned nVerts)
+{
+	auto foundSlot = availableVertexSpaces.lower_bound(SlotSpace{ .count = nVerts });
+
+	if (foundSlot == availableVertexSpaces.end()) {
+		//DebugLogInfo("Landfilled :(");
+		unsigned ret = nextMeshFirstVertexLocation;
+		nextMeshFirstVertexLocation += nVerts;
+		if (nextMeshFirstVertexLocation > currentVertexCapacity) {
+			DebugLogInfo("Too many verts.");
+			while (nextMeshFirstVertexLocation > currentVertexCapacity)
+				currentVertexCapacity *= 2;
+			UpdateVertexCapacity();
+		}
+		return ret;
+	}
+	else {
+		//DebugLogInfo("REUSING REDUCING RECYCLING");
+		SlotSpace slot = *foundSlot;
+		unsigned result = slot.first;
+		availableVertexSpaces.erase(foundSlot);
+		slot.first += nVerts;
+		slot.count -= nVerts;
+		if (slot.count != 0) availableVertexSpaces.insert(slot);
+		return result;
+	}
+}
+
+unsigned StaticMeshpool::GetIndexLocationForNewMesh(unsigned nIndices)
+{
+	auto foundSlot = availableIndexSpaces.lower_bound(SlotSpace{ .count = nIndices });
+
+	if (foundSlot == availableIndexSpaces.end()) {
+		unsigned ret = nextMeshFirstIndexLocation;
+		nextMeshFirstIndexLocation += nIndices;
+		if (nextMeshFirstIndexLocation > currentIndicesCapacity) {
+			while (nextMeshFirstIndexLocation > currentIndicesCapacity)
+				currentIndicesCapacity *= 2;
+			UpdateIndicesCapacity();
+		}
+		return ret;
+	}
+	else {
+		SlotSpace slot = *foundSlot;
+		unsigned result = slot.first;
+		availableIndexSpaces.erase(slot);
+		slot.first += nIndices;
+		slot.count -= nIndices;
+		if (slot.count != 0) availableIndexSpaces.insert(slot);
+		return result;
+	}
+}
+
 void Meshpool::DestroyVAOs() {
 	for (auto& [s, vao] : vaos) {
 		glDeleteVertexArrays(1, &vao);
@@ -159,7 +212,9 @@ instances(GL_ARRAY_BUFFER, 3, currentInstanceCapacity* f.GetInstancedVertexSize(
 
 }
 
+// todo: would be pretty easy to defrag everytime it expands
 void Meshpool::UpdateVertexCapacity() {
+	Assert(currentVertexCapacity * format.GetNonInstancedVertexSize() > vertices.GetSize());
 	vertices.Reallocate(currentVertexCapacity * format.GetNonInstancedVertexSize());
 	DestroyVAOs();
 	//vertices.Bind(GL_ARRAY_BUFFER);
@@ -188,21 +243,8 @@ StaticMeshpool::~StaticMeshpool() {
 }
 
 MeshpoolMeshStorageLocation StaticMeshpool::AddMesh(std::shared_ptr<Mesh> m) {
-	unsigned firstVertex = nextMeshFirstVertexLocation;
-	nextMeshFirstVertexLocation += m->numVertices;
-	if (nextMeshFirstVertexLocation > currentVertexCapacity) {
-		DebugLogInfo("Too many verts.");
-		while (nextMeshFirstVertexLocation > currentVertexCapacity)
-			currentVertexCapacity *= 2;
-		UpdateVertexCapacity();
-	}
-	unsigned firstIndex = nextMeshFirstIndexLocation;
-	nextMeshFirstIndexLocation += m->numIndices;
-	if (nextMeshFirstIndexLocation > currentIndicesCapacity) {
-		while (nextMeshFirstIndexLocation > currentIndicesCapacity)
-			currentIndicesCapacity *= 2;
-		UpdateIndicesCapacity();
-	}
+	unsigned firstVertex = GetVertexLocationForNewMesh(m->numVertices);
+	unsigned firstIndex = GetIndexLocationForNewMesh(m->numIndices);
 
 	memcpy(vertices.Data() + firstVertex * format.GetNonInstancedVertexSize(), m->GetVertices().data(), m->GetVertices().size() * sizeof(VertexScalar));
 	memcpy(indices.Data() + firstIndex * sizeof(GLuint), m->GetIndices().data(), m->numIndices * sizeof(unsigned int));
@@ -216,8 +258,16 @@ MeshpoolMeshStorageLocation StaticMeshpool::AddMesh(std::shared_ptr<Mesh> m) {
 	};
 }
 
-void StaticMeshpool::RemoveMesh(Mesh*) {
-	// TODO 
+void StaticMeshpool::RemoveMesh(Mesh* m) {
+	availableVertexSpaces.insert(SlotSpace{
+		.first = m->GetBaseVertex(),
+		.count = m->numVertices,
+		});
+	availableIndexSpaces.insert(SlotSpace{
+		.first = m->GetFirstIndex() / (unsigned)sizeof(unsigned int), // firstIndex is in bytes, we want it in terms of sizeof(index)
+		.count = m->numIndices,
+		});
+	//DebugLogInfo("Mesh ", m->name, " with ", m->numVertices, " vertices and ", m->numIndices, " indices removed.");
 }
 
 void StaticMeshpool::SetInstancedVertexAttribute(unsigned instance, const VertexAttribute& attribute, VertexScalar* value) {
@@ -294,4 +344,9 @@ void PendingWritesManager::ApplyWrites(char* buffer) {
 			}
 		}
 	}
+}
+
+bool SlotSpace::operator<(const SlotSpace other) const
+{
+	return count < other.count;
 }

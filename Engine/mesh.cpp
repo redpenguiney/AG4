@@ -7,7 +7,7 @@ std::shared_ptr<Mesh> Mesh::New(MeshCreateParams params)
 	Mesh* m = new Mesh(std::move(params));
 	auto ptr = std::shared_ptr<Mesh>(m);
 
-	auto loc = ptr->pool->AddMesh(ptr);
+	MeshpoolMeshStorageLocation loc = ptr->pool->AddMesh(ptr);
 	ptr->baseVertex = loc.baseVertex;
 	ptr->firstIndex = loc.firstIndex;
 	//DebugLogInfo("First index: ", ptr->firstIndex, " in pool ", ptr->pool->id);
@@ -138,4 +138,14 @@ const Bone* Mesh::GetBone(std::string name) const
 	}
 
 	return nullptr;
+}
+
+unsigned Mesh::GetBaseVertex() const
+{
+	return baseVertex;
+}
+
+unsigned Mesh::GetFirstIndex() const
+{
+	return firstIndex;
 }

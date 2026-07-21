@@ -89,10 +89,10 @@ Game::Game(std::vector<const char*> launchArgs) {
 		state->objs.emplace_back(o);
 	}*/
 
-	auto testCollisionSubject = BuildCubeArray({ 1, -2, 0 }, { 2, 2, 2 }, { 1, 1, 1}, true, 0.0, 1.0);
+	auto testCollisionSubject = BuildCubeArray({ 1, -2, 0 }, { 2, 2, 2 }, { 1, 1, 2}, true, 0.0, 1.0);
 	testCollisionSubject[0]->SetPosition({ 1, -2.002, 0.895 });
 	testCollisionSubject[0]->SetRotation({ -0.195, 0.328, -0.069, 0.922 });
-	testCollisionSubject.push_back(BuildSphere({ -2, 0, 0 }, 1.0f, false));
+	//testCollisionSubject.push_back(BuildSphere({ -2, 0, 0 }, 1.0f, false));
 	//std::vector<Gameobject*> testCollisionSubject = { BuildSphere({-2, 0, 0}, 1.0f, false), BuildSphere({2, 0, 0}, 1.0f, false)};
 	for (auto& o : testCollisionSubject) {
 		state->objs.emplace_back(o);

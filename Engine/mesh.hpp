@@ -41,6 +41,9 @@ public:
 
 	const std::vector<Bone> bones;
 	const std::vector<Animation> animations;
+
+	unsigned GetBaseVertex() const;
+	unsigned GetFirstIndex() const;
 private:
 	 std::vector<VertexScalar> vertices;
 	const std::vector<unsigned> indices;
