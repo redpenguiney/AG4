@@ -22,10 +22,10 @@ public:
 	//std::bitset<NUM_COLLISION_LAYERS> layers = 0;
 
 	// the layer this collider belongs to.
-	uint8_t layer;
+	uint8_t layer = 0;
 
 	// disables physics engine collisions while still allowing raycasting/etc.
-	bool canCollide;
+	bool canCollide = true;
 
 private:
 	friend class Gameobject;

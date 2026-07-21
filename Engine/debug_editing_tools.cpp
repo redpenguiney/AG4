@@ -1,5 +1,6 @@
 #include "debug_editing_tools.hpp"
 #include "mesh.hpp"
+#include "log.hpp"
 
 struct HandlesState {
 	Gameobject* gripped = nullptr;
@@ -23,7 +24,7 @@ void TransformHandles(Gameobject* target) {
 
 		state->connections.push_back(Mainloop::Get().preRender.Connect([arrow, target, dir, state = state.get()](Mainloop*, float) {
 			if (state->gripped == arrow) {
-				arrow->SetInstanceAttribute(*GetArrowMesh()->format.GetAttribute("color"), {1, 1, 1, 1});
+				arrow->SetInstanceAttribute(*GetArrowMesh()->format.GetAttribute("color"), {1, 1, 1, 0.2});
 
 				glm::dvec3 currentCursorDir = GraphicsEngine::Get().currentCamera->ProjectToWorld(Window::Get().MOUSE_POS, Window::Get().Size());
 				//glm::dvec2 arrowScreenDir = glm::normalize(GraphicsEngine::Get().currentCamera->ProjectPointToScreen(dir, Window::Get().Aspect()));
@@ -32,7 +33,7 @@ void TransformHandles(Gameobject* target) {
 				target->SetPosition(ClosestPointOnLine1ToLine2(state->originalPos, dir, GraphicsEngine::Get().currentCamera->position, currentCursorDir) - relevantOffset);
 			}
 			else {
-				arrow->SetInstanceAttribute(*GetArrowMesh()->format.GetAttribute("color"), { dir.x, dir.y, dir.z, 1 });
+				arrow->SetInstanceAttribute(*GetArrowMesh()->format.GetAttribute("color"), { dir.x, dir.y, dir.z, 0.2 });
 			}
 			arrow->SetPosition(target->Position() + dir * 0.6);
 			}));
@@ -50,7 +51,7 @@ void TransformHandles(Gameobject* target) {
 
 		state->connections.push_back(Mainloop::Get().preRender.Connect([rotateHandle, target, dir, state = state.get()](Mainloop*, float) {
 			if (state->gripped == rotateHandle) {
-				rotateHandle->SetInstanceAttribute(*GetHulaHoopMesh()->format.GetAttribute("color"), { 1, 1, 1, 1 });
+				rotateHandle->SetInstanceAttribute(*GetHulaHoopMesh()->format.GetAttribute("color"), { 1, 1, 1, 0.2 });
 
 				glm::dvec3 priorDir = state->cursorGripOffset - dir * glm::dot(state->cursorGripOffset, dir);
 
@@ -63,7 +64,7 @@ void TransformHandles(Gameobject* target) {
 				target->SetRotation(dDir * state->originalRot);
 			}
 			else {
-				rotateHandle->SetInstanceAttribute(*GetHulaHoopMesh()->format.GetAttribute("color"), { dir.x, dir.y, dir.z, 1 });
+				rotateHandle->SetInstanceAttribute(*GetHulaHoopMesh()->format.GetAttribute("color"), { dir.x, dir.y, dir.z, 0.2 });
 			}
 			rotateHandle->SetPosition(target->Position());
 			}));
@@ -112,4 +113,29 @@ void TransformHandles(Gameobject* target) {
 		state->connections.clear();
 
 		}));
+}
+
+void ReportCollisions(Gameobject* a, Gameobject* b) {
+	static std::vector<std::unique_ptr<Gameobject>> objects;
+	static auto conn = Mainloop::Get().preRender.Connect([a, b](Mainloop*, float) {
+		objects.clear();
+		if (auto result = a->TestCollision(b)) {
+			DebugLogInfo("A : ", a->Position(), " & ", a->Rotation());
+			a->SetInstanceAttribute(*GetArrowMesh()->format.GetAttribute("color"), { 1, 0, 0, 1 });
+			b->SetInstanceAttribute(*GetArrowMesh()->format.GetAttribute("color"), { 0, 0, 1, 1 });
+
+			for (auto& [p1, p2] : result->collisionPoints) {
+				glm::dvec3 rp1 = a->Position() + glm::dvec3(a->GetRotSclMatrix() * p1);
+				objects.emplace_back(DebugArrow(rp1, -result->collisionNormal, { 1, 1, 0 }));
+				objects.emplace_back(DebugPoint(rp1, { 1, 1, 0 }));
+				glm::dvec3 rp2 = b->Position() + glm::dvec3(b->GetRotSclMatrix() * p2);
+				objects.emplace_back(DebugArrow(rp2, result->collisionNormal, { 1, 0.5, 0 }));
+				objects.emplace_back(DebugPoint(rp2, { 1, 0.5, 0 }));
+			}
+		}
+		else {
+			a->SetInstanceAttribute(*GetArrowMesh()->format.GetAttribute("color"), { 0.5, 0.3, 0.3, 1 });
+			b->SetInstanceAttribute(*GetArrowMesh()->format.GetAttribute("color"), { 0.3, 0.3, 0.5, 1 });
+		}
+		});
 }

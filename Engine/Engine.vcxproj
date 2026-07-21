@@ -151,6 +151,7 @@
     <ClCompile Include="compute_shader_program.cpp" />
     <ClCompile Include="constraint.cpp" />
     <ClCompile Include="cursor.cpp" />
+    <ClCompile Include="debug_editing_tools.cpp" />
     <ClCompile Include="debug_prefabs.cpp" />
     <ClCompile Include="framebuffer.cpp" />
     <ClCompile Include="gameobject.cpp" />
@@ -215,6 +216,7 @@
     <ClInclude Include="framebuffer.hpp" />
     <ClInclude Include="game.hpp" />
     <ClInclude Include="gameobject.hpp" />
+    <ClInclude Include="gjk.hpp" />
     <ClInclude Include="graphics_engine.hpp" />
     <ClInclude Include="gui.hpp" />
     <ClInclude Include="ik.hpp" />

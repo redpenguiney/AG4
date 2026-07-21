@@ -8,7 +8,8 @@
     "freetype",
     "stb",
     "assimp",
-    "gamenetworkingsockets"
+    "gamenetworkingsockets",
+    "plf-colony"
   ],
   "builtin-baseline": "67a300519ea09dbf02b4d06982e781a01b617b93"
 }

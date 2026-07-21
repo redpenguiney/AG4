@@ -6,3 +6,5 @@
 
 struct HandlesState;
 void TransformHandles(Gameobject* target);
+
+void ReportCollisions(Gameobject* a, Gameobject* b);

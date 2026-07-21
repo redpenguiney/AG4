@@ -30,6 +30,7 @@ void Meshpool::DestroyVAOs() {
 	for (auto& [s, vao] : vaos) {
 		glDeleteVertexArrays(1, &vao);
 	}
+	vaos.clear();
 }
 
 Meshpool::~Meshpool() {

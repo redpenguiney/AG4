@@ -50,7 +50,22 @@ public:
 	virtual void AddLocalMomentOfInertiaContribution(glm::vec3& centerOfMass, float& Ia, float& Ib, float& Ic, float& Iap, float& Ibp, float& Icp, glm::vec3 objectScale, float density) override;
 	virtual float Volume(glm::vec3 objectScale) override;
 private:
-	SpherePhysicsGeometry();
+	SpherePhysicsGeometry() = default;
+};
+
+// Singleton because there's only one kind of capsule, and scaling is done on the gameobject level.
+// Scale.x and .z must be equal to each other and the diameter. Scale.y must exceed scale.x and .z and equals the capsule height.  
+class CapsulePhysicsGeometry : public ConvexPhysicsGeometry {
+public:
+	static std::shared_ptr<CapsulePhysicsGeometry> Get();
+
+	RaycastResult Raycast(glm::dvec3 origin, glm::dvec3 direction, Gameobject* object, RaycastParams params) override;
+
+	virtual glm::vec3 Support(glm::vec3 direction) const override;
+	virtual void AddLocalMomentOfInertiaContribution(glm::vec3& centerOfMass, float& Ia, float& Ib, float& Ic, float& Iap, float& Ibp, float& Icp, glm::vec3 objectScale, float density) override;
+	virtual float Volume(glm::vec3 objectScale) override;
+private:
+	CapsulePhysicsGeometry() = default;
 };
 
 struct Polygon {

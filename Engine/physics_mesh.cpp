@@ -282,6 +282,12 @@ ConvexMeshPhysicsGeometry::ConvexMeshPhysicsGeometry(
 
 }
 
+std::shared_ptr<SpherePhysicsGeometry> SpherePhysicsGeometry::Get()
+{
+    static std::shared_ptr<SpherePhysicsGeometry> s = std::shared_ptr<SpherePhysicsGeometry>(new SpherePhysicsGeometry());
+    return s;
+}
+
 RaycastResult SpherePhysicsGeometry::Raycast(glm::dvec3 rayOrigin, glm::dvec3 rayDirection, Gameobject* object, RaycastParams params) {
     // convert direction and position into object space
     // notice that we use floats here

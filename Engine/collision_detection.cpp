@@ -17,7 +17,15 @@
 #include "debug_prefabs.hpp"
 #include <glm/gtc/matrix_inverse.hpp>
 
-//#define DEBUG_EPA
+#define DEBUG_EPA
+
+#ifdef DEBUG_EPA
+std::vector<std::unique_ptr<Gameobject>>& Objs() {
+    static std::vector<std::unique_ptr<Gameobject>> objs;
+    return objs;
+}
+
+#endif
 
 static float SignedDistanceToPlane(glm::vec3 planeNormal, glm::vec3 point, glm::vec3 pointOnPlane) {
     return glm::dot(planeNormal, point - pointOnPlane);
@@ -217,7 +225,13 @@ static std::pair<std::vector<std::pair<glm::vec3, float>>, size_t> GetFaceNormal
     return { tnormals, minTriangle };
 };
 
-static std::optional<Collision> CollideGJKEPA(Gameobject* a, Gameobject* b) {    
+
+
+static std::optional<Collision> CollideGJKEPA(Gameobject* a, Gameobject* b) { 
+#ifdef DEBUG_EPA
+    Objs().clear();
+#endif
+
     auto pmA = std::dynamic_pointer_cast<ConvexPhysicsGeometry>(a->GetCollider()->physicsMesh);
     auto pmB = std::dynamic_pointer_cast<ConvexPhysicsGeometry>(b->GetCollider()->physicsMesh);
     Assert(pmA && pmB);
@@ -377,6 +391,7 @@ static std::optional<Collision> CollideGJKEPA(Gameobject* a, Gameobject* b) {
             Assert(false);
         }
         if (simplex.size() == 2) {
+            DebugLogInfo("EPA recieved line polytope.");
             constexpr std::array<glm::vec3, 3> axes = {
                 glm::vec3{1, 0, 0}, {0, 1, 0}, {0, 0, 1}
             };
@@ -404,6 +419,7 @@ static std::optional<Collision> CollideGJKEPA(Gameobject* a, Gameobject* b) {
             simplex.insert(simplex.begin(), simplexPoint);
         }
         if (simplex.size() == 3) {
+            DebugLogInfo("EPA recieved triangle polytope.");
             glm::vec3 triNormal = glm::cross(simplex[1][0] - simplex[0][0], simplex[2][0] - simplex[0][0]);
 
             std::array<glm::vec3, 3> simplexPoint = NewSimplexPoint(triNormal);
@@ -435,7 +451,7 @@ static std::optional<Collision> CollideGJKEPA(Gameobject* a, Gameobject* b) {
             minNormal = normals.at(minFace).first;
             minDistance = normals.at(minFace).second;
 
-            if (nIterations > 32) {
+            if (nIterations > 32) { // todo: dynamic iteration max based on geometry complexity?
                 DebugLogError("EPA failed (iterations exceeded)");
                 break;
             }
@@ -444,19 +460,21 @@ static std::optional<Collision> CollideGJKEPA(Gameobject* a, Gameobject* b) {
 
 #ifdef DEBUG_EPA
             for (unsigned fI = 0; fI < faces.size(); fI += 3) {
-                auto g = DebugTriangle(polytope[faces[fI]][0], polytope[faces[fI+1]][0] , polytope[faces[fI+2]][0], { 1, 1, 0 });
+                auto g = DebugTriangle(polytope[faces[fI]][0], polytope[faces[fI+1]][0] , polytope[faces[fI+2]][0], normals[fI/3].first * 0.5f + glm::vec3(0.5, 0.5, 0.5));
                 g->SetPosition(glm::dvec3(nIterations * 5, 1, 1));
+                Objs().emplace_back(g);
             }
 
-            DebugPoint(glm::dvec3(nIterations * 5, 1, 1), { 1, 0, 0 });
-            DebugLine({ 0, 0, 0 }, minNormal, { 1, 0, 0 })->SetPosition(glm::dvec3(nIterations * 5, 1, 1));
-            DebugPoint(support[0] + glm::vec3(nIterations * 5, 1, 1), { 0, 0, 1 });
+            Objs().emplace_back(DebugPoint(glm::dvec3(nIterations * 5, 1, 1), { 1, 0, 0 }));
+            Objs().emplace_back(DebugLine({ 0, 0, 0 }, minNormal, { 1, 0, 0 }));
+            Objs().back()->SetPosition(glm::dvec3(nIterations * 5, 1, 1));
+            Objs().emplace_back(DebugPoint(support[0] + glm::vec3(nIterations * 5, 1, 1), { 0, 0, 1 }));
 #endif
 
-            if (supportPointsUsed.contains(support[0])) {
-                //DebugLogError("EPA failed (duplicate support)");
+            if (supportPointsUsed.contains(support[0])) { // valid termination condition, not an error
+                //DebugLogInfo("EPA failed (duplicate support)"); 
                 if (a->Position() == b->Position()) minNormal = glm::vec3(0, 1, 0);
-                else minNormal = glm::normalize(a->Position() - b->Position());
+                //else minNormal = glm::normalize(a->Position() - b->Position());
 
                 break;
             }
@@ -471,7 +489,7 @@ static std::optional<Collision> CollideGJKEPA(Gameobject* a, Gameobject* b) {
                     auto reverse = std::find(
                         uniqueEdges.begin(),
                         uniqueEdges.end(),
-                        std::make_pair(faces[e1], faces[e2])
+                        std::make_pair(faces[e2], faces[e1])
                     );
                     if (reverse != uniqueEdges.end()) {
                         uniqueEdges.erase(reverse);
@@ -488,8 +506,11 @@ static std::optional<Collision> CollideGJKEPA(Gameobject* a, Gameobject* b) {
 #ifdef DEBUG_EPA
                     auto mid = polytope[faces[i * 3]][0] + polytope[faces[i * 3+1]][0] + polytope[faces[i * 3+2]][0];
                     mid /= 3.0;
-                    DebugLine(mid, mid + normals[i].first * 0.3f, {1, 0, 1})->SetPosition(glm::dvec3(nIterations * 5, 1, 1));
+                    Objs().emplace_back(DebugArrow(mid + normals[i].first * 0.4f, normals[i].first, {1, 0, 1}));
+                    Objs().back()->SetPosition(Objs().back()->Position() + glm::dvec3(nIterations * 5, 1, 1));
 #endif
+                    Assert(glm::dot(normals[i].first, polytope[faces[i * 3]][0]) >= 0);
+
                     //if (SignedDistanceToPlane(normals[i].first, polytope[faces[i * 3]][0], support[0]) < -0.0001f) {
                     //if (glm::dot(normals[i].first, support[0]) > 0) {
                     //if (glm::dot(normals[i].first, support[0]) > glm::dot(normals[i].first, polytope[faces[i * 3]][0])) {
@@ -525,9 +546,12 @@ static std::optional<Collision> CollideGJKEPA(Gameobject* a, Gameobject* b) {
                     newFaces.push_back(polytope.size());
 
 #ifdef DEBUG_EPA
-                    DebugLine(polytope[edgeIndex1][0], polytope[edgeIndex2][0], { 0, 1, 1 })->SetPosition(glm::dvec3(nIterations * 5, 1, 1));
-                    DebugLine(polytope[edgeIndex1][0], support[0], {0, 1, 1})->SetPosition(glm::dvec3(nIterations * 5, 1, 1));
-                    DebugLine(polytope[edgeIndex2][0], support[0], { 0, 1, 1})->SetPosition(glm::dvec3(nIterations * 5, 1, 1));
+                    Objs().emplace_back(DebugLine(polytope[edgeIndex1][0], polytope[edgeIndex2][0], { 0, 1, 1 }));
+                    Objs().back()->SetPosition(glm::dvec3(nIterations * 5, 1, 1));
+                    Objs().emplace_back(DebugLine(polytope[edgeIndex1][0], support[0], { 0, 1, 1 }));
+                    Objs().back()->SetPosition(glm::dvec3(nIterations * 5, 1, 1));
+                    Objs().emplace_back(DebugLine(polytope[edgeIndex2][0], support[0], { 0, 1, 1 }));
+                    Objs().back()->SetPosition(glm::dvec3(nIterations * 5, 1, 1));
 #endif     
                 }
 
@@ -810,8 +834,49 @@ static std::optional<Collision> CollideSAT(Gameobject* a, Gameobject* b) {
     }
 }
 
-// if a ConvexMeshPhysicsGeometry has more triangles than this, we'll use EPA, if not we'll use SAT
-constexpr static size_t SAT_THRESHOLD = 36;
+static std::optional<Collision> CollideSpheres(Gameobject* a, Gameobject* b) {
+    auto pmA = std::dynamic_pointer_cast<SpherePhysicsGeometry>(a->GetCollider()->physicsMesh);
+    auto pmB = std::dynamic_pointer_cast<SpherePhysicsGeometry>(b->GetCollider()->physicsMesh);
+    Assert(pmA && pmB);
+
+    glm::vec3 relPos = b->Position() - a->Position();
+    float dist2 = glm::length2(relPos);
+    float rA = a->Scale().x * 0.5f;
+    float rB = b->Scale().x * 0.5f;
+    if (dist2 >= (rA + rB) * (rA + rB)) return std::nullopt;
+    else {
+        Collision c;
+        glm::vec3 aToBDir = dist2 == 0 ? glm::vec3(0, 1, 0) : glm::normalize(relPos);
+        c.collisionNormal = -aToBDir;
+        c.collisionPoints.push_back(std::make_pair(
+            glm::inverse(a->Rotation()) * aToBDir * 0.5f,
+            glm::inverse(b->Rotation()) * c.collisionNormal * 0.5f
+        ));
+        return c;
+    }
+}
+
+static std::optional<Collision> CollideSphereCapsule(Gameobject* a, Gameobject* b);
+
+static std::optional<Collision> CollideSphereConvexMesh(Gameobject* a, Gameobject* b) {
+    return std::nullopt;
+}
+
+static std::optional<Collision> CollideCapsules(Gameobject* a, Gameobject* b);
+
+
+// if a ConvexMeshPhysicsGeometry has more polygons than this, we'll use EPA, if not we'll use SAT
+constexpr static size_t SAT_THRESHOLD = 0;
+
+std::optional<Collision> InvertCollision(std::optional<Collision> c) {
+    if (!c) return c;
+    
+    c->collisionNormal *= -1;
+    for (auto& p : c->collisionPoints) {
+        std::swap(p.first, p.second);
+    }
+    return c;
+}
 
 std::optional<Collision> NarrowphaseCollisionDetection(Gameobject* a, Gameobject* b) {
     auto sphereA = std::dynamic_pointer_cast<SpherePhysicsGeometry>(a->GetCollider()->physicsMesh);
@@ -821,7 +886,16 @@ std::optional<Collision> NarrowphaseCollisionDetection(Gameobject* a, Gameobject
     auto convexMeshA = std::dynamic_pointer_cast<ConvexMeshPhysicsGeometry>(a->GetCollider()->physicsMesh);
     auto convexMeshB = std::dynamic_pointer_cast<ConvexMeshPhysicsGeometry>(b->GetCollider()->physicsMesh);
 
-    if (convexMeshA && convexMeshB && convexMeshA->triangles.size() <= SAT_THRESHOLD && convexMeshB->triangles.size() <= SAT_THRESHOLD) {
+    if (sphereA && sphereB) {
+        return CollideSpheres(a, b);
+    }
+    else if (sphereA && convexMeshB) {
+        return CollideSphereConvexMesh(a, b);
+    }
+   /* else if (convexMeshA && sphereB) {
+        return InvertCollision(CollideSphereConvexMesh(b, a));
+    }*/
+    else if (convexMeshA && convexMeshB && convexMeshA->polygons.size() <= SAT_THRESHOLD && convexMeshB->polygons.size() <= SAT_THRESHOLD) {
         return CollideSAT(a, b);
     } else
     if (convexA && convexB) {

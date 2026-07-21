@@ -3,6 +3,7 @@
 #include <glm/gtx/quaternion.hpp>
 #include "static_meshpool.hpp"
 #include "mesh.hpp"
+#include "assert.hpp"
 
 Gameobject* Gameobject::New(const GameobjectCreateParams& params)
 {
@@ -20,6 +21,14 @@ void Gameobject::SetBoneTransform(unsigned index, glm::mat4x4 transform) {
     auto& skeleton = skeletons.at(this);
     skeleton.boneTransforms[index] = transform;
     skeleton.state = SkeletonState::Dirty;
+}
+
+std::optional<Collision> Gameobject::TestCollision(Gameobject* other)
+{
+    Assert(collider && other->collider);
+    if (!collider->aabb.TestIntersection(other->collider->aabb)) return std::nullopt;
+    else return NarrowphaseCollisionDetection(this, other);
+    
 }
 
 #pragma warning(disable : 26495)
@@ -158,6 +167,16 @@ glm::vec3 Gameobject::WorldNormalToObject(glm::vec3 worldNormal)
 {
     Assert(false);
     return glm::vec3(0);
+}
+
+std::pair<float, float> Physobject::GetInverseReducedMass(glm::vec3 torqueAxis) {
+    float inertiaAroundTorqueAxis = 0;
+    if (glm::length2(torqueAxis) != 0) {
+        auto localAxis = glm::inverse(Rotation()) * glm::normalize(torqueAxis);
+        inertiaAroundTorqueAxis = glm::dot(localAxis, inverseInertiaTensor * localAxis);
+    }
+    float reducedInverseMass1 = inverseMass + glm::length2(torqueAxis) * inertiaAroundTorqueAxis;
+    return std::make_pair(reducedInverseMass1, inertiaAroundTorqueAxis);
 }
 
 Physobject::Physobject(const PhysobjectCreateParams& params): Gameobject(params) {

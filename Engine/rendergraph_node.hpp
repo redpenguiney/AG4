@@ -116,6 +116,7 @@ struct WindowRenderTargetDescriptor {
 	AttachmentLoadPolicy loadPolicy = AttachmentLoadPolicy::Clear;
 	glm::vec4 clearColor = { 0, 0, 0, 0 }; // used if loadPolicy == Clear
 	bool clearDepth = true;
+	float clearDepthValue = 1.0f;
 
 	BlendFactorMode blendingSrcFactor = BlendFactorMode::SrcAlpha;
 	BlendFactorMode blendingDstFactor = BlendFactorMode::OneMinusSrcAlpha;

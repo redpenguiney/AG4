@@ -12,13 +12,20 @@ class Gameobject;
 std::shared_ptr<Mesh> GetCubeMesh();
 std::shared_ptr<Mesh> GetArrowMesh();
 std::shared_ptr<Mesh> GetHulaHoopMesh();
+std::shared_ptr<Mesh> GetSphereMesh();
+std::shared_ptr<Mesh> GetCapsuleMesh();
 
 std::shared_ptr<DrawPass> GetDebugWireframePass();
 std::shared_ptr<DrawPass> GetDebugSolidPass();
 std::shared_ptr<ConvexMeshPhysicsGeometry> GetCubeCollisions();
 
+Gameobject* BuildSphere(glm::dvec3 pos, float diameter, bool physics, float elasticity = 0.5f, float friction = 0.5f);
+Gameobject* BuildCapsule(glm::dvec3 pos, float diameter, float height, bool physics, float elasticity = 0.5f, float friction = 0.5f);
 std::vector<Gameobject*> BuildPit(glm::dvec3 pos, glm::vec3 size, float elasticity, float friction);
 std::vector<Gameobject*> BuildCubeArray(glm::dvec3 origin, glm::dvec3 stride, glm::uvec3 nCubes, bool physics, float elasticity, float friction);
+std::vector<Gameobject*> BuildChain(glm::dvec3 pos, float segmentLength, size_t nLinks, float compliance = 0);
+
+
 
 inline float freecamPitch = 0, freecamYaw = 0, freecamSpeed = 0;
 std::shared_ptr<Camera> GetFreecam();

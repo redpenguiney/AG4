@@ -20,7 +20,14 @@ void PhysicsEngine::StepSimulation(double timestep) {
 		// we do collision constraints dynamically. warmstarting is useless for infinitely stiff constraints
 		staticCollisions.clear();
 		dynamicCollisions.clear();
-		std::unordered_set<std::pair<Gameobject*, Gameobject*>, hash_pair::hash<Gameobject*, Gameobject*>> alreadyCheckedCollisions;
+		std::unordered_set<std::pair<Gameobject*, Gameobject*>, hash_pair::hash<Gameobject*, Gameobject*>> alreadyCheckedCollisions = noCollidePairs;
+
+		for (StaticJoint& s : staticJoints) {
+			s.Reset();
+		}
+		for (DynamicJoint& d : dynamicJoints) {
+			d.Reset();
+		}
 
 		// Integrate velocities
 		for (auto& page : iterable) {
@@ -117,7 +124,7 @@ void PhysicsEngine::StepSimulation(double timestep) {
 			}
 		}
 
-		// todo: see paper Nonconvex Rigid Bodies with Stacking. We could handle contacts in a more stable order if we abandoned the Jacobi solve and solved individual collisions in parallel 
+		// todo: see paper Nonconvex Rigid Bodies with Stacking. We could handle contacts in a more stable order if we abandoned the Jacobi solve
 		 
 		//if (staticCollisions.size() > 0)
 			//DebugLogInfo(staticCollisions[0].r1);
@@ -127,7 +134,7 @@ void PhysicsEngine::StepSimulation(double timestep) {
 
 
 		// Run physics solver 
-		unsigned N_POS_ITERS = 1;
+		unsigned N_POS_ITERS = 4;
 		for (unsigned posIter = 0; posIter < N_POS_ITERS; posIter++) {
 			
 			for (auto& collision : staticCollisions) {
@@ -135,6 +142,13 @@ void PhysicsEngine::StepSimulation(double timestep) {
 			}
 			for (auto& collision : dynamicCollisions) {
 				collision.PositionPass((float)timestep, posIter);
+			}
+
+			for (auto& joint : staticJoints) {
+				joint.PositionPass((float)timestep, posIter);
+			}
+			for (auto& joint : dynamicJoints) {
+				joint.PositionPass((float)timestep, posIter);
 			}
 
 			if (posIter != N_POS_ITERS - 1)
@@ -162,11 +176,6 @@ void PhysicsEngine::StepSimulation(double timestep) {
 
 				obj.velocity = (obj.Position() - obj.lastPos) / timestep;
 				glm::quat newRot = obj.Rotation();
-				//obj.rotVelocity = 2.0f * glm::vec3(
-				//	obj.lastRot.w * newRot.x - obj.lastRot.x * newRot.w - obj.lastRot.y * newRot.z + obj.lastRot.z * newRot.y,
-				//	obj.lastRot.w * newRot.y + obj.lastRot.x * newRot.z - obj.lastRot.y * newRot.w - obj.lastRot.z * newRot.x,
-				//	obj.lastRot.w * newRot.z - obj.lastRot.x * newRot.y + obj.lastRot.y * newRot.x - obj.lastRot.z * newRot.w
-				//) / (float)timestep;
 				glm::quat dRot = newRot * glm::inverse(obj.lastRot);
 				obj.rotVelocity = 2.0f * glm::vec3(dRot.x, dRot.y, dRot.z) / (float)timestep;
 				if (dRot.w < 0) {
@@ -194,6 +203,13 @@ void PhysicsEngine::StepSimulation(double timestep) {
 			for (auto& collision : dynamicCollisions) {
 				collision.VelocityPass((float)timestep);
 				collision.nerf = 1.0f;
+			}
+
+			for (auto& joint : staticJoints) {
+				joint.VelocityPass((float)timestep);
+			}
+			for (auto& joint : dynamicJoints) {
+				joint.VelocityPass((float)timestep);
 			}
 
 			// TODO: could merge this with first pass of next frame

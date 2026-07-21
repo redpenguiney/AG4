@@ -9,6 +9,7 @@
 #include "collider.hpp"
 #include <animation.hpp>
 #include "event.hpp"
+#include <collision_detection.hpp>
 
 class Mesh;
 class RenderPass;
@@ -82,6 +83,10 @@ public:
 	// fired immediately at the beginning of the destructor, gameobject will still be valid when this is called. do not dynamic_cast the gameobject.
 	static inline Event<Gameobject>& onGameobjectDestroyed = Event<Gameobject>::New();
 
+	// ignores layers and Collider::canCollide
+	// both this object and the other object must have colliders
+	std::optional<Collision> TestCollision(Gameobject* other);
+
 protected:
 	static inline std::unordered_map<Gameobject*, Skeleton> skeletons; // only contains gameobjects with skeletons.
 
@@ -138,7 +143,13 @@ public:
 	glm::vec3 velocity;
 	glm::vec3 rotVelocity;
 
+
+
 protected:
+
+	// torqueAxis is not normalized, length describes amount of torque.
+	// returns pair<inverse reduced mass, inverse moi around axis>
+	std::pair<float, float> GetInverseReducedMass(glm::vec3 torqueAxis);
 
 	Physobject(const PhysobjectCreateParams& params);
 
@@ -161,6 +172,7 @@ protected:
 	friend class PhysicsEngine;
 	friend struct StaticCollisionConstraint;
 	friend struct DynamicCollisionConstraint;
+	friend struct PBDHelpers;
 private:
 	void UpdateMass();
 };

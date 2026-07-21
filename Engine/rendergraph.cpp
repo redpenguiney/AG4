@@ -10,6 +10,8 @@
 #include "buffered_buffer.hpp"
 #include <climits>
 
+constexpr bool ANNOTATE_FRAMES_FOR_RENDERDOC = true; // TODO: turning this on randomly breaks rendering
+
 RenderGraph::RenderGraph() {
 	
 }
@@ -551,6 +553,7 @@ void RenderGraph::Compile() {
 					for (unsigned i = 0; i < target.colorAttachments.size(); i++) {
 						auto& a = target.colorAttachments[i];
 						if (a.loadPolicy == AttachmentLoadPolicy::Clear) {
+							glColorMaski(i, true, true, true, true);
 							glClearBufferfv(GL_COLOR, i, &a.clearColor[0]);
 						}
 
@@ -559,6 +562,8 @@ void RenderGraph::Compile() {
 					}
 
 					if (target.depthStencilAttachment && target.depthStencilAttachment->loadPolicy == AttachmentLoadPolicy::Clear) {
+						glDepthMask(true);
+						glStencilMask(true);
 						glClearDepth(target.depthStencilAttachment->clearColor.x);
 						glClearStencil(target.depthStencilAttachment->clearColor.y);
 						glClear(GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT); // TODO WHAT IF THEY DONT WANNA CLEAR BOTH
@@ -572,6 +577,10 @@ void RenderGraph::Compile() {
 					if (target.loadPolicy == AttachmentLoadPolicy::Clear) {
 						glClearColor(target.clearColor.x, target.clearColor.y, target.clearColor.z, target.clearColor.w);
 						glClear(GL_COLOR_BUFFER_BIT);
+					}
+					if (target.clearDepth) {
+						glClearDepth(target.clearDepthValue);
+						glClear(GL_DEPTH_BUFFER_BIT);
 					}
 					glBlendEquation(static_cast<GLenum>(target.blendFunc));
 					glBlendFunc(static_cast<GLenum>(target.blendingSrcFactor), static_cast<GLenum>(target.blendingDstFactor));

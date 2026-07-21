@@ -91,6 +91,7 @@ int main(int numArgs, const char* argArray[]) {
 		postprocPass->name = "postproc";
 		auto rt = WindowRenderTargetDescriptor();
 		rt.loadPolicy = AttachmentLoadPolicy::DontCare;
+		rt.clearDepth = true;
 		postprocPass->renderTarget = rt;
 		postprocPass->dependencies.push_back("FINAL_SCENE");
 		postprocPass->boundTextures.push_back(TextureUsageDescriptor{
@@ -100,6 +101,7 @@ int main(int numArgs, const char* argArray[]) {
 		postprocPass->outputs.push_back(WINDOW_RESOURCE_NAME);
 		postprocPass->outputs.push_back("POST_PROC");
 		postprocPass->params.depthTestMode = DepthTestMode::Disabled;
+		postprocPass->params.writeDepthBuffer = false;
 		postprocPass->params.cullMode = FaceCulling::Backface;
 		postprocPass->params.shader = ShaderProgram::New("../shaders/postproc_vertex.glsl", "../shaders/postproc_fragment.glsl");
 		GameobjectCreateParams quadParams;
@@ -124,3 +126,4 @@ int main(int numArgs, const char* argArray[]) {
 
 	DebugLogInfo("Main function body executed successfully.");
 }
+

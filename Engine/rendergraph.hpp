@@ -6,8 +6,6 @@
 #include <functional>
 #include "framebuffer.hpp"
 
-constexpr bool ANNOTATE_FRAMES_FOR_RENDERDOC = false; // TODO: turning this on randomly breaks rendering
-
 class BaseShaderProgram;
 class Meshpool;
 

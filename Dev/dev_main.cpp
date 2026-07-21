@@ -81,13 +81,30 @@ Game::Game(std::vector<const char*> launchArgs) {
 
 	GraphicsEngine::Get().currentCamera = GetFreecam();
 
-	//BuildPit({ 1, 0, 0 }, { 80, 6, 80 }, 0.0, 0);
+	/*for (auto& o : BuildPit({ 1, 0, 0 }, { 80, 6, 80 }, 0.0, 0)) {
+		state->objs.emplace_back(o);
+	}
 	auto objs = BuildCubeArray({ 1, -2, 0 }, { 2, 1, 2 }, { 1, 5, 1 }, true, 0.0, 1.0);
 	for (auto& o : objs) {
 		state->objs.emplace_back(o);
-	}
+	}*/
 
-	TransformHandles(state->objs.back().get());
+	auto testCollisionSubject = BuildCubeArray({ 1, -2, 0 }, { 2, 2, 2 }, { 1, 1, 1}, true, 0.0, 1.0);
+	testCollisionSubject[0]->SetPosition({ 1, -2.002, 0.895 });
+	testCollisionSubject[0]->SetRotation({ -0.195, 0.328, -0.069, 0.922 });
+	testCollisionSubject.push_back(BuildSphere({ -2, 0, 0 }, 1.0f, false));
+	//std::vector<Gameobject*> testCollisionSubject = { BuildSphere({-2, 0, 0}, 1.0f, false), BuildSphere({2, 0, 0}, 1.0f, false)};
+	for (auto& o : testCollisionSubject) {
+		state->objs.emplace_back(o);
+		TransformHandles(o);
+	}
+	ReportCollisions(testCollisionSubject[0], testCollisionSubject[1]);
+
+	/*for (auto& o : BuildChain({ 1, 0, 0 }, 1.0f, 15, 0.0001f)) {
+		state->objs.emplace_back(o);
+	}*/
+
+	//TransformHandles(state->objs.back().get());
 	//PhysicsEngine::Get()
 
 	//for (int i = 0; i < 1; i++) {

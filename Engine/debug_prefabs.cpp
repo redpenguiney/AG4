@@ -8,12 +8,30 @@
 #include "mainloop.hpp"
 #include "window.hpp"
 #include "utility.hpp"
+#include <constraint.hpp>
+#include <physics_engine.hpp>
+#include <debug_editing_tools.hpp>
+#include "assert.hpp"
 
 static std::shared_ptr<Mesh> CubeMesh() {
 	auto mparams = MeshCreateParams::Default();
 	mparams.LoadObj("../models/rainbowcube.obj");
 	auto cubeMesh = Mesh::New(std::move(mparams));
 	return cubeMesh;
+}
+
+static std::shared_ptr<Mesh> SphereMesh() {
+	auto mparams = MeshCreateParams::Default();
+	mparams.LoadObj("../models/icosphere.obj");
+	auto sphereMesh = Mesh::New(std::move(mparams));
+	return sphereMesh;
+}
+
+static std::shared_ptr<Mesh> CapsuleMesh() {
+	auto mparams = MeshCreateParams::Default();
+	mparams.LoadObj("../models/capsule.obj");
+	auto capsuleMesh = Mesh::New(std::move(mparams));
+	return capsuleMesh;
 }
 
 static std::shared_ptr<Mesh> ArrowMesh() {
@@ -48,6 +66,16 @@ std::shared_ptr<Mesh> GetHulaHoopMesh()
 	return hulahoopMesh;
 }
 
+std::shared_ptr<Mesh> GetSphereMesh() {
+	static auto sphere = SphereMesh();
+	return sphere;
+}
+
+std::shared_ptr<Mesh> GetCapsuleMesh() {
+	static auto cap = CapsuleMesh();
+	return cap;
+}
+
 static std::shared_ptr<ShaderProgram> GetDebugShader() {
 	static auto s = ShaderProgram::New("../shaders/debug_simple_vertex.glsl", "../shaders/debug_simple_fragment.glsl");
 	return s;
@@ -74,12 +102,32 @@ static std::shared_ptr<DrawPass> DebugSolidPass() {
 	pass->name = "debugSolid";
 	auto rt = WindowRenderTargetDescriptor();
 	rt.clearDepth = false;
+	pass->params.blending = true;
 	rt.loadPolicy = AttachmentLoadPolicy::Load;
 	pass->renderTarget = rt;
 	pass->dependencies.push_back("POST_PROC");
 	pass->outputs.push_back(WINDOW_RESOURCE_NAME);
 	pass->params.depthTestMode = DepthTestMode::Disabled;
+	pass->params.writeDepthBuffer = true;
 	pass->params.cullMode = FaceCulling::None;
+	pass->params.polygonFillMode = PolygonFillMode::Fill;
+	pass->params.shader = GetDebugShader();
+	return pass;
+}
+
+static std::shared_ptr<DrawPass> DebugSolidDepthPass() {
+	auto pass = std::make_shared<DrawPass>();
+	pass->name = "debugSolidDepth";
+	auto rt = WindowRenderTargetDescriptor();
+	rt.clearDepth = false;
+	pass->params.blending = true;
+	rt.loadPolicy = AttachmentLoadPolicy::Load;
+	pass->renderTarget = rt;
+	pass->dependencies.push_back("POST_PROC");
+	pass->outputs.push_back(WINDOW_RESOURCE_NAME);
+	pass->params.depthTestMode = DepthTestMode::LEqual;
+	pass->params.writeDepthBuffer = true;
+	pass->params.cullMode = FaceCulling::Backface;
 	pass->params.polygonFillMode = PolygonFillMode::Fill;
 	pass->params.shader = GetDebugShader();
 	return pass;
@@ -115,9 +163,40 @@ std::shared_ptr<DrawPass> GetDebugSolidPass() {
 	return pass;
 }
 
+std::shared_ptr<DrawPass> GetDebugSolidDepthPass() {
+	static auto pass = DebugSolidDepthPass();
+	return pass;
+}
+
 std::shared_ptr<ConvexMeshPhysicsGeometry> GetCubeCollisions() {
 	static auto collisions = ConvexMeshPhysicsGeometry::FromMesh(GetCubeMesh());
 	return collisions;
+}
+
+Gameobject* BuildSphere(glm::dvec3 pos, float diameter, bool physics, float elasticity, float friction)
+{
+	GameobjectCreateParams p;
+	p.mesh = GetSphereMesh();
+	p.physicsMesh = SpherePhysicsGeometry::Get();
+	
+	Gameobject* go;
+	if (physics) {
+		go = Physobject::New(p);
+		go->elasticity = elasticity;
+		go->friction = friction;
+	}
+	else {
+		go = Gameobject::New(p);
+	}
+
+	Assert(go->GetCollider());
+
+	go->SetPosition(pos);
+	go->SetScale({ diameter, diameter, diameter });
+	go->SetInstanceAttribute(*p.mesh->format.GetAttribute("color"), {1, 1, 1, 1});
+	go->SetInstanceAttribute(*p.mesh->format.GetAttribute(SpecialVertexAttributeNames::AUTOMATIC_TEXTURE_ARRAY_SELECTION), -1.0f);
+
+	return go;
 }
 
 std::shared_ptr<ConvexMeshPhysicsGeometry> GetArrowCollisions() {
@@ -181,9 +260,16 @@ std::vector<Gameobject*> BuildCubeArray(glm::dvec3 origin, glm::dvec3 stride, gl
 	for (unsigned i = 0; i < nCubes.x; i++) {
 		for (unsigned j = 0; j < nCubes.y; j++) {
 			for (unsigned k = 0; k < nCubes.z; k++) {
-				Physobject* gameObj = Physobject::New(p);
-				gameObj->friction = friction;
-				gameObj->elasticity = elasticity;
+				Gameobject* gameObj;
+				if (physics) {
+					Physobject* o = Physobject::New(p);
+					o->friction = friction;
+					o->elasticity = elasticity;
+					gameObj = o;
+				}
+				else {
+					gameObj = Gameobject::New(p);
+				}				
 				gameObj->SetPosition(origin + stride * glm::dvec3(i, j, k));
 				gameObj->SetScale({ 1, 1, 1 });
 				glm::vec4 color(1, 0.7, 1, 1);
@@ -197,6 +283,53 @@ std::vector<Gameobject*> BuildCubeArray(glm::dvec3 origin, glm::dvec3 stride, gl
 	}
 
 	return ret;
+}
+
+std::vector<Gameobject*> BuildChain(glm::dvec3 pos, float segmentLength, size_t nLinks, float compliance) {
+	auto vec = BuildCubeArray(pos, { 1, 1, 1 }, { 1, 1, 1 }, false, 0.0f, 0.0f);
+
+	PhysobjectCreateParams p;
+	p.mesh = GetCubeMesh();
+	p.physicsMesh = GetCubeCollisions();
+
+	JointParams jp; 
+	jp.maxDistance = 2.0f;
+	jp.forwardAxis = { 0, 0, 1 };
+	jp.upAxis = { 0, 1, 0 };
+	jp.inverseStiffness = compliance;
+	for (size_t i = 0; i < nLinks; i++) {
+		Physobject* obj = Physobject::New(p);
+		obj->SetPosition(pos + glm::dvec3(0, -(segmentLength + 1) * (i + 1), 0));
+		obj->SetInstanceAttribute(*p.mesh->format.GetAttribute("color"), {0.8, 0.8, 0.7, 1});
+		obj->SetInstanceAttribute(*p.mesh->format.GetAttribute(SpecialVertexAttributeNames::AUTOMATIC_TEXTURE_ARRAY_SELECTION), -1.0f);
+
+		if (i == 0) {
+			StaticJoint joint;
+			joint.a = obj;
+			joint.b = vec.back();
+			joint.r1 = { 0, 0.5, 0 };
+			joint.r2 = { 0, -0.5, 0 };
+			joint.params = jp;
+			PhysicsEngine::Get().staticJoints.insert(joint);
+		}
+		else {
+			DynamicJoint joint;
+			joint.a = obj;
+			joint.b = dynamic_cast<Physobject*>(vec.back());
+			joint.r1 = { 0, 0.5, 0 };
+			joint.r2 = { 0, -0.5, 0 };
+			joint.params = jp;
+			PhysicsEngine::Get().dynamicJoints.insert(joint);
+		}
+
+		if (i == nLinks - 1) {
+			TransformHandles(obj);
+		}
+
+		vec.push_back(obj);
+	}
+
+	return vec;
 }
 
 std::shared_ptr<Camera> ImplGetFreecam() {
@@ -254,8 +387,8 @@ Gameobject* DebugArrow(glm::vec3 pos, glm::vec3 direction, glm::vec3 color) {
 	glm::vec3 currentDir(0, 1, 0);
 	gameObj->GetCollider()->canCollide = false;
 	gameObj->SetRotation(glm::rotation(currentDir, direction));
-	gameObj->SetPosition(pos + direction * 0.5f);
-	gameObj->SetInstanceAttribute(*p.mesh->format.GetAttribute("color"), { color.x, color.y, color.z, 1 });
+	gameObj->SetPosition(pos + direction * 0.25f);
+	gameObj->SetInstanceAttribute(*p.mesh->format.GetAttribute("color"), { color.x, color.y, color.z, 0.5f });
 	gameObj->SetInstanceAttribute(*p.mesh->format.GetAttribute(SpecialVertexAttributeNames::AUTOMATIC_TEXTURE_ARRAY_SELECTION), -1.0f);
 	return gameObj;
 }
@@ -275,7 +408,7 @@ Gameobject* DebugHulaHoop(glm::vec3 pos, glm::vec3 direction, glm::vec3 color)
 	gameObj->GetCollider()->canCollide = false;
 	gameObj->SetRotation(glm::rotation(currentDir, direction));
 	gameObj->SetPosition(pos);
-	gameObj->SetInstanceAttribute(*p.mesh->format.GetAttribute("color"), { color.x, color.y, color.z, 1 });
+	gameObj->SetInstanceAttribute(*p.mesh->format.GetAttribute("color"), { color.x, color.y, color.z, 0.5f });
 	gameObj->SetInstanceAttribute(*p.mesh->format.GetAttribute(SpecialVertexAttributeNames::AUTOMATIC_TEXTURE_ARRAY_SELECTION), -1.0f);
 	return gameObj;
 }
@@ -334,7 +467,7 @@ Gameobject* DebugTriangle(glm::dvec3 a, glm::dvec3 b, glm::dvec3 c, glm::vec3 co
 	mparams.vertices.push_back(static_cast<float>(c.x));
 	mparams.vertices.push_back(static_cast<float>(c.y));
 	mparams.vertices.push_back(static_cast<float>(c.z));
-	mparams.indices = { 0, 1, 1, 2, 2, 3 };
+	mparams.indices = { 0, 1, 2 };
 
 	mparams.meshVertexFormat = MeshVertexFormat({
 		VertexAttribute {.name = SpecialVertexAttributeNames::VERTEX_POSITION, .nComponents = 3, .instanced = false,.type = VertexScalarType::f32},
@@ -347,9 +480,9 @@ Gameobject* DebugTriangle(glm::dvec3 a, glm::dvec3 b, glm::dvec3 c, glm::vec3 co
 	auto lineMesh = Mesh::New(std::move(mparams));
 
 	GameobjectCreateParams goparams;
-	goparams.renderPasses = { GetDebugLinesPass(), };
+	goparams.renderPasses = { GetDebugSolidDepthPass(), };
 	goparams.mesh = lineMesh;
-	goparams.primitiveType = GL_LINES;
+	goparams.primitiveType = GL_TRIANGLES;
 
 	auto gameobject = Gameobject::New(goparams);
 	gameobject->SetInstanceAttribute(*lineMesh->format.GetAttribute("color"), { color.x, color.y, color.z, 1 });
