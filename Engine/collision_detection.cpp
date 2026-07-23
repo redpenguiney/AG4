@@ -17,12 +17,52 @@
 #include "debug_prefabs.hpp"
 #include <glm/gtc/matrix_inverse.hpp>
 
-#define DEBUG_EPA
+//#define DEBUG_EPA
+
 
 #ifdef DEBUG_EPA
+#include "gui.hpp"
+#include <string>
+
 std::vector<std::unique_ptr<Gameobject>>& Objs() {
     static std::vector<std::unique_ptr<Gameobject>> objs;
     return objs;
+}
+
+static std::shared_ptr<GuiElement> GetUiLog() {
+    TextureCreateParams arialFontParams({ TextureSource("../fonts/arial.ttf"), });
+    arialFontParams.fontHeight = 14;
+    arialFontParams.format = Texture::Grayscale_8Bit;
+    auto arialFont = std::make_shared<Texture>(arialFontParams, Texture::Texture2D);
+
+    auto frame = GuiElement::New(*GetScreenGuiContainer(), nullptr, arialFont);
+    frame->percentagePosition = { 0.7, 0.5 };
+    frame->pixelSize = { 250, 500 };
+    frame->backgroundColor = { 1, 1, 1, 0.0 };
+    frame->text = "[epa log]";
+    frame->textColor = { 0, 1, 0, 1.0 };
+    frame->vAlign = VerticalAlignMode::Top;
+    frame->hAlign = HorizontalAlignMode::Left;
+    frame->RefreshGraphics();
+    frame->RefreshTransform();
+    frame->RefreshText();
+
+    return frame;
+}
+
+GuiElement& EPALog() {
+    static auto ui = GetUiLog();
+    return *ui;
+}
+
+void AppendEPALog(std::string s) {
+    EPALog().text += s;
+    EPALog().RefreshText();
+}
+
+void ClearEPALog() {
+    EPALog().text = "";
+    EPALog().RefreshText();
 }
 
 #endif
@@ -37,6 +77,7 @@ static void ValidateVector(glm::vec3 vec) {
 
 // used to find contact points for face-face contacts
 // normal in model space of object a
+// todo: SIMPLIFY WHEN LARGE NUMBER OF CONTACT POINTS?
 static std::optional<Collision> ClipFaces(glm::vec3 normal, Gameobject* a, Gameobject* b, const glm::mat3x3& worldToB, const glm::vec3& bToARelPos, const glm::mat3x3& worldToA, const glm::mat3x3& normalAToB) {
     auto pmA = std::dynamic_pointer_cast<ConvexMeshPhysicsGeometry>(a->GetCollider()->physicsMesh);
     auto pmB = std::dynamic_pointer_cast<ConvexMeshPhysicsGeometry>(b->GetCollider()->physicsMesh);
@@ -257,7 +298,7 @@ static std::optional<Collision> CollideGJKEPA(Gameobject* a, Gameobject* b) {
     auto NewSimplexPoint = [&](glm::vec3 direction) -> std::array<glm::vec3, 3> {
         ValidateVector(direction);
         glm::vec3 supportA = pmA->Support(direction);
-        glm::vec3 directionInBSpace = worldToB * a->GetRotSclMatrix() * direction;
+        glm::vec3 directionInBSpace = normalAToB * direction;
 
         glm::vec3 supportB = pmB->Support(-directionInBSpace);
         glm::vec3 bInASpace = worldToA * ((b->GetRotSclMatrix() * supportB) - aToB);
@@ -373,22 +414,33 @@ static std::optional<Collision> CollideGJKEPA(Gameobject* a, Gameobject* b) {
         return true;
         };
 
-    auto ContactFromLineCase = [&]() -> std::optional<Collision> {
-        Assert(simplex.size() == 2);
-        glm::vec3 normal = glm::normalize(simplex[1][0] - simplex[0][0]);
-        ValidateVector(normal);
-
-        return Collision{
-            .collisionPoints = {{normal * -0.5f, normal * 0.5f},},
-            .collisionNormal = normal,
-        };
-        };
+//    auto ContactFromLineCase = [&]() -> std::optional<Collision> {
+//        Assert(simplex.size() == 2);
+//        glm::vec3 normal = glm::normalize(simplex[1][0] - simplex[0][0]);
+//        ValidateVector(normal);
+//
+//#ifdef DEBUG_EPA
+//        ClearEPALog();
+//        AppendEPALog("Uh oh, got epa line case contact " + std::to_string(simplex.size()));
+//#endif
+//
+//        return Collision{
+//            .collisionPoints = {{normal * -0.5f, normal * 0.5f},},
+//            .collisionNormal = normal,
+//        };
+//        };
 
     auto EPA = [&]() -> std::optional<Collision> {
+
+#ifdef DEBUG_EPA
+        ClearEPALog();
+        AppendEPALog("Init simplex size " + std::to_string(simplex.size()));
+#endif
+
         // If simplex doesn't already have 4 vertices (possible with some edge cases), we need to add some.
             // see https://allenchou.net/2013/12/game-physics-contact-generation-epa/
         if (simplex.size() == 1) {
-            Assert(false);
+            Assert(false); // our gjk implementation never does this
         }
         if (simplex.size() == 2) {
             DebugLogInfo("EPA recieved line polytope.");
@@ -450,6 +502,10 @@ static std::optional<Collision> CollideGJKEPA(Gameobject* a, Gameobject* b) {
 
             minNormal = normals.at(minFace).first;
             minDistance = normals.at(minFace).second;
+
+#ifdef DEBUG_EPA
+            AppendEPALog("\nN " + glm::to_string(minNormal) + " dist " + std::to_string(minDistance));
+#endif
 
             if (nIterations > 32) { // todo: dynamic iteration max based on geometry complexity?
                 DebugLogError("EPA failed (iterations exceeded)");
@@ -589,7 +645,7 @@ static std::optional<Collision> CollideGJKEPA(Gameobject* a, Gameobject* b) {
             Assert(false);
         }
 
-        if (glm::dot(minNormal, aToB) > 0) minNormal *= -1;
+        //if (glm::dot(minNormal, aToB) > 0) minNormal *= -1;
 
         //Assert(minNormal.y > 0.9);
 
@@ -642,7 +698,7 @@ static std::optional<Collision> CollideGJKEPA(Gameobject* a, Gameobject* b) {
         };
 
     // initial simplex/search direction
-    simplex.push_back(NewSimplexPoint(glm::normalize(a->Position() - b->Position()))); // arbitrary intial search direction
+    simplex.push_back(NewSimplexPoint(glm::normalize(aToB))); // arbitrary intial search direction
     searchDirection = glm::normalize(-simplex.back()[0]);
 
 
@@ -866,7 +922,7 @@ static std::optional<Collision> CollideCapsules(Gameobject* a, Gameobject* b);
 
 
 // if a ConvexMeshPhysicsGeometry has more polygons than this, we'll use EPA, if not we'll use SAT
-constexpr static size_t SAT_THRESHOLD = 0;
+constexpr static size_t SAT_THRESHOLD = 24;
 
 std::optional<Collision> InvertCollision(std::optional<Collision> c) {
     if (!c) return c;
@@ -889,16 +945,16 @@ std::optional<Collision> NarrowphaseCollisionDetection(Gameobject* a, Gameobject
     if (sphereA && sphereB) {
         return CollideSpheres(a, b);
     }
-    else if (sphereA && convexMeshB) {
+    /*else if (sphereA && convexMeshB) {
         return CollideSphereConvexMesh(a, b);
-    }
+    }*/
    /* else if (convexMeshA && sphereB) {
         return InvertCollision(CollideSphereConvexMesh(b, a));
     }*/
     else if (convexMeshA && convexMeshB && convexMeshA->polygons.size() <= SAT_THRESHOLD && convexMeshB->polygons.size() <= SAT_THRESHOLD) {
         return CollideSAT(a, b);
-    } else
-    if (convexA && convexB) {
+    } 
+    else if (convexA && convexB) {
         return CollideGJKEPA(a , b);
     }
     else {

@@ -119,8 +119,13 @@ void ReportCollisions(Gameobject* a, Gameobject* b) {
 	static std::vector<std::unique_ptr<Gameobject>> objects;
 	static auto conn = Mainloop::Get().preRender.Connect([a, b](Mainloop*, float) {
 		objects.clear();
+
+		//a->SetInstanceAttribute(*GetArrowMesh()->format.GetAttribute(SpecialVertexAttributeNames::AUTOMATIC_TEXTURE_ARRAY_SELECTION), -1);
+
 		if (auto result = a->TestCollision(b)) {
+
 			//DebugLogInfo("A : ", a->Position(), " & ", a->Rotation());
+
 			a->SetInstanceAttribute(*GetArrowMesh()->format.GetAttribute("color"), { 1, 0, 0, 1 });
 			b->SetInstanceAttribute(*GetArrowMesh()->format.GetAttribute("color"), { 0, 0, 1, 1 });
 

@@ -216,6 +216,7 @@
     <ClInclude Include="framebuffer.hpp" />
     <ClInclude Include="game.hpp" />
     <ClInclude Include="gameobject.hpp" />
+    <ClInclude Include="gameobject_manager.hpp" />
     <ClInclude Include="gjk.hpp" />
     <ClInclude Include="graphics_engine.hpp" />
     <ClInclude Include="gui.hpp" />

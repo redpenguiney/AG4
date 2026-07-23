@@ -350,5 +350,8 @@
     <ClInclude Include="gjk.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="gameobject_manager.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

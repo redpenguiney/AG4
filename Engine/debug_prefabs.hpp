@@ -13,7 +13,6 @@ std::shared_ptr<Mesh> GetCubeMesh();
 std::shared_ptr<Mesh> GetArrowMesh();
 std::shared_ptr<Mesh> GetHulaHoopMesh();
 std::shared_ptr<Mesh> GetSphereMesh();
-std::shared_ptr<Mesh> GetCapsuleMesh();
 
 std::shared_ptr<DrawPass> GetDebugWireframePass();
 std::shared_ptr<DrawPass> GetDebugSolidPass();

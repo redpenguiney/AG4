@@ -382,3 +382,8 @@ glm::mat3x3 BasePhysicsGeometry::GetMomentOfInertia(glm::vec3 objectScale, float
 
     return inertiaTensor;
 }
+
+glm::vec3 CapsulePhysicsGeometry::Support(glm::vec3 direction) const {
+    float dotY = glm::dot(direction, { 0, 1, 0 });
+
+}

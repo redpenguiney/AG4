@@ -11,6 +11,11 @@ BufferedBuffer::BufferedBuffer(GLenum bindingLocation, const unsigned int buffer
 bufferBindingLocation(bindingLocation),
 numBuffers(bufferCount)
 {
+    sync = new GLsync[numBuffers];
+    for (unsigned int i = 0; i < numBuffers; i++) {
+        sync[i] = 0;
+    }
+
     // Assert(initalSize != 0);
     currentBuffer = 0;
     size = 0;
@@ -18,10 +23,7 @@ numBuffers(bufferCount)
         Reallocate(initalSize);
     }  
 
-    sync = new GLsync[numBuffers];
-    for (unsigned int i = 0; i < numBuffers; i++) {
-        sync[i] = 0;
-    }
+    
 }
 
 BufferedBuffer::~BufferedBuffer() {
@@ -38,6 +40,8 @@ BufferedBuffer::~BufferedBuffer() {
             }
         }
     }
+
+    delete[] sync;
 }
 
 void BufferedBuffer::Flip() {
@@ -90,11 +94,12 @@ BufferedBuffer& BufferedBuffer::operator=(BufferedBuffer&& other) noexcept
 }
 
 void BufferedBuffer::Reallocate(unsigned int newSize) {
+
     Assert(newSize != 0);
     unsigned int oldSize = size;
     if (newSize == oldSize) return;
-    size = newSize;
     Assert(newSize >= size);
+    size = newSize;
 
     // Create a new buffer with the desired size and get a pointer to its contents.
     GLuint newBufferId;

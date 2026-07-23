@@ -62,16 +62,20 @@ public:
 	static MeshCreateParams Default();
 	static MeshCreateParams DefaultGui();
 	static MeshCreateParams DefaultText();
+	
+	// meshVertexFormat should already be set to what you want when you call this.
+	// Requires SpecialVertexAttributeNames to be used. Sets positions, normals, and UVs (the latter two are optional, will only be added if in format)
+	void LoadCapsule(unsigned nLongSegments, unsigned nLatSegments, float lineSegmentLength);
 
 	// sets vertices and indices given path to a .obj file. Does nothing else.
 	// meshVertexFormat should already be set to what you want when you call this.
 	// Requires SpecialVertexAttributeNames to be used.
-	// Written positions are in pixel space; you should probably NOT use normalizeSize with this.
 	void LoadObj(std::string path);
 
 	// sets vertices and indices given a font texture and 
 	// meshVertexFormat should already be set to what you want when you call this. 
 	// Only sets position/UVs, and requires SpecialVertexAttributeNames to be used for position and UVs.
+	// Written positions are in pixel space; you should probably NOT use normalizeSize with this.
 	void LoadText(Texture& fontmap, std::string text, TextFormatting formatting);
 
     MeshCreateParams() = default;

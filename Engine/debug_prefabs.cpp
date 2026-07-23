@@ -199,6 +199,32 @@ Gameobject* BuildSphere(glm::dvec3 pos, float diameter, bool physics, float elas
 	return go;
 }
 
+Gameobject* BuildCapsule(glm::dvec3 pos, float diameter, float height, bool physics, float elasticity, float friction)
+{
+	GameobjectCreateParams p;
+	//p.mesh = GetCapsuleMesh();
+	//p.physicsMesh = CapsulePhysicsGeometry::New((height - diameter) / diameter);
+
+	Gameobject* go;
+	if (physics) {
+		go = Physobject::New(p);
+		go->elasticity = elasticity;
+		go->friction = friction;
+	}
+	else {
+		go = Gameobject::New(p);
+	}
+
+	Assert(go->GetCollider());
+
+	go->SetPosition(pos);
+	go->SetScale({ diameter, height, diameter });
+	go->SetInstanceAttribute(*p.mesh->format.GetAttribute("color"), { 1, 1, 1, 1 });
+	go->SetInstanceAttribute(*p.mesh->format.GetAttribute(SpecialVertexAttributeNames::AUTOMATIC_TEXTURE_ARRAY_SELECTION), -1.0f);
+
+	return go;
+}
+
 std::shared_ptr<ConvexMeshPhysicsGeometry> GetArrowCollisions() {
 	static auto collisions = ConvexMeshPhysicsGeometry::FromMesh(GetArrowMesh());
 	return collisions;

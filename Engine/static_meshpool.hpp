@@ -17,14 +17,17 @@ struct MeshpoolMeshStorageLocation {
 };
 
 // We use multiple buffering for instances and bone transforms (TODO: and sometimes vertices).
+	// OR TODO: maybe use ring buffer for vertices instead?
 // This is totally fine for vertex attributes that are updated every frame like object model matrices.
-// But when a user wants to just set something once and forget about it (like for object color), this is no good.
+// But when a user wants to just set something once and forget about it (like for object color), this is no good 
+//	  since they would have to write it once on each frame until all buffers are written.
 // This class handles that issue.
 class PendingWritesManager {
 public:
 	// doesn't take ownership of data, justs read it.
 	void AddWrite(unsigned nComponents, unsigned writeLocation, unsigned nWrites, VertexScalar* data);
 	void ApplyWrites(char* buffer);
+	void ResetWrites(unsigned nWrites);
 private:
 	struct PendingWrite {
 		void* data;
@@ -74,6 +77,9 @@ public:
 	void BindVAO(const std::shared_ptr<ShaderProgram>& shader);
 
 protected:
+	PendingWritesManager pendingInstanceWrites;
+	PendingWritesManager pendingBoneWrites; // some slight wastefulness here, don't really care tho
+
 	unsigned modelMatrixOffset;
 	unsigned normalMatrixOffset;
 	// We store a different vao for every shader program to accomodate different shaders not using every vertex attributes or specifying them in a different order.
@@ -149,9 +155,6 @@ private:
 
 	std::vector<unsigned> availableInstanceSlots;
 	unsigned nextInstanceLocation = 0; // use if availableInstanceSlots is empty.
-
-	PendingWritesManager pendingInstanceWrites;
-	PendingWritesManager pendingBoneWrites; // some slight wastefulness here, don't really care tho
 
 	std::multiset<SlotSpace> availableVertexSpaces; // in terms of vertices. sorted by count.
 	std::multiset<SlotSpace> availableIndexSpaces; // in terms of indices. sorted by count.

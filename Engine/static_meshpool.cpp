@@ -2,6 +2,9 @@
 #include "mesh.hpp"
 #include "shader_program.hpp"
 
+constexpr unsigned NUM_INSTANCE_BUFFERS = 3;
+constexpr unsigned NUM_BONE_TRANSFORM_BUFFERS = 3;
+
 void Meshpool::StreamModelMatrix(unsigned instance, glm::mat4x4 modelMatrix) {
 	memcpy(instances.Data() + instance * format.GetInstancedVertexSize() + modelMatrixOffset, &modelMatrix, sizeof(modelMatrix));
 }
@@ -185,18 +188,28 @@ void Meshpool::BindVAO(const std::shared_ptr<ShaderProgram>& shader) {
 	glBindVertexArray(vaos[shader.get()]);
 }
 
+unsigned RecommendInitialInstanceCapacity(const MeshVertexFormat f) {
+	if (f.GetBoneCapacity() == 0) {
+		return 1 << 12; // TODO: PROBABLY SWITCH BACK TO 2^8 ONCE EXPANDING INSTANCES NO LONGER CORRUPTS INSTANCE DATA
+	}
+	else {
+		return 1 << 4;
+	}
+}
+
 Meshpool::Meshpool(MeshVertexFormat f):
 format(f),
 id(idProvider.GetId()),
 currentVertexCapacity(1 << 16),
 currentIndicesCapacity(1 << 16),
-currentInstanceCapacity(1 << 8),
+currentInstanceCapacity(RecommendInitialInstanceCapacity(f)),
 vertices(GL_ARRAY_BUFFER, 1, currentVertexCapacity * f.GetNonInstancedVertexSize()),
 indices(GL_ELEMENT_ARRAY_BUFFER, 1, currentIndicesCapacity * sizeof(GLuint)),
-instances(GL_ARRAY_BUFFER, 3, currentInstanceCapacity* f.GetInstancedVertexSize())
+instances(GL_ARRAY_BUFFER, NUM_INSTANCE_BUFFERS, currentInstanceCapacity * f.GetInstancedVertexSize())
 {
+	DebugLogInfo("Made meshpool ", id);
 	if (format.GetBoneCapacity() > 0) {
-		boneTransforms.emplace(GL_SHADER_STORAGE_BUFFER, 3, currentInstanceCapacity * format.GetBoneCapacity() * sizeof(glm::mat4x4));
+		boneTransforms.emplace(GL_SHADER_STORAGE_BUFFER, NUM_BONE_TRANSFORM_BUFFERS, currentInstanceCapacity * format.GetBoneCapacity() * sizeof(glm::mat4x4));
 	}
 
 	pools.push_back(this);
@@ -212,7 +225,7 @@ instances(GL_ARRAY_BUFFER, 3, currentInstanceCapacity* f.GetInstancedVertexSize(
 
 }
 
-// todo: would be pretty easy to defrag everytime it expands
+// todo: would be pretty easy to defrag everytime it expands. or defrag in RemoveMesh() everytime?
 void Meshpool::UpdateVertexCapacity() {
 	Assert(currentVertexCapacity * format.GetNonInstancedVertexSize() > vertices.GetSize());
 	vertices.Reallocate(currentVertexCapacity * format.GetNonInstancedVertexSize());
@@ -222,15 +235,23 @@ void Meshpool::UpdateVertexCapacity() {
 }
 
 void Meshpool::UpdateIndicesCapacity() {
+	Assert(currentIndicesCapacity * sizeof(GLuint) > indices.GetSize());
+
 	indices.Reallocate(currentIndicesCapacity * sizeof(GLuint));
+
+	DebugLogInfo("Expanding indices.");
 }
 
 void Meshpool::UpdateInstanceCapacity() {
+	Assert(currentInstanceCapacity * format.GetInstancedVertexSize() > instances.GetSize());
 	instances.Reallocate(currentInstanceCapacity * format.GetInstancedVertexSize());
 	if (boneTransforms.has_value()) {
 		boneTransforms->Reallocate(currentInstanceCapacity * format.GetBoneCapacity() * sizeof(glm::mat4x4));
+		//pendingBoneWrites.ResetWrites(boneTransforms->numBuffers);
 	}
 	DestroyVAOs();
+	DebugLogInfo("Expanding instances.");
+	//pendingInstanceWrites.ResetWrites(instances.numBuffers);
 	//instances.Bind(GL_ARRAY_BUFFER);
 }
 
@@ -305,7 +326,7 @@ unsigned StaticMeshpool::AddInstance() {
 }
 
 void StaticMeshpool::RemoveInstance(unsigned instance) {
-	availableInstanceSlots.push_back(instance);
+	availableInstanceSlots.push_back(instance); // TODO UNCOMMENT THIS ONCE FLICKERING IS FIXED
 }
 
 void PendingWritesManager::AddWrite(unsigned nComponents, unsigned writeLocation, unsigned nWrites, VertexScalar* valueToWrite) {
@@ -342,6 +363,14 @@ void PendingWritesManager::ApplyWrites(char* buffer) {
 				vec.pop_back();
 				i--;
 			}
+		}
+	}
+}
+
+void PendingWritesManager::ResetWrites(unsigned nWrites){
+	for (auto& vec : writes) {
+		for (auto& w : vec) {
+			w.writesLeft = nWrites;
 		}
 	}
 }

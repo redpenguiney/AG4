@@ -21,6 +21,16 @@ MeshCreateParams MeshCreateParams::DefaultText() {
     return DefaultGui();
 }
 
+void MeshCreateParams::LoadCapsule(unsigned nLongSegments, unsigned nLatSegments float lineSegmentLength) {
+    size_t nVerts = nLongSegments * (nLatSegments + 1)
+
+    float halfHeight = lineSegmentLength / 2.0f;
+    for (unsigned longI = 0; longI < nSegments; longI++) {
+        unsigned nextLong = longI + 1;
+        if (nextLong == nSegments) nextLong = 0;
+    }
+}
+
 void MeshCreateParams::LoadObj(std::string path) {
 	defaultName = "obj: \"" + path + "\"";
 
