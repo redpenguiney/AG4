@@ -4,6 +4,7 @@
 #include "let_me_hash_a_tuple.hpp"
 #include <tuple>
 #include "texture.hpp"
+#include <utility.hpp>
 
 MeshCreateParams MeshCreateParams::Default() {
     MeshCreateParams p;
@@ -21,13 +22,102 @@ MeshCreateParams MeshCreateParams::DefaultText() {
     return DefaultGui();
 }
 
-void MeshCreateParams::LoadCapsule(unsigned nLongSegments, unsigned nLatSegments float lineSegmentLength) {
-    size_t nVerts = nLongSegments * (nLatSegments + 1)
+void MeshCreateParams::LoadCapsule(unsigned nLongSegments, unsigned nLatSegments, float lineSegmentLength) {
+    unsigned vertsPerLongSegment = nLatSegments * 2; // not counting poles
+    size_t nVerts = 2 + nLongSegments * vertsPerLongSegment;
+    vertices.resize(meshVertexFormat.ScalarsPerVertex() * nVerts);
 
+    auto posAttrib = meshVertexFormat.GetAttribute(SpecialVertexAttributeNames::VERTEX_POSITION);
+    Assert(posAttrib && posAttrib->nComponents >= 3);
+    auto normAttrib = meshVertexFormat.GetAttribute(SpecialVertexAttributeNames::VERTEX_NORMAL);
+    auto SetVertex = [&](unsigned i, glm::vec3 pos, glm::vec3 normal) mutable {
+
+        for (unsigned pI = 0; pI < pos.length(); pI++) {
+            vertices[i * meshVertexFormat.ScalarsPerVertex() + posAttrib->ScalarOffset() + pI] = pos[pI];
+        }
+
+        if (normAttrib && normAttrib->nComponents >= 3) {
+            for (unsigned nI = 0; nI < normal.length(); nI++) {
+                vertices[i * meshVertexFormat.ScalarsPerVertex() + normAttrib->ScalarOffset() + nI] = normal[nI];
+            }
+        }
+        };
+
+    auto IndexFromLongLat = [&](unsigned longI, unsigned latI, bool isBottom) -> unsigned {
+        return 2 + longI * vertsPerLongSegment + latI + (isBottom ? nLatSegments : 0);
+        };
+
+    unsigned TOP = 0;
+    unsigned BOTTOM = 1;
     float halfHeight = lineSegmentLength / 2.0f;
-    for (unsigned longI = 0; longI < nSegments; longI++) {
-        unsigned nextLong = longI + 1;
-        if (nextLong == nSegments) nextLong = 0;
+
+    SetVertex(TOP, { 0, halfHeight + 0.5f, 0 }, { 0, 1, 0 });
+    SetVertex(BOTTOM, { 0, -halfHeight - 0.5f, 0 }, { 0, -1, 0 });
+
+    for (unsigned longI = 0; longI < nLongSegments; longI++) {
+        unsigned nextLongI = longI + 1;
+        if (nextLongI == nLongSegments) nextLongI = 0;
+
+        float yaw = 2.0f * glm::pi<float>() / static_cast<float>(nLongSegments) * longI;
+
+        for (unsigned latI = 0; latI < nLatSegments; latI++) {
+            unsigned nextLatI = latI + 1;
+
+            float pitch = 0.5f * glm::pi<float>() / static_cast<float>(nLatSegments) * latI;
+            glm::vec3 upNormal = LookVector(-pitch, yaw);
+            glm::vec3 botNormal = LookVector(pitch, yaw);
+
+            unsigned thisITop = IndexFromLongLat(longI, latI, false);
+            unsigned thisIBot = IndexFromLongLat(longI, latI, true);
+            unsigned nextITop = IndexFromLongLat(nextLongI, latI, false);
+            unsigned nextIBot = IndexFromLongLat(nextLongI, latI, true);
+
+            SetVertex(thisITop, upNormal   * 0.5f + glm::vec3(0, halfHeight, 0), upNormal);
+            SetVertex(thisIBot, botNormal * 0.5f - glm::vec3(0, halfHeight, 0), botNormal);
+
+            if (nextLatI == nLatSegments) {
+                indices.push_back(thisITop);
+                indices.push_back(TOP);
+                indices.push_back(nextITop);
+
+                indices.push_back(thisIBot);
+                indices.push_back(nextIBot);
+                indices.push_back(BOTTOM);
+
+            }
+            else {
+                if (latI == 0) {
+                    indices.push_back(thisITop);
+                    indices.push_back(nextIBot);
+                    indices.push_back(thisIBot);
+
+                    indices.push_back(thisITop);
+                    indices.push_back(nextITop);
+                    indices.push_back(nextIBot);
+                }
+
+                unsigned thisITop2 = IndexFromLongLat(longI, nextLatI, false);
+                unsigned thisIBot2 = IndexFromLongLat(longI, nextLatI, true);
+                unsigned nextITop2 = IndexFromLongLat(nextLongI, nextLatI, false);
+                unsigned nextIBot2 = IndexFromLongLat(nextLongI, nextLatI, true);
+
+                indices.push_back(thisITop);
+                indices.push_back(thisITop2);
+                indices.push_back(nextITop);
+
+                indices.push_back(thisITop2);
+                indices.push_back(nextITop2);
+                indices.push_back(nextITop);
+
+                indices.push_back(thisIBot);
+                indices.push_back(nextIBot2);
+                indices.push_back(thisIBot2);
+
+                indices.push_back(thisIBot);
+                indices.push_back(nextIBot);
+                indices.push_back(nextIBot2);
+            }
+        }
     }
 }
 

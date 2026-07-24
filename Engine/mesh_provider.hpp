@@ -64,7 +64,8 @@ public:
 	static MeshCreateParams DefaultText();
 	
 	// meshVertexFormat should already be set to what you want when you call this.
-	// Requires SpecialVertexAttributeNames to be used. Sets positions, normals, and UVs (the latter two are optional, will only be added if in format)
+	// Requires SpecialVertexAttributeNames to be used. Sets positions and normals (the latter is optional, will only be added if in format)
+		// UVs are not generated, load from file if you need those
 	void LoadCapsule(unsigned nLongSegments, unsigned nLatSegments, float lineSegmentLength);
 
 	// sets vertices and indices given path to a .obj file. Does nothing else.

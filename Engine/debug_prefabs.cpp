@@ -27,12 +27,12 @@ static std::shared_ptr<Mesh> SphereMesh() {
 	return sphereMesh;
 }
 
-static std::shared_ptr<Mesh> CapsuleMesh() {
-	auto mparams = MeshCreateParams::Default();
-	mparams.LoadObj("../models/capsule.obj");
-	auto capsuleMesh = Mesh::New(std::move(mparams));
-	return capsuleMesh;
-}
+//static std::shared_ptr<Mesh> CapsuleMesh() {
+//	auto mparams = MeshCreateParams::Default();
+//	mparams.LoadObj("../models/capsule.obj");
+//	auto capsuleMesh = Mesh::New(std::move(mparams));
+//	return capsuleMesh;
+//}
 
 static std::shared_ptr<Mesh> ArrowMesh() {
 	auto mparams = MeshCreateParams::Default();
@@ -71,10 +71,10 @@ std::shared_ptr<Mesh> GetSphereMesh() {
 	return sphere;
 }
 
-std::shared_ptr<Mesh> GetCapsuleMesh() {
-	static auto cap = CapsuleMesh();
-	return cap;
-}
+//std::shared_ptr<Mesh> GetCapsuleMesh() {
+//	static auto cap = CapsuleMesh();
+//	return cap;
+//}
 
 static std::shared_ptr<ShaderProgram> GetDebugShader() {
 	static auto s = ShaderProgram::New("../shaders/debug_simple_vertex.glsl", "../shaders/debug_simple_fragment.glsl");
@@ -202,9 +202,11 @@ Gameobject* BuildSphere(glm::dvec3 pos, float diameter, bool physics, float elas
 Gameobject* BuildCapsule(glm::dvec3 pos, float diameter, float height, bool physics, float elasticity, float friction)
 {
 	GameobjectCreateParams p;
-	//p.mesh = GetCapsuleMesh();
+	MeshCreateParams mp;
+	mp.LoadCapsule(12, 6, (height - diameter) / diameter);
+	p.mesh = Mesh::New(std::move(mp));
 	//p.physicsMesh = CapsulePhysicsGeometry::New((height - diameter) / diameter);
-
+	p.physicsMesh = SpherePhysicsGeometry::Get();
 	Gameobject* go;
 	if (physics) {
 		go = Physobject::New(p);

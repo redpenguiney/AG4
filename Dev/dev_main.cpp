@@ -31,9 +31,9 @@ Game::Game(std::vector<const char*> launchArgs) {
 	//state->objs.emplace_back(DebugPoint({ 0.4, 0, 0 }, { 1, 0, 0 }));
 	//state->objs.emplace_back(DebugPoint({ 0, 0.4, 0 }, { 0, 1, 0 }));
 	//state->objs.emplace_back(DebugPoint({ 0, 0, 0.4 }, { 0, 0, 1 }));
-	state->objs.emplace_back(DebugArrow({ 0, 0, 0 }, { 1, 0, 0 }, { 1, 0, 0 }));
-	state->objs.emplace_back(DebugArrow({ 0, 0, 0 }, { 0, 1, 0 }, { 0, 1, 0 }));
-	state->objs.emplace_back(DebugArrow({ 0, 0, 0 }, { 0, 0, 1 }, { 0, 0, 1 }));
+	//state->objs.emplace_back(DebugArrow({ 0, 0, 0 }, { 1, 0, 0 }, { 1, 0, 0 }));
+	//state->objs.emplace_back(DebugArrow({ 0, 0, 0 }, { 0, 1, 0 }, { 0, 1, 0 }));
+	//state->objs.emplace_back(DebugArrow({ 0, 0, 0 }, { 0, 0, 1 }, { 0, 0, 1 }));
 
 	/*{
 		LoadSceneParams sceneParams;
@@ -93,12 +93,12 @@ Game::Game(std::vector<const char*> launchArgs) {
 	//testCollisionSubject[0]->SetPosition({ 1.003f, -2.002, 1.2f });
 	//testCollisionSubject[0]->SetRotation({ -0.195, 0.328, -0.069, 0.922 });
 	//testCollisionSubject[0]->SetRotation(glm::angleAxis(glm::radians(180.0f), glm::vec3{0, 1, 0}));
-	testCollisionSubject.push_back(BuildSphere({ -2, 0, 0 }, 1.0f, false));
-	//testCollisionSubject.push_back(BuildCapsule({ -2, 0, 0 }, 1.0f, 2.0f, false));
+	//testCollisionSubject.push_back(BuildSphere({ -2, 0, 0 }, 1.0f, false));
+	testCollisionSubject.push_back(BuildCapsule({ -2, 0, 0 }, 1.0f, 2.0f, false));
 	//std::vector<Gameobject*> testCollisionSubject = { BuildSphere({-2, 0, 0}, 1.0f, false), BuildSphere({2, 0, 0}, 1.0f, false)};
 	for (auto& o : testCollisionSubject) {
 		state->objs.emplace_back(o);
-		TransformHandles(o);
+		//TransformHandles(o);
 	}
 	ReportCollisions(testCollisionSubject[0], testCollisionSubject[1]);
 
