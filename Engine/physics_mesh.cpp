@@ -7,6 +7,10 @@
 #include <glm/gtx/hash.hpp>
 #include <unordered_set>
 
+// TODO: MASSIVE WEIRDNESS IN MOI CALCULATIONS???
+// todo: all objects have diagonal matrices for their moment of inertia if the correct xyz axis are chosen. 
+    // therefore, we should store and use mois as vec3s instead of mat3x3s; way cheaper both speed and memory wise
+    // it's the user's problem to ensure that when importing meshes, they are rotated such that the xyz in model space generates a diagonal moi. 
 RaycastResult ConvexMeshPhysicsGeometry::Raycast(glm::dvec3 rayOrigin, glm::dvec3 direction, Gameobject* object, RaycastParams params) {
     constexpr float epsilon = std::numeric_limits<float>::epsilon();
 
@@ -337,11 +341,16 @@ glm::vec3 SpherePhysicsGeometry::Support(glm::vec3 direction) const {
 }
 
 void SpherePhysicsGeometry::AddLocalMomentOfInertiaContribution(glm::vec3& centerOfMass, float& Ia, float& Ib, float& Ic, float& Iap, float& Ibp, float& Icp, glm::vec3 objectScale, float density) {
-    float mass = Volume(objectScale) * density;
+    Assert(false);    
+}
+
+glm::mat3x3 SpherePhysicsGeometry::GetMomentOfInertia(glm::vec3 objectScale, float mass) {
     float radiusSquared = 0.25f * objectScale.x * objectScale.x;
-    Ia += mass * radiusSquared * 0.4f;
-    Ib += mass * radiusSquared * 0.4f;
-    Ic += mass * radiusSquared * 0.4f;
+    auto moi = glm::identity<glm::mat3x3>();
+    moi[0][0] = mass * radiusSquared * 0.4f;
+    moi[1][1] = mass * radiusSquared * 0.4f;
+    moi[2][2] += mass * radiusSquared * 0.4f;
+    return moi;
 }
 
 float SpherePhysicsGeometry::Volume(glm::vec3 objectScale) {
@@ -383,8 +392,57 @@ glm::mat3x3 BasePhysicsGeometry::GetMomentOfInertia(glm::vec3 objectScale, float
     return inertiaTensor;
 }
 
+std::shared_ptr<CapsulePhysicsGeometry> CapsulePhysicsGeometry::New(float lineSegmentLength)
+{
+    return std::shared_ptr<CapsulePhysicsGeometry>(new CapsulePhysicsGeometry(lineSegmentLength));
+}
+
+// TODO: UNTESTED
+RaycastResult CapsulePhysicsGeometry::Raycast(glm::dvec3 origin, glm::dvec3 direction, Gameobject* object, RaycastParams params)
+{
+    // convert ray into object space
+    // notice that we use floats here
+    glm::vec3 rayRelPos = glm::vec3(origin - object->Position());
+    glm::vec3 rayRelDir = object->WorldNormalToObject(direction); 
+    
+    return RaycastResult{ .object = nullptr };
+}
+
+glm::mat3x3 CapsulePhysicsGeometry::GetMomentOfInertia(glm::vec3 objectScale, float objectMass) {
+    // https://gamedev.net/tutorials/programming/math-and-physics/capsule-inertia-tensor-r3856
+    glm::mat3x3 tensor = glm::identity<glm::mat3x3>();
+    float cylHeight = objectScale.y - objectScale.x;
+    float cylVolume = cylHeight * objectScale.x * objectScale.x * glm::pi<float>();
+    float hemisphereVolume = 2.0f / 3.0f * glm::pi<float>() * objectScale.x * objectScale.x * objectScale.x;
+    float volume = cylVolume + hemisphereVolume;
+    float cylMass = cylVolume / volume * objectMass;
+    float hemisphereMass = hemisphereVolume / volume * objectMass;
+    tensor[0][0] = cylMass * (cylHeight * cylHeight / 12.0f + objectScale.x * objectScale.x / 4.0f) + 2.0f * hemisphereMass * (0.4f * objectScale.x * objectScale.x + 0.5f * cylHeight * cylHeight + 0.375f * cylHeight * objectScale.x);
+    tensor[1][1] = cylMass * objectScale.x * objectScale.x * 0.5f + hemisphereMass * objectScale.x * objectScale.x * 0.8f;
+    tensor[2][2] = tensor[0][0];
+    return tensor;
+}
+
 glm::vec3 CapsulePhysicsGeometry::Support(glm::vec3 direction) const {
     float dotY = glm::dot(direction, { 0, 1, 0 });
+    if (dotY > 0) {
+        return direction * 0.5f + glm::vec3(0.0f, lineSegmentLength / 2.0f, 0.0f);
+    }
+    else {
+        return direction * 0.5f - glm::vec3(0.0f, lineSegmentLength / 2.0f, 0.0f);
+    }
+}
+
+void CapsulePhysicsGeometry::AddLocalMomentOfInertiaContribution(glm::vec3& centerOfMass, float& Ia, float& Ib, float& Ic, float& Iap, float& Ibp, float& Icp, glm::vec3 objectScale, float density)
+{
     Assert(false);
-    return { 0, 1, 0 };
+}
+
+float CapsulePhysicsGeometry::Volume(glm::vec3 objectScale) {
+    float r = objectScale.x;
+    return glm::pi<float>() * (4.0f / 3.0f * r * r * r + lineSegmentLength * r * r); // (sphere + cylinder)
+}
+
+CapsulePhysicsGeometry::CapsulePhysicsGeometry(float len): lineSegmentLength(len) {
+
 }

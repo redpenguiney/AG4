@@ -26,43 +26,61 @@ static std::shared_ptr<DrawPass> GetHumanoidDrawPass() {
 	return drawpass;
 }
 
-Body::Body(std::unique_ptr<BodyController> c):
+Body::Body(std::unique_ptr<BodyController> c, BodyCreateParams bodyParams):
 	controller(std::move(c))
 {
+	controller->body = this;
+
+	conns.push_back(Mainloop::Get().preRender.Connect([this](Mainloop*, float dt) { 
+		SetPos(collider->Pos());
+		controller->Update(dt); 
+		}));
+	conns.push_back(Mainloop::Get().prePhysics.Connect([this](Mainloop*, float dt) { controller->FixedUpdate(dt); }));
+
+	auto& scene = GetHumanoidMesh();
+	std::shared_ptr<Mesh> mainBody = scene->meshes[0];
+
 	{
-		controller->body = this;
-
-		updateConn = Mainloop::Get().preRender.Connect([this](Mainloop*, float dt) { controller->Update(dt); });
-		fixedUpdateConn = Mainloop::Get().prePhysics.Connect([this](Mainloop*, float dt) { controller->FixedUpdate(dt); });
-
-		auto& scene = GetHumanoidMesh();
-		std::shared_ptr<Mesh> mainBody = scene->meshes[0];
-
-		PhysobjectCreateParams params;
-		params.mesh = mainBody;
+		GameobjectCreateParams renderParams;
+		renderParams.mesh = mainBody;
 		static auto pass = GetHumanoidDrawPass();
-		params.renderPasses = { pass, };
-		
-		std::unique_ptr<Physobject> obj(Physobject::New(params));
+		renderParams.renderPasses = { pass, };
+
+		std::unique_ptr<Gameobject> obj(Gameobject::New(renderParams));
 		obj->SetScale(mainBody->OriginalSize());
-		obj->SetInstanceAttribute(*mainBody->format.GetAttribute("color"), {1, 1, 1, 1});
+		obj->SetInstanceAttribute(*mainBody->format.GetAttribute("color"), { 1, 1, 1, 1 });
 		obj->SetInstanceAttribute(*mainBody->format.GetAttribute(SpecialVertexAttributeNames::AUTOMATIC_TEXTURE_ARRAY_SELECTION), -1.0f);
 		gameobjects.push_back(std::move(obj));
 
 		for (auto& b : mainBody->bones) {
 			//DebugLogInfo("BONE ", b.name);
 		}
-
-		/*IKBone hip;
-		hip.parent = nullptr;
-		hip.baseDirection = { 0, 1, 0 };
-		hip.currentPosition = { 0, 0, 0 };
-		hip.currentRotation = glm::identity<glm::quat>();
-		hip.boneIndex = mainBody->GetBone("mixamorig:Hips")->index;*/
-
-
 	}
 
+	{
+		PhysobjectCreateParams physParams;
+		physParams.mesh = nullptr;
+		physParams.physicsMesh = CapsulePhysicsGeometry::New(bodyParams.height / bodyParams.radius - bodyParams.radius);
+		physParams.renderPasses = {};
+		collider = Physobject::New(physParams);
+		auto obj = std::unique_ptr<Physobject>(collider);
+		obj->SetScale({bodyParams.radius * 2.0f, bodyParams.height, bodyParams.radius * 2.0f});
+		gameobjects.push_back(std::move(obj));
+	}
+
+	/*IKBone hip;
+	hip.parent = nullptr;
+	hip.baseDirection = { 0, 1, 0 };
+	hip.currentPosition = { 0, 0, 0 };
+	hip.currentRotation = glm::identity<glm::quat>();
+	hip.boneIndex = mainBody->GetBone("mixamorig:Hips")->index;*/
+
+
+
+}
+
+void Body::SetPos(glm::dvec3 pos) {
+	collider->SetPosition(pos);
 }
 
 LocalPlayerController::LocalPlayerController() {

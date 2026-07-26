@@ -15,7 +15,7 @@ public:
 	virtual ~BasePhysicsGeometry() = default;
 
 	// todo: very expensive function (for large meshes). cache so that if multiple rigidbodies with same BasePhysicsGeometry and size are made, they can reuse the same calculation
-	glm::mat3x3 GetMomentOfInertia(glm::vec3 objectScale, float objectMass);
+	virtual glm::mat3x3 GetMomentOfInertia(glm::vec3 objectScale, float objectMass);
 
 	// Returned distance is actually distance squared
 	virtual RaycastResult Raycast(glm::dvec3 origin, glm::dvec3 direction, Gameobject* object, RaycastParams params) = 0;
@@ -46,6 +46,7 @@ public:
 	
 	RaycastResult Raycast(glm::dvec3 origin, glm::dvec3 direction, Gameobject* object, RaycastParams params) override;
 
+	virtual glm::mat3x3 GetMomentOfInertia(glm::vec3 objectScale, float objectMass) override;
 	virtual glm::vec3 Support(glm::vec3 direction) const override;
 	virtual void AddLocalMomentOfInertiaContribution(glm::vec3& centerOfMass, float& Ia, float& Ib, float& Ic, float& Iap, float& Ibp, float& Icp, glm::vec3 objectScale, float density) override;
 	virtual float Volume(glm::vec3 objectScale) override;
@@ -57,17 +58,20 @@ private:
 // For the physicsgeometry itself, diameter is 1 and height is 1 + lineSegmentLength 
 class CapsulePhysicsGeometry : public ConvexPhysicsGeometry {
 public:
-	float lineSegmentLength;
+	const float lineSegmentLength;
 
 	static std::shared_ptr<CapsulePhysicsGeometry> New(float lineSegmentLength);
 
 	RaycastResult Raycast(glm::dvec3 origin, glm::dvec3 direction, Gameobject* object, RaycastParams params) override;
 
+	// todo: caching results neccesary?
+	glm::mat3x3 GetMomentOfInertia(glm::vec3 objectScale, float objectMass) override;
+
 	virtual glm::vec3 Support(glm::vec3 direction) const override;
 	virtual void AddLocalMomentOfInertiaContribution(glm::vec3& centerOfMass, float& Ia, float& Ib, float& Ic, float& Iap, float& Ibp, float& Icp, glm::vec3 objectScale, float density) override;
 	virtual float Volume(glm::vec3 objectScale) override;
 private:
-	CapsulePhysicsGeometry();
+	CapsulePhysicsGeometry(float len);
 };
 
 struct Polygon {

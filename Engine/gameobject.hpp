@@ -10,6 +10,7 @@
 #include <animation.hpp>
 #include "event.hpp"
 #include <collision_detection.hpp>
+#include "component.hpp"
 
 class Mesh;
 class RenderPass;
@@ -55,7 +56,6 @@ public:
 	void SetInstanceAttribute(const VertexAttribute& attrib, glm::vec4 value);
 	void SetInstanceAttribute(const VertexAttribute& attrib, float value);
 
-
 	const glm::mat3x3& GetRotSclMatrix();
 
 	bool Live();
@@ -86,6 +86,18 @@ public:
 	// ignores layers and Collider::canCollide
 	// both this object and the other object must have colliders
 	std::optional<Collision> TestCollision(Gameobject* other);
+
+	// returns nullptr if the component does not exist.
+	template<Component T>
+	T* GetComponent();
+
+	// returns pointer to created component
+	template <Component T, typename... ConstructorArgs>
+	T* AddComponent(ConstructorArgs... compArgs);
+
+	// does nothing if the component does not exist
+	template <Component T>
+	void EraseComponent();
 
 protected:
 	static inline std::unordered_map<Gameobject*, Skeleton> skeletons; // only contains gameobjects with skeletons.

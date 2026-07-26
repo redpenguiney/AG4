@@ -3,6 +3,7 @@
 #include <event.hpp>
 
 class Gameobject;
+class Physobject;
 class Body;
 class Camera;
 
@@ -31,16 +32,24 @@ public:
 	
 };
 
+struct BodyCreateParams {
+	float height = 1.8f;
+	float radius = 0.3f;
+};
+
 class Body {
 public:
-	Body(std::unique_ptr<BodyController> controller);
+	Body(std::unique_ptr<BodyController> controller, BodyCreateParams params);
+
+	void SetPos(glm::dvec3);
 
 private:
 	friend class LocalPlayerController;
 
-	Connection updateConn;
-	Connection fixedUpdateConn;
+	std::vector<Connection> conns;
 	std::unique_ptr<BodyController> controller;
+	// the collider doing all the physics
+	Physobject* collider;
 	std::vector<std::unique_ptr<Gameobject>> gameobjects;
 	IKSkeletonInfo ik;
 };
