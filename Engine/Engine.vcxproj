@@ -148,6 +148,7 @@
     <ClCompile Include="clustered_lighting.cpp" />
     <ClCompile Include="collider.cpp" />
     <ClCompile Include="collision_detection.cpp" />
+    <ClCompile Include="component.cpp" />
     <ClCompile Include="compute_shader_program.cpp" />
     <ClCompile Include="constraint.cpp" />
     <ClCompile Include="cursor.cpp" />
@@ -158,6 +159,7 @@
     <ClCompile Include="gl_error_handler.cpp" />
     <ClCompile Include="graphics_engine.cpp" />
     <ClCompile Include="gui.cpp" />
+    <ClCompile Include="hierachy_component.cpp" />
     <ClCompile Include="ik.cpp" />
     <ClCompile Include="indirect_draw_command.cpp" />
     <ClCompile Include="let_me_hash_a_tuple.cpp" />
@@ -221,6 +223,7 @@
     <ClInclude Include="gjk.hpp" />
     <ClInclude Include="graphics_engine.hpp" />
     <ClInclude Include="gui.hpp" />
+    <ClInclude Include="hierachy_component.hpp" />
     <ClInclude Include="ik.hpp" />
     <ClInclude Include="indirect_draw_command.hpp" />
     <ClInclude Include="let_me_hash_a_tuple.hpp" />

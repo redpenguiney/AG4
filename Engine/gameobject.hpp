@@ -88,16 +88,61 @@ public:
 	std::optional<Collision> TestCollision(Gameobject* other);
 
 	// returns nullptr if the component does not exist. returns first instance of created component.
+	// components are owned by the gameobject they are attached to and will be destroyed with the gameobject; don't hold on to component pointers past gameobject lifetime.
 	template<ComponentType T>
-	T* GetComponent();
+	T* GetComponent() {
+		for (auto& c : components->components) {
+			auto cast = dynamic_cast<T*>(c.get());
+			if (cast) return cast;
+		}
+		return nullptr;
+	}
 
-	// returns pointer to created component. you can add multiple of the same component if you want, but why???
+	// returns pointer to created component. you can add multiple of the same component if you want.
+	// components are owned by the gameobject they are attached to and will be destroyed with the gameobject; don't hold on to component pointers past gameobject lifetime.
 	template <ComponentType T, typename... ConstructorArgs>
-	T* AddComponent(ConstructorArgs... compArgs);
+	T* AddComponent(ConstructorArgs... compArgs) {
+		if (!components) components = std::make_unique<GameobjectComponents>();
+		auto ptr = new T(this, compArgs...);
+		components->components.emplace_back(ptr);
+		return ptr;
+	}
 
-	// does nothing if the component does not exist
+	// does nothing if the component does not exist. erases first instance of component type
 	template <ComponentType T>
-	void EraseComponent();
+	void EraseComponent() {
+		for (size_t i = 0; i < components->components.size(); i++) {
+			if (dynamic_cast<T*>(components->components[i]) != nullptr) {
+				components->components[i] = components->components.back();
+				components->components.pop_back();
+				return;
+			}
+		}
+	}
+	
+	// does nothing if the component does not exist. erases any instances of component type
+	template <ComponentType T>
+	void EraseComponents() {
+		for (size_t i = 0; i < components->components.size(); i++) {
+			if (dynamic_cast<T*>(components->components[i]) != nullptr) {
+				components->components[i] = components->components.back();
+				components->components.pop_back();
+				i--; // underflow is ok here
+			}
+		}
+	}
+	
+	// returns all instances of component type.
+	// components are owned by the gameobject they are attached to and will be destroyed with the gameobject; don't hold on to component pointers past gameobject lifetime.
+	template <ComponentType T>
+	std::vector<T*> GetComponents() {
+		std::vector<T*> ret;
+		for (auto& c : components->components) {
+			auto cast = dynamic_cast<T*>(c.get());
+			if (cast) ret.push_back(cast);
+		}
+		return ret;
+	}
 
 protected:
 	static inline std::unordered_map<Gameobject*, Skeleton> skeletons; // only contains gameobjects with skeletons.
@@ -123,6 +168,8 @@ protected:
 
 	// may be nullptr if no collisions
 	std::unique_ptr<Collider> collider;
+
+	std::unique_ptr<GameobjectComponents> components;
 
 	friend class Pool;
 	friend class RenderGroup;

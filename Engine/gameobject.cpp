@@ -35,6 +35,7 @@ std::optional<Collision> Gameobject::TestCollision(Gameobject* other)
 Gameobject::Gameobject(const GameobjectCreateParams& params) {
     live = true;
     normalMatDirty = true;
+    components = nullptr; // will be assigned on first creation of component
 
     friction = 0.5;
     elasticity = 0.5;

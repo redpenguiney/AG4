@@ -10,6 +10,7 @@
 #include "shader_program.hpp"
 #include "mesh.hpp"
 #include <debug_editing_tools.hpp>
+#include <hierachy_component.hpp>
 
 std::shared_ptr<GuiElement> frame;
 
@@ -95,9 +96,11 @@ Game::Game(std::vector<const char*> launchArgs) {
 	//testCollisionSubject[0]->SetRotation(glm::angleAxis(glm::radians(180.0f), glm::vec3{0, 1, 0}));
 	//testCollisionSubject.push_back(BuildSphere({ -2, 0, 0 }, 1.0f, false));
 	testCollisionSubject.push_back(BuildCapsule({ -2, 0, 0 }, 1.0f, 2.0f, false));
+
 	//std::vector<Gameobject*> testCollisionSubject = { BuildSphere({-2, 0, 0}, 1.0f, false), BuildSphere({2, 0, 0}, 1.0f, false)};
 	for (auto& o : testCollisionSubject) {
 		state->objs.emplace_back(o);
+		o->AddComponent<Hierarchy>();
 		TransformHandles(o);
 	}
 	ReportCollisions(testCollisionSubject[0], testCollisionSubject[1]);
