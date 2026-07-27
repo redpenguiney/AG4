@@ -125,7 +125,7 @@ public:
 
     unsigned int width = 0;
     unsigned int height = 0;
-    const bool doubleBuf = false;
+    const bool doubleBuf = true;
     const bool vsync = true; // value ignored if !doubleBuf
 
     Event<Window, InputObject>& inputDown;

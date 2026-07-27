@@ -153,5 +153,5 @@ void Framebuffer::Unbind() {
     glViewport(0, 0, windowWidth, windowHeight);
     
     glBindFramebuffer(GL_FRAMEBUFFER, 0); // TODO: other binding locations
-    //glDrawBuffer(GL_BACK);
+    glDrawBuffer(GL_BACK);
 }
