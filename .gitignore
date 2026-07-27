@@ -365,4 +365,4 @@ MigrationBackup/
 FodyWeavers.xsd
 
 # Make sure all 3D models are included (unfortunately named .obj format gets ignored otherwise)
-!models/
+!models/*.obj

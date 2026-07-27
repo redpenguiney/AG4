@@ -103,7 +103,7 @@ Game::Game(std::vector<const char*> launchArgs) {
 	//std::vector<Gameobject*> testCollisionSubject = { BuildSphere({-2, 0, 0}, 1.0f, false), BuildSphere({2, 0, 0}, 1.0f, false)};
 	for (auto& o : testCollisionSubject) {
 		state->objs.emplace_back(o);
-		o->AddComponent<Hierarchy>();
+		//o->AddComponent<Hierarchy>();
 		TransformHandles(o);
 	}
 	ReportCollisions(testCollisionSubject[0], testCollisionSubject[1]);

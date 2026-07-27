@@ -4,7 +4,6 @@
 #include <memory>
 #include "event.hpp"
 #include <plf_colony.h>
-
 class Gameobject;
 class BaseComponent;
 
@@ -15,7 +14,8 @@ public:
 private:
 	plf::colony<BaseComponent*> components;
 	Connection renderConnection;
-	Connection physicsConnection;
+	Connection prePhysicsConnection;
+	Connection postPhysicsConnection;
 
 	ComponentManager();
 	~ComponentManager() = default;
@@ -31,8 +31,9 @@ public:
 	BaseComponent(Gameobject* obj);
 	virtual ~BaseComponent();
 
-	virtual void PreRender(float dt);
-	virtual void PrePhysics(float dt);
+	virtual void PreRender(float dt); // base does nothing, don't worry about calling base implementation in your derived component classes
+	virtual void PrePhysics(float dt); // base does nothing, don't worry about calling base implementation in your derived component classes
+	virtual void PostPhysics(float dt); // base does nothing, don't worry about calling base implementation in your derived component classes
 
 private:
 	plf::colony<BaseComponent*>::iterator location;

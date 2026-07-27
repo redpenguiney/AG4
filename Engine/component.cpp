@@ -12,9 +12,14 @@ ComponentManager::ComponentManager() {
 			comp->PreRender(dt);
 		}
 		});
-	physicsConnection = Mainloop::Get().prePhysics.Connect([this](Mainloop*, float dt) {
+	prePhysicsConnection = Mainloop::Get().prePhysics.Connect([this](Mainloop*, float dt) {
 		for (auto& comp : components) {
 			comp->PrePhysics(dt);
+		}
+		});
+	postPhysicsConnection = Mainloop::Get().postPhysics.Connect([this](Mainloop*, float dt) {
+		for (auto& comp : components) {
+			comp->PostPhysics(dt);
 		}
 		});
 }
@@ -31,4 +36,7 @@ void BaseComponent::PreRender(float dt) {
 }
 
 void BaseComponent::PrePhysics(float dt) {
+}
+
+void BaseComponent::PostPhysics(float dt) {
 }
