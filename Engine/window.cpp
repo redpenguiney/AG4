@@ -40,6 +40,9 @@ Window::Window(int widthh, int heightt) :
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
+    // make window initially invisible so that user won't see pure white/black/etc. until first frame is drawn
+    glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+
     glfwWindow = glfwCreateWindow(width, height, "AG4", nullptr, nullptr);
     if (!glfwWindow) {
         glfwTerminate();
@@ -142,6 +145,10 @@ void Window::Update() {
 
 void Window::FlipBuffers() {
     //glfwSwapInterval(1);
+    if (!windowIsVisible) {
+        glfwShowWindow(glfwWindow);
+        windowIsVisible = true;
+    }
     if (vsync)
         glfwSwapBuffers(glfwWindow);
     else {

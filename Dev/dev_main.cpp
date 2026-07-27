@@ -176,7 +176,7 @@ Game::Game(std::vector<const char*> launchArgs) {
 		if (input.input == InputType::Space) Mainloop::Get().physicsPaused = !Mainloop::Get().physicsPaused;
 
 		if (input.input == InputType::T) {
-			if (state->objs.size() > 0) state->objs.pop_back();
+			if (state->objs.size() > 3) state->objs.pop_back();
 		}
 		else if (input.input == InputType::Y) {
 			state->objs.emplace_back(DebugPoint({ 0, 0, state->objs.size() }, { 1, 1, 1 }));

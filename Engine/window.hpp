@@ -204,6 +204,8 @@ public:
     Cursor systemVerticalResizingCursor;
 
 private:
+    bool windowIsVisible = false;
+
     Window(int widthh, int heightt);
 
     // NO GUARANTEES that this pointer is valid, do not access through. Only here to avoid redundant GLFW calls to set the current cursor.
