@@ -91,6 +91,9 @@ Game::Game(std::vector<const char*> launchArgs) {
 	}*/
 
 	auto testCollisionSubject = BuildCubeArray({ 1, -2, 0 }, { 2, 2, 2 }, { 1, 1, 1}, true, 0.0, 1.0);
+	testCollisionSubject.back()->SetScale({ 3, 5, 2 });
+	//testCollisionSubject[0]->SetScale({4, 1, 3});
+
 	//testCollisionSubject[0]->SetPosition({ 1.003f, -2.002, 1.2f });
 	//testCollisionSubject[0]->SetRotation({ -0.195, 0.328, -0.069, 0.922 });
 	//testCollisionSubject[0]->SetRotation(glm::angleAxis(glm::radians(180.0f), glm::vec3{0, 1, 0}));

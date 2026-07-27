@@ -114,7 +114,7 @@ static std::optional<Collision> ClipFaces(glm::vec3 normal, Gameobject* a, Gameo
         sidePlanes.push_back(std::make_pair(v1, glm::normalize(sideNormal)));
     }
 
-    glm::vec3 normalInBSpace = normalAToB * normal;
+    glm::vec3 normalInBSpace = glm::normalize(normalAToB * normal);
 
     // this is seemingly a face-face collision so we'll use the face closest to normal 
     unsigned contactFace = 0;
@@ -269,6 +269,7 @@ static std::pair<std::vector<std::pair<glm::vec3, float>>, size_t> GetFaceNormal
 
 
 static std::optional<Collision> CollideGJKEPA(Gameobject* a, Gameobject* b) { 
+
 #ifdef DEBUG_EPA
     Objs().clear();
 #endif
@@ -282,7 +283,8 @@ static std::optional<Collision> CollideGJKEPA(Gameobject* a, Gameobject* b) {
     glm::mat3x3 worldToA = glm::inverse(a->GetRotSclMatrix());
 
     // TODO: should be actually used in places besides face clipping
-    glm::mat3x3 normalAToB = glm::transpose(b->GetRotSclMatrix()) * glm::inverse(glm::transpose(a->GetRotSclMatrix()));
+    // remember that renormalization is still required
+    glm::mat3x3 normalAToB = glm::transpose(b->GetRotSclMatrix()) * glm::inverseTranspose(a->GetRotSclMatrix());
 
     //glm::mat3x4 bToA = bToWorld;
     //bToWorld[3] = bToARelPos;
@@ -298,7 +300,7 @@ static std::optional<Collision> CollideGJKEPA(Gameobject* a, Gameobject* b) {
     auto NewSimplexPoint = [&](glm::vec3 direction) -> std::array<glm::vec3, 3> {
         ValidateVector(direction);
         glm::vec3 supportA = pmA->Support(direction);
-        glm::vec3 directionInBSpace = normalAToB * direction;
+        glm::vec3 directionInBSpace = glm::normalize(normalAToB * direction);
 
         glm::vec3 supportB = pmB->Support(-directionInBSpace);
         glm::vec3 bInASpace = worldToA * ((b->GetRotSclMatrix() * supportB) - aToB);
@@ -706,6 +708,7 @@ static std::optional<Collision> CollideGJKEPA(Gameobject* a, Gameobject* b) {
 
     unsigned nIterations = 0;
     while (true) {
+        //DebugLogInfo("GJK ", nIterations, " ", simplex.size());
         nIterations++;
         if (nIterations == 64) {
             DebugLogError("WARNING: GJK FAILED TO DETERMINE COLLISION AFTER 64 ITERATIONS. NANs likely.");
@@ -717,7 +720,9 @@ static std::optional<Collision> CollideGJKEPA(Gameobject* a, Gameobject* b) {
 
         // this is the farthest point in this direction, so if it didn't get past the origin, then origin is gonna be outside the minoski difference meaning no collision.
         // TODO: maybe try other technique (see if distance has decreased)
-        if (glm::dot(newSimplexPoint[0], searchDirection) <= 0) {
+        float dotPastOrigin = glm::dot(newSimplexPoint[0], searchDirection);
+        if (dotPastOrigin <= 0.0f) {
+            //DebugLogInfo("Rejected simplex point gjk bc point ", newSimplexPoint[0], " in d ", searchDirection, " was ", dotPastOrigin);
             return std::nullopt;
         }
 
@@ -878,7 +883,7 @@ static std::optional<Collision> CollideSAT(Gameobject* a, Gameobject* b) {
     else if (bHasGreaterSeperation) {
         //DebugLogInfo("B HAS GREATER ", greatestSeperation);
 
-        auto backwardResult = ClipFaces((normalAToB * -collisionNormal), b, a, worldToA, bToARelPos, worldToB, normalBToA);
+        auto backwardResult = ClipFaces(glm::normalize(normalAToB * -collisionNormal), b, a, worldToA, bToARelPos, worldToB, normalBToA);
         if (backwardResult) {
             backwardResult->collisionNormal = a->ObjectNormalToWorld(collisionNormal);
             for (auto& p : backwardResult->collisionPoints) std::swap(p.first, p.second);
