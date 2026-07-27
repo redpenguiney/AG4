@@ -35,10 +35,11 @@ Window::Window(int widthh, int heightt) :
     glfwWindowHint(GLFW_DOUBLEBUFFER, doubleBuf ? GL_TRUE : GL_FALSE); // disbable double buffering; TODO THIS SHOULD NOT BE NECCESSARY
     glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE); // Tell GLFW we are going to be running opengl in debug mode, which lets us use GL_DEBUG_OUTPUT to get error messages easily
     
-    // request latest opengl version
+    // request core profile in latest opengl version
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
-    
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
     glfwWindow = glfwCreateWindow(width, height, "AG4", nullptr, nullptr);
     if (!glfwWindow) {
         glfwTerminate();
