@@ -62,6 +62,8 @@ Window::Window(int widthh, int heightt) :
         abort();
     }
 
+    DebugLogInfo("Using OpenGL version ", glGetString(GL_VERSION));
+
     // TODO: remove
     glfwSetWindowPos(glfwWindow, 540, 180);
 
