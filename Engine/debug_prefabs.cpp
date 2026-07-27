@@ -205,8 +205,8 @@ Gameobject* BuildCapsule(glm::dvec3 pos, float diameter, float height, bool phys
 	MeshCreateParams mp;
 	mp.LoadCapsule(12, 6, (height - diameter) / diameter);
 	p.mesh = Mesh::New(std::move(mp));
-	//p.physicsMesh = CapsulePhysicsGeometry::New((height - diameter) / diameter);
-	p.physicsMesh = SpherePhysicsGeometry::Get();
+	p.physicsMesh = CapsulePhysicsGeometry::New((height - diameter) / diameter);
+	//p.physicsMesh = SpherePhysicsGeometry::Get();
 	Gameobject* go;
 	if (physics) {
 		go = Physobject::New(p);

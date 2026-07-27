@@ -31,9 +31,9 @@ Game::Game(std::vector<const char*> launchArgs) {
 	//state->objs.emplace_back(DebugPoint({ 0.4, 0, 0 }, { 1, 0, 0 }));
 	//state->objs.emplace_back(DebugPoint({ 0, 0.4, 0 }, { 0, 1, 0 }));
 	//state->objs.emplace_back(DebugPoint({ 0, 0, 0.4 }, { 0, 0, 1 }));
-	//state->objs.emplace_back(DebugArrow({ 0, 0, 0 }, { 1, 0, 0 }, { 1, 0, 0 }));
-	//state->objs.emplace_back(DebugArrow({ 0, 0, 0 }, { 0, 1, 0 }, { 0, 1, 0 }));
-	//state->objs.emplace_back(DebugArrow({ 0, 0, 0 }, { 0, 0, 1 }, { 0, 0, 1 }));
+	state->objs.emplace_back(DebugArrow({ 0, 0, 0 }, { 1, 0, 0 }, { 1, 0, 0 }));
+	state->objs.emplace_back(DebugArrow({ 0, 0, 0 }, { 0, 1, 0 }, { 0, 1, 0 }));
+	state->objs.emplace_back(DebugArrow({ 0, 0, 0 }, { 0, 0, 1 }, { 0, 0, 1 }));
 
 	/*{
 		LoadSceneParams sceneParams;
@@ -98,7 +98,7 @@ Game::Game(std::vector<const char*> launchArgs) {
 	//std::vector<Gameobject*> testCollisionSubject = { BuildSphere({-2, 0, 0}, 1.0f, false), BuildSphere({2, 0, 0}, 1.0f, false)};
 	for (auto& o : testCollisionSubject) {
 		state->objs.emplace_back(o);
-		//TransformHandles(o);
+		TransformHandles(o);
 	}
 	ReportCollisions(testCollisionSubject[0], testCollisionSubject[1]);
 

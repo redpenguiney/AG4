@@ -403,7 +403,7 @@ RaycastResult CapsulePhysicsGeometry::Raycast(glm::dvec3 origin, glm::dvec3 dire
     // convert ray into object space
     // notice that we use floats here
     glm::vec3 rayRelPos = glm::vec3(origin - object->Position());
-    glm::vec3 rayRelDir = object->WorldNormalToObject(direction); 
+    //glm::vec3 rayRelDir = object->WorldNormalToObject(direction); 
     
     return RaycastResult{ .object = nullptr };
 }
@@ -425,12 +425,15 @@ glm::mat3x3 CapsulePhysicsGeometry::GetMomentOfInertia(glm::vec3 objectScale, fl
 
 glm::vec3 CapsulePhysicsGeometry::Support(glm::vec3 direction) const {
     float dotY = glm::dot(direction, { 0, 1, 0 });
+    glm::vec3 support;
     if (dotY > 0) {
-        return direction * 0.5f + glm::vec3(0.0f, lineSegmentLength / 2.0f, 0.0f);
+        support = direction * 0.5f + glm::vec3(0.0f, lineSegmentLength / 2.0f, 0.0f);
     }
     else {
-        return direction * 0.5f - glm::vec3(0.0f, lineSegmentLength / 2.0f, 0.0f);
+        support = direction * 0.5f - glm::vec3(0.0f, lineSegmentLength / 2.0f, 0.0f);
     }
+    support /= glm::vec3(1.0, lineSegmentLength + 1.0f, 1.0f);
+    return support;
 }
 
 void CapsulePhysicsGeometry::AddLocalMomentOfInertiaContribution(glm::vec3& centerOfMass, float& Ia, float& Ib, float& Ic, float& Iap, float& Ibp, float& Icp, glm::vec3 objectScale, float density)

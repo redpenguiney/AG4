@@ -87,16 +87,16 @@ public:
 	// both this object and the other object must have colliders
 	std::optional<Collision> TestCollision(Gameobject* other);
 
-	// returns nullptr if the component does not exist.
-	template<Component T>
+	// returns nullptr if the component does not exist. returns first instance of created component.
+	template<ComponentType T>
 	T* GetComponent();
 
-	// returns pointer to created component
-	template <Component T, typename... ConstructorArgs>
+	// returns pointer to created component. you can add multiple of the same component if you want, but why???
+	template <ComponentType T, typename... ConstructorArgs>
 	T* AddComponent(ConstructorArgs... compArgs);
 
 	// does nothing if the component does not exist
-	template <Component T>
+	template <ComponentType T>
 	void EraseComponent();
 
 protected:

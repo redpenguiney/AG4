@@ -31,10 +31,10 @@ Body::Body(std::unique_ptr<BodyController> c, BodyCreateParams bodyParams):
 {
 	controller->body = this;
 
-	conns.push_back(Mainloop::Get().preRender.Connect([this](Mainloop*, float dt) { 
+	/*conns.push_back(Mainloop::Get().preRender.Connect([this](Mainloop*, float dt) { 
 		SetPos(collider->Pos());
 		controller->Update(dt); 
-		}));
+		}));*/
 	conns.push_back(Mainloop::Get().prePhysics.Connect([this](Mainloop*, float dt) { controller->FixedUpdate(dt); }));
 
 	auto& scene = GetHumanoidMesh();

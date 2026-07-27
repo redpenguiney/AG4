@@ -120,27 +120,27 @@ void ReportCollisions(Gameobject* a, Gameobject* b) {
 	static auto conn = Mainloop::Get().preRender.Connect([a, b](Mainloop*, float) {
 		objects.clear();
 
-		//a->SetInstanceAttribute(*GetArrowMesh()->format.GetAttribute(SpecialVertexAttributeNames::AUTOMATIC_TEXTURE_ARRAY_SELECTION), -1);
+		a->SetInstanceAttribute(*GetArrowMesh()->format.GetAttribute(SpecialVertexAttributeNames::AUTOMATIC_TEXTURE_ARRAY_SELECTION), -1);
 
 		if (auto result = a->TestCollision(b)) {
 
 			//DebugLogInfo("A : ", a->Position(), " & ", a->Rotation());
 
-			//a->SetInstanceAttribute(*GetArrowMesh()->format.GetAttribute("color"), { 1, 0, 0, 1 });
-			//b->SetInstanceAttribute(*GetArrowMesh()->format.GetAttribute("color"), { 0, 0, 1, 1 });
+			a->SetInstanceAttribute(*GetArrowMesh()->format.GetAttribute("color"), { 1, 0, 0, 1 });
+			b->SetInstanceAttribute(*GetArrowMesh()->format.GetAttribute("color"), { 0, 0, 1, 1 });
 
-			//for (auto& [p1, p2] : result->collisionPoints) {
-				//glm::dvec3 rp1 = a->Position() + glm::dvec3(a->GetRotSclMatrix() * p1);
-				//objects.emplace_back(DebugArrow(rp1, -result->collisionNormal, { 1, 1, 0 }));
-				//objects.emplace_back(DebugPoint(rp1, { 1, 1, 0 }));
-				//glm::dvec3 rp2 = b->Position() + glm::dvec3(b->GetRotSclMatrix() * p2);
-				//objects.emplace_back(DebugArrow(rp2, result->collisionNormal, { 1, 0.5, 0 }));
-				//objects.emplace_back(DebugPoint(rp2, { 1, 0.5, 0 }));
-			//}
+			for (auto& [p1, p2] : result->collisionPoints) {
+				glm::dvec3 rp1 = a->Position() + glm::dvec3(a->GetRotSclMatrix() * p1);
+				objects.emplace_back(DebugArrow(rp1, -result->collisionNormal, { 1, 1, 0 }));
+				objects.emplace_back(DebugPoint(rp1, { 1, 1, 0 }));
+				glm::dvec3 rp2 = b->Position() + glm::dvec3(b->GetRotSclMatrix() * p2);
+				objects.emplace_back(DebugArrow(rp2, result->collisionNormal, { 1, 0.5, 0 }));
+				objects.emplace_back(DebugPoint(rp2, { 1, 0.5, 0 }));
+			}
 		}
 		else {
-			//a->SetInstanceAttribute(*GetArrowMesh()->format.GetAttribute("color"), { 0.5, 0.3, 0.3, 1 });
-			//b->SetInstanceAttribute(*GetArrowMesh()->format.GetAttribute("color"), { 0.3, 0.3, 0.5, 1 });
+			a->SetInstanceAttribute(*GetArrowMesh()->format.GetAttribute("color"), { 0.5, 0.3, 0.3, 1 });
+			b->SetInstanceAttribute(*GetArrowMesh()->format.GetAttribute("color"), { 0.3, 0.3, 0.5, 1 });
 		}
 		});
 }

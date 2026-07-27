@@ -14,11 +14,5 @@ protected:
 	virtual void PrePhysics(float dt);
 };
 
-// (curiously recurring template pattern)
-template <typename T>
-class ComponentCRTP {
-	std::unordered_map<Gameobject*, std::unique_ptr<T>>;
-};
-
 template <class T>
-concept Component = std::derived_from<T, BaseComponent>;
+concept ComponentType = std::derived_from<T, BaseComponent>;

@@ -13,7 +13,8 @@ void GameState::MakeGameplay() {
 	auto freecam = GetFreecam();
 	auto worldcam = controller->camera;
 
-	bodies.emplace_back(new Body(std::move(controller)));
+	BodyCreateParams bp;
+	bodies.emplace_back(new Body(std::move(controller), bp));
 
 
 
