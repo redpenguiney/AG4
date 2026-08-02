@@ -90,8 +90,9 @@ Game::Game(std::vector<const char*> launchArgs) {
 		state->objs.emplace_back(o);
 	}*/
 
-	auto testCollisionSubject = BuildCubeArray({ 1, -2, 0 }, { 2, 2, 2 }, { 1, 1, 1}, true, 0.0, 1.0);
-	testCollisionSubject.back()->SetScale({ 3, 5, 2 });
+	std::vector<Gameobject*> testCollisionSubject = {};
+	//testCollisionSubject = BuildCubeArray({ 1, -2, 0 }, { 2, 2, 2 }, { 1, 1, 1}, true, 0.0, 1.0);
+	//testCollisionSubject.back()->SetScale({ 3, 5, 2 });
 	//testCollisionSubject[0]->SetScale({4, 1, 3});
 
 	//testCollisionSubject[0]->SetPosition({ 1.003f, -2.002, 1.2f });
@@ -103,10 +104,17 @@ Game::Game(std::vector<const char*> launchArgs) {
 	//std::vector<Gameobject*> testCollisionSubject = { BuildSphere({-2, 0, 0}, 1.0f, false), BuildSphere({2, 0, 0}, 1.0f, false)};
 	for (auto& o : testCollisionSubject) {
 		state->objs.emplace_back(o);
-		//o->AddComponent<Hierarchy>();
+		o->AddComponent<Hierarchy>(true);
 		TransformHandles(o);
+
+		auto chain = BuildChain(o->Position() - glm::dvec3(0, 10, 0), 0.5f, 5, 0.0001f);
+		o->GetComponent<Hierarchy>()->AddChild(std::unique_ptr<Gameobject>(chain[0]));
+		for (size_t i = 1; i < chain.size(); i++) {
+			state->objs.emplace_back(chain[i]);
+		}
+
 	}
-	ReportCollisions(testCollisionSubject[0], testCollisionSubject[1]);
+	//ReportCollisions(testCollisionSubject[0], testCollisionSubject[1]);
 
 	/*for (auto& o : BuildChain({ 1, 0, 0 }, 1.0f, 15, 0.0001f)) {
 		state->objs.emplace_back(o);

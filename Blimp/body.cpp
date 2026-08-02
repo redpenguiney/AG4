@@ -4,6 +4,7 @@
 #include "shader_program.hpp"
 #include "mesh.hpp"
 #include <mainloop.hpp>
+#include <hierachy_component.hpp>
 
 static std::unique_ptr<Scene>& GetHumanoidMesh() {
 	LoadSceneParams sceneParams;
@@ -41,6 +42,16 @@ Body::Body(std::unique_ptr<BodyController> c, BodyCreateParams bodyParams):
 	std::shared_ptr<Mesh> mainBody = scene->meshes[0];
 
 	{
+		PhysobjectCreateParams physParams;
+		physParams.mesh = nullptr;
+		physParams.physicsMesh = CapsulePhysicsGeometry::New(bodyParams.height / bodyParams.radius - bodyParams.radius);
+		physParams.renderPasses = {};
+		collider = std::unique_ptr<Physobject>(Physobject::New(physParams));
+		collider->SetScale({ bodyParams.radius * 2.0f, bodyParams.height, bodyParams.radius * 2.0f });
+		collider->AddComponent<Hierarchy>(true);
+	}
+
+	{
 		GameobjectCreateParams renderParams;
 		renderParams.mesh = mainBody;
 		static auto pass = GetHumanoidDrawPass();
@@ -50,23 +61,14 @@ Body::Body(std::unique_ptr<BodyController> c, BodyCreateParams bodyParams):
 		obj->SetScale(mainBody->OriginalSize());
 		obj->SetInstanceAttribute(*mainBody->format.GetAttribute("color"), { 1, 1, 1, 1 });
 		obj->SetInstanceAttribute(*mainBody->format.GetAttribute(SpecialVertexAttributeNames::AUTOMATIC_TEXTURE_ARRAY_SELECTION), -1.0f);
-		gameobjects.push_back(std::move(obj));
+		collider->GetComponent<Hierarchy>()->AddChild(std::move(obj));
 
 		for (auto& b : mainBody->bones) {
 			//DebugLogInfo("BONE ", b.name);
 		}
 	}
 
-	{
-		PhysobjectCreateParams physParams;
-		physParams.mesh = nullptr;
-		physParams.physicsMesh = CapsulePhysicsGeometry::New(bodyParams.height / bodyParams.radius - bodyParams.radius);
-		physParams.renderPasses = {};
-		collider = Physobject::New(physParams);
-		auto obj = std::unique_ptr<Physobject>(collider);
-		obj->SetScale({bodyParams.radius * 2.0f, bodyParams.height, bodyParams.radius * 2.0f});
-		gameobjects.push_back(std::move(obj));
-	}
+	
 
 	/*IKBone hip;
 	hip.parent = nullptr;
@@ -88,8 +90,8 @@ LocalPlayerController::LocalPlayerController() {
 }
 
 void LocalPlayerController::Update(float dt) {
-	camera->position = body->gameobjects[0]->Position() + glm::dvec3(0, 1, 0);
-	camera->rotation = body->gameobjects[0]->Rotation();
+	camera->position = body->collider->Position() + glm::dvec3(0, 1, 0);
+	camera->rotation = body->collider->Rotation();
 }
 
 void LocalPlayerController::FixedUpdate(float dt)

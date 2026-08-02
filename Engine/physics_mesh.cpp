@@ -154,7 +154,7 @@ std::shared_ptr<ConvexMeshPhysicsGeometry> ConvexMeshPhysicsGeometry::FromMesh(c
         }
     }
     std::vector<glm::vec3> edges(uniqueEdgeDirections.begin(), uniqueEdgeDirections.end());
-    return std::shared_ptr<ConvexMeshPhysicsGeometry>(new ConvexMeshPhysicsGeometry(m, triangles, supportVerts, polygons, edges));
+    return std::shared_ptr<ConvexMeshPhysicsGeometry>(new ConvexMeshPhysicsGeometry(std::nullopt, m, triangles, supportVerts, polygons, edges));
 }
 
 
@@ -275,20 +275,21 @@ void ConvexMeshPhysicsGeometry::AddLocalMomentOfInertiaContribution(glm::vec3& c
 }
 
 ConvexMeshPhysicsGeometry::ConvexMeshPhysicsGeometry(
+    std::optional<glm::mat3x3> momentOfInertiaOverride,
     const std::shared_ptr<Mesh>& src,
     std::vector<std::array<glm::vec3, 3>> tris, 
     std::array<std::vector<glm::vec3>, 8> support, 
     std::vector<Polygon> polygons, 
     std::vector<glm::vec3> edges)
     : 
-    source(src), triangles(tris), supportVertices(support), polygons(polygons), uniqueEdgeDirections(edges) 
+    ConvexPhysicsGeometry(momentOfInertiaOverride), source(src), triangles(tris), supportVertices(support), polygons(polygons), uniqueEdgeDirections(edges) 
 {
 
 }
 
 std::shared_ptr<SpherePhysicsGeometry> SpherePhysicsGeometry::Get()
 {
-    static std::shared_ptr<SpherePhysicsGeometry> s = std::shared_ptr<SpherePhysicsGeometry>(new SpherePhysicsGeometry());
+    static std::shared_ptr<SpherePhysicsGeometry> s = std::shared_ptr<SpherePhysicsGeometry>(new SpherePhysicsGeometry(std::nullopt));
     return s;
 }
 
@@ -345,6 +346,10 @@ void SpherePhysicsGeometry::AddLocalMomentOfInertiaContribution(glm::vec3& cente
 }
 
 glm::mat3x3 SpherePhysicsGeometry::GetMomentOfInertia(glm::vec3 objectScale, float mass) {
+    if (momentOfInertiaOverride.has_value()) {
+        return momentOfInertiaOverride.value();
+    }
+
     float radiusSquared = 0.25f * objectScale.x * objectScale.x;
     auto moi = glm::identity<glm::mat3x3>();
     moi[0][0] = mass * radiusSquared * 0.4f;
@@ -357,7 +362,19 @@ float SpherePhysicsGeometry::Volume(glm::vec3 objectScale) {
     return 4.0f / 3.0f * 3.1415926f * objectScale.x * objectScale.x * objectScale.x;
 }
 
+SpherePhysicsGeometry::SpherePhysicsGeometry(std::optional<glm::mat3x3> momentOfInertiaOverride)
+    : ConvexPhysicsGeometry(momentOfInertiaOverride)
+{
+}
+
+BasePhysicsGeometry::BasePhysicsGeometry(std::optional<glm::mat3x3> momentOfInertiaOverride) : momentOfInertiaOverride(momentOfInertiaOverride) {
+}
+
 glm::mat3x3 BasePhysicsGeometry::GetMomentOfInertia(glm::vec3 objectScale, float objectMass) {
+	if (momentOfInertiaOverride.has_value()) {
+		return momentOfInertiaOverride.value();
+	}
+
     Assert(objectMass > 0);
     Assert(objectScale.x > 0 && objectScale.y > 0 && objectScale.z > 0);
 
@@ -392,9 +409,9 @@ glm::mat3x3 BasePhysicsGeometry::GetMomentOfInertia(glm::vec3 objectScale, float
     return inertiaTensor;
 }
 
-std::shared_ptr<CapsulePhysicsGeometry> CapsulePhysicsGeometry::New(float lineSegmentLength)
+std::shared_ptr<CapsulePhysicsGeometry> CapsulePhysicsGeometry::New(float lineSegmentLength, std::optional<glm::mat3x3> momentOfInertiaOverride)
 {
-    return std::shared_ptr<CapsulePhysicsGeometry>(new CapsulePhysicsGeometry(lineSegmentLength));
+    return std::shared_ptr<CapsulePhysicsGeometry>(new CapsulePhysicsGeometry(momentOfInertiaOverride, lineSegmentLength));
 }
 
 // TODO: UNTESTED
@@ -409,6 +426,10 @@ RaycastResult CapsulePhysicsGeometry::Raycast(glm::dvec3 origin, glm::dvec3 dire
 }
 
 glm::mat3x3 CapsulePhysicsGeometry::GetMomentOfInertia(glm::vec3 objectScale, float objectMass) {
+    if (momentOfInertiaOverride.has_value()) {
+        return momentOfInertiaOverride.value();
+    }
+
     // https://gamedev.net/tutorials/programming/math-and-physics/capsule-inertia-tensor-r3856
     glm::mat3x3 tensor = glm::identity<glm::mat3x3>();
     float cylHeight = objectScale.y - objectScale.x;
@@ -446,6 +467,9 @@ float CapsulePhysicsGeometry::Volume(glm::vec3 objectScale) {
     return glm::pi<float>() * (4.0f / 3.0f * r * r * r + lineSegmentLength * r * r); // (sphere + cylinder)
 }
 
-CapsulePhysicsGeometry::CapsulePhysicsGeometry(float len): lineSegmentLength(len) {
+CapsulePhysicsGeometry::CapsulePhysicsGeometry(std::optional<glm::mat3x3> momentOfInertiaOverride, float len) : ConvexPhysicsGeometry(momentOfInertiaOverride), lineSegmentLength(len) {
+}
+
+ConvexPhysicsGeometry::ConvexPhysicsGeometry(std::optional<glm::mat3x3> momentOfInertiaOverride) : BasePhysicsGeometry(momentOfInertiaOverride) {
 
 }

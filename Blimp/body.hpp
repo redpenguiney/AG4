@@ -49,7 +49,6 @@ private:
 	std::vector<Connection> conns;
 	std::unique_ptr<BodyController> controller;
 	// the collider doing all the physics
-	Physobject* collider;
-	std::vector<std::unique_ptr<Gameobject>> gameobjects;
+	std::unique_ptr<Physobject> collider;
 	IKSkeletonInfo ik;
 };

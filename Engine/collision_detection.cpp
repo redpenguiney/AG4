@@ -232,6 +232,7 @@ static std::optional<Collision> ClipFaces(glm::vec3 normal, Gameobject* a, Gameo
 
 // Helper function to get face normals of the polytope in a's object space.
     // Returns vector of pair {normal, distance to face} and index of the closest normal.
+// TODO: WE SOMETIMES HAVE DEGENERATE TRIANGLES WHICH CAUSE THIS FUNCTION TO FAIL NORMAL VALIDATION -> CRASH. 
 static std::pair<std::vector<std::pair<glm::vec3, float>>, size_t> GetFaceNormals(const std::vector<unsigned int>& faces, const std::vector<std::array<glm::vec3, 3>>& polytope) {
     std::vector<std::pair<glm::vec3, float>> tnormals;
     Assert(faces.size() > 0);
@@ -246,6 +247,8 @@ static std::pair<std::vector<std::pair<glm::vec3, float>>, size_t> GetFaceNormal
 
         glm::vec3 normal = glm::normalize(glm::cross(b[0] - a[0], c[0] - a[0]));
         float distance = glm::dot(normal, a[0]);
+
+        ValidateVector(normal);
 
         if (distance < 0) {
             normal *= -1;

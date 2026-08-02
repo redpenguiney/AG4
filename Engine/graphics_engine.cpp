@@ -72,7 +72,7 @@ void GraphicsEngine::WriteModelMatrices() {
         for (auto& page : iterable) {
             for (unsigned i = 0; i < POOL_OBJECTS_PER_PAGE; i++) {
                 Gameobject& obj = page[i].obj;
-                if (!obj.Live()) continue;
+                if (!obj.Live() || !obj.meshpool) continue;
 
                 
                 glm::vec3 relPos;

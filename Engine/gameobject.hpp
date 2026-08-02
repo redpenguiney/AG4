@@ -91,6 +91,7 @@ public:
 	// components are owned by the gameobject they are attached to and will be destroyed with the gameobject; don't hold on to component pointers past gameobject lifetime.
 	template<ComponentType T>
 	T* GetComponent() {
+		if (!components) return nullptr;
 		for (auto& c : components->components) {
 			auto cast = dynamic_cast<T*>(c.get());
 			if (cast) return cast;
@@ -111,6 +112,7 @@ public:
 	// does nothing if the component does not exist. erases first instance of component type
 	template <ComponentType T>
 	void EraseComponent() {
+		if (!components) return;
 		for (size_t i = 0; i < components->components.size(); i++) {
 			if (dynamic_cast<T*>(components->components[i]) != nullptr) {
 				components->components[i] = components->components.back();
@@ -123,6 +125,7 @@ public:
 	// does nothing if the component does not exist. erases any instances of component type
 	template <ComponentType T>
 	void EraseComponents() {
+		if (!components) return;
 		for (size_t i = 0; i < components->components.size(); i++) {
 			if (dynamic_cast<T*>(components->components[i]) != nullptr) {
 				components->components[i] = components->components.back();
@@ -136,6 +139,7 @@ public:
 	// components are owned by the gameobject they are attached to and will be destroyed with the gameobject; don't hold on to component pointers past gameobject lifetime.
 	template <ComponentType T>
 	std::vector<T*> GetComponents() {
+		if (!components) return {};
 		std::vector<T*> ret;
 		for (auto& c : components->components) {
 			auto cast = dynamic_cast<T*>(c.get());
