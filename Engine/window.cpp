@@ -278,6 +278,9 @@ InputType glfwKeyToInputType(int key) {
         return InputType::Ctrl;
     case GLFW_KEY_LEFT_SUPER: // windows key, here to avoid an annoying unrecognized key msg 
         return InputType::Unknown;
+    case GLFW_KEY_RIGHT_SHIFT:
+    case GLFW_KEY_LEFT_SHIFT:
+        return InputType::Shift;
     case GLFW_KEY_UNKNOWN:
         DebugLogError("Unrecognized key. Even GLFW doesn't know it.");
         return InputType::Unknown;

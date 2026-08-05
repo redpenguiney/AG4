@@ -4,7 +4,7 @@
 #include <mainloop.hpp>
 
 void GameState::MakeGameplay() {
-	for (auto& obj : BuildPit({ 0, -10, 0 }, { 1000, 10, 1000 }, 0.2f, 1.0f)) {
+	for (auto& obj : BuildPit({ 0, -10, 0 }, { 100, 10, 100 }, 0.2f, 1.0f)) {
 		staticObjects.emplace_back(obj);
 	}
 
@@ -15,10 +15,11 @@ void GameState::MakeGameplay() {
 
 	BodyCreateParams bp;
 	bodies.emplace_back(new Body(std::move(controller), bp));
+	bodies.back()->SetPos({ 0, -8, 0 });
 
+	Mainloop::Get().physicsPaused = false;
 
-
-	GraphicsEngine::Get().currentCamera = freecam;
+	GraphicsEngine::Get().currentCamera = worldcam;
 	static auto c = Window::Get().postInputProccessing.Connect([freecam, worldcam](Window*) {
 		if (Window::Get().PRESS_BEGAN_KEYS.contains(InputType::F)) {
 			if (GraphicsEngine::Get().currentCamera == worldcam) {

@@ -25,6 +25,9 @@ class LocalPlayerController: public BodyController {
 public:
 	LocalPlayerController();
 
+	float lookYaw;
+	float lookPitch;
+
 	std::shared_ptr<Camera> camera;
 
 	void Update(float dt) override;

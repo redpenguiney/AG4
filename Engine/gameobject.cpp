@@ -190,7 +190,18 @@ Physobject::Physobject(const PhysobjectCreateParams& params): Gameobject(params)
 void Physobject::UpdateMass() {
     float mass = 1 / inverseMass;
     if (collider) {
-        inverseInertiaTensor = glm::inverse(collider->physicsMesh->GetMomentOfInertia(Scale(), mass));
+		auto inertiaTensor = collider->physicsMesh->GetMomentOfInertia(Scale(), mass);
+        if (inertiaTensor[1][0] == 0 && inertiaTensor[1][2] == 0 && inertiaTensor[0][1] == 0 && inertiaTensor[2][1] == 0 && inertiaTensor[2][0] == 0 && inertiaTensor[0][2] == 0) {
+            // then it's a diagonal matrix; invert diagonal elements. this is neccesary so that if someone's inertia tensor contains infinities (to disable rotation) we don't get NANs
+			inverseInertiaTensor = {
+				1 / inertiaTensor[0][0], 0, 0,
+				0, 1 / inertiaTensor[1][1], 0,
+				0, 0, 1 / inertiaTensor[2][2]
+			};
+        }
+        else {
+            inverseInertiaTensor = glm::inverse(inertiaTensor);
+        }
     }
     else {
         inverseInertiaTensor = { // todo: questionable physical accuracy
@@ -221,4 +232,5 @@ void Physobject::SetScale(const glm::vec3& scl) {
 
 void Physobject::SetMass(float mass) {
     inverseMass = 1 / mass;
+    UpdateMass();
 }

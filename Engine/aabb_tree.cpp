@@ -90,6 +90,9 @@ void AABBTree::Insert(Collider* value) {
 			break;
 		}
 		else {
+			if (currentNode->children[index] == nullptr) {
+				currentNode->children[index] = CreateChildNode(currentNode, value);
+			}
 			currentNode = currentNode->children[index].get();
 		}
 	}
@@ -208,6 +211,21 @@ void AABBTree::CollectAABBIntersections(std::vector<Collider*>& list, Node* n, c
 	}
 }
 
+std::unique_ptr<AABBTree::Node> AABBTree::CreateChildNode(Node* parent, Collider* obj)
+{
+	auto n = std::make_unique<Node>();
+	n->parent = parent;
+	n->bounds = obj->aabb;
+	n->empty = false;
+	n->split = false;
+#ifdef  DEBUG_AABBTREE_VISUALIZATION
+	n->visualizer = GetVisualizerObject();
+	n->visualizer->SetPosition(n->bounds.Center());
+	n->visualizer->SetScale(n->bounds.max - n->bounds.min);
+#endif
+	return n;
+}
+
 bool AABBTree::OptimizeDirtyNode(Node* n) {
 	n->dirty = false;
 
@@ -293,16 +311,7 @@ void AABBTree::TrySplitNode(AABBTree::Node* n) {
 		}
 		else {
 			if (n->children[index] == nullptr) {
-				n->children[index] = std::make_unique<Node>();
-				n->children[index]->parent = n;
-				n->children[index]->bounds = obj->aabb;
-				n->children[index]->empty = false;
-				n->children[index]->split = false;
-#ifdef  DEBUG_AABBTREE_VISUALIZATION
-				n->children[index]->visualizer = GetVisualizerObject();
-				n->children[index]->visualizer->SetPosition(n->children[index]->bounds.Center());
-				n->children[index]->visualizer->SetScale(n->children[index]->bounds.max - n->children[index]->bounds.min);
-#endif
+				n->children[index] = CreateChildNode(n, obj);
 			}
 			else {
 				n->children[index]->bounds.Grow(obj->aabb);

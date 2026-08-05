@@ -23,6 +23,7 @@ std::unique_ptr<Gameobject> Hierarchy::ReleaseChild(Gameobject* whichOne)
 			return ret;
 		}
 	}
+	return nullptr;
 }
 
 const std::vector<std::unique_ptr<Gameobject>>& Hierarchy::GetChildren() {
@@ -76,17 +77,30 @@ void Hierarchy::ApplyTransform(glm::dvec3 newPos, glm::quat newRotation, glm::ve
 		}
 	}
 
-	lastPos = object->Position();
-	lastRot = object->Rotation();
-	lastScale = object->Scale();
-
 	object->SetPosition(newPos);
 	object->SetRotation(newRotation);
 	object->SetScale(newScale);
 
-
+	lastPos = object->Position();
+	lastRot = object->Rotation();
+	lastScale = object->Scale();
 }
 
 void Hierarchy::Transform(glm::dvec3 newPos, glm::quat newRotation, glm::vec3 newScale) {
 	ApplyTransform(newPos, newRotation, newScale);
+}
+
+void Hierarchy::Transform(glm::dvec3 newPos)
+{
+	ApplyTransform(newPos, object->Rotation(), object->Scale());
+}
+
+void Hierarchy::Transform(glm::dvec3 newPos, glm::quat newRotation)
+{
+	ApplyTransform(newPos, newRotation, object->Scale());
+}
+
+void Hierarchy::Transform(glm::quat newRotation)
+{
+	ApplyTransform(object->Position(), newRotation, object->Scale());
 }

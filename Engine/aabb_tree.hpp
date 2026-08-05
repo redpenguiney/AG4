@@ -39,6 +39,7 @@ public:
 
 	};
 
+
 	// Returns list of colliders whose AABBs intersect the given ray.
 	std::vector<Collider*> QueryRay(glm::dvec3 direction, glm::dvec3 origin);
 
@@ -59,6 +60,8 @@ public:
 private:
 	void CollectRayIntersections(std::vector<Collider*>& list, Node* n, const glm::dvec3 inverseDirection, const glm::dvec3 origin);
 	void CollectAABBIntersections(std::vector<Collider*>& list, Node* n, const AABB& aabb);
+
+	std::unique_ptr<Node> CreateChildNode(Node* parent, Collider* obj);
 
 	// returns true if the node is empty and can be removed
 	bool OptimizeDirtyNode(Node* n);

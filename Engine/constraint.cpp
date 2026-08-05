@@ -14,6 +14,7 @@ struct PBDHelpers {
 		//DebugLogInfo("N ", dnormal, " R1 ", rotatedR1, " p = ", penetration);
 
 		auto [reducedInverseMass1, inertiaAroundTorqueAxis1] = obj1->GetInverseReducedMass(torqueAxis1);
+		Assert(!std::isnan(reducedInverseMass1) && !std::isnan(inertiaAroundTorqueAxis1));
 
 		float adjustedCompliance = compliance / timestep / timestep;
 		float deltaLagrange = (correctionStrength - currentLagrange * adjustedCompliance) / (reducedInverseMass1 + adjustedCompliance);

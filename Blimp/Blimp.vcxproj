@@ -169,6 +169,8 @@
   <ItemGroup>
     <ClInclude Include="body.hpp" />
     <ClInclude Include="game_state.hpp" />
+    <ClInclude Include="inventory.hpp" />
+    <ClInclude Include="item.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

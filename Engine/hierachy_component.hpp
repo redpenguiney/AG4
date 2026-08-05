@@ -16,7 +16,7 @@ public:
 
 	void AddChild(std::unique_ptr<Gameobject> child);
 
-	// O(n children) complexity
+	// O(n children) complexity, returns nullptr if no such child
 	std::unique_ptr<Gameobject> ReleaseChild(Gameobject* whichOne);
 
 	const std::vector<std::unique_ptr<Gameobject>>& GetChildren();
@@ -27,6 +27,9 @@ public:
 	void PostPhysics(float dt) override;
 
 	void Transform(glm::dvec3 newPos, glm::quat newRotation, glm::vec3 newScale);
+	void Transform(glm::dvec3 newPos);
+	void Transform(glm::dvec3 newPos, glm::quat newRotation);
+	void Transform(glm::quat newRotation);
 
 	~Hierarchy();
 private:
