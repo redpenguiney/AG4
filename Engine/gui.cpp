@@ -11,7 +11,8 @@ static void SupplyTextUniforms(std::shared_ptr<BaseShaderProgram> shader) {
     shader->Uniform("fontMappingEnabled", true);
 }
 
-static std::shared_ptr<GuiContainer> ScreenGui() {
+// not static bc mingw says so
+std::shared_ptr<GuiContainer> ScreenGui() {
     auto pass = std::shared_ptr<DrawPass>(new DrawPass());
     pass->outputs.push_back(WINDOW_RESOURCE_NAME);
     pass->outputs.push_back("FRAMES_DRAWN");

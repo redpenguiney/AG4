@@ -34,9 +34,7 @@
     <ClCompile />
   </ItemDefinitionGroup>
   <ItemDefinitionGroup>
-    <ClCompile>
-      <ConformanceMode />
-    </ClCompile>
+    <ClCompile />
   </ItemDefinitionGroup>
   <ItemDefinitionGroup>
     <ClCompile>

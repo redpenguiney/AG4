@@ -1,6 +1,7 @@
 #pragma once
 #include <ostream>
 #include <concepts>
+#include <assert.hpp>
 
 template<typename T>
 concept CheckedUintOperand = std::integral<T>;
@@ -14,10 +15,22 @@ public:
 	constexpr static inline bool CHECK_OVERFLOW = true;
 
 	// intializes value
-	CheckedUint(unsigned int initialValue);
-	CheckedUint(unsigned long initialValue);
-	CheckedUint(unsigned long long initialValue);
-	//CheckedUint(size_t initialValue);
+	constexpr CheckedUint(unsigned int initialValue) : value(initialValue)
+	{
+
+	}
+
+	constexpr CheckedUint(unsigned long initialValue) : value(initialValue)
+	{
+		Assert(initialValue <= std::numeric_limits<unsigned int>::max());
+	}
+
+	constexpr CheckedUint(unsigned long long initialValue) : value(initialValue)
+	{
+		Assert(initialValue <= std::numeric_limits<unsigned int>::max());
+	}
+
+	//constexpr CheckedUint(size_t initialValue);
 
 	// intializes value statically
 	//consteval CheckedUint(unsigned int initialValue);
@@ -25,11 +38,17 @@ public:
 	//consteval CheckedUint(size_t initialValue);
 
 	// checks for negative
-	CheckedUint(int initialValue);
+	constexpr CheckedUint(int initialValue) : value((unsigned int)initialValue)
+	{
+		if (CHECK_OVERFLOW) {
+			Assert(initialValue >= 0);
+		}
+	}
+
 	//CheckedUint(long initialValue);
 
 	// does not initialize value
-	CheckedUint();
+	constexpr CheckedUint() {}
 
 	CheckedUint operator+=(const CheckedUint& other);
 	CheckedUint operator-=(const CheckedUint& other);

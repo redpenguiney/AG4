@@ -6,7 +6,7 @@
 #define DO_ASSERTS
 
 // basically a copy of cassert. used because visual studio defines NDEBUG in release builds and often we don't want that.
-inline void private_assert(const char* file, int line, bool predicate, const char* assertion) {
+inline constexpr void private_assert(const char* file, int line, bool predicate, const char* assertion) {
 #ifdef DO_ASSERTS
 	if (!predicate) {
 		DebugLogError("\nAssertion \"", assertion, "\" not met at line ", line, " of \"", file, "\". ");

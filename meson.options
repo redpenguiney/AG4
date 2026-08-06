@@ -1,0 +1,4 @@
+option('game_source_path', type : 'string', description : 'path to folder containing game source code')
+option('game_name', type : 'string')
+option('vcpkg_triplet_path', type : 'string', description : 'should look like \'./vcpkg_installed/x64-windows/x64-windows\' or something, with the debug at the end if neccesary')
+option('vcpkg_include_path', type : 'string', description : 'should look like \'./vcpkg_installed/x64-windows/x64-windows\include\' or something, with the debug at the end if neccesary')

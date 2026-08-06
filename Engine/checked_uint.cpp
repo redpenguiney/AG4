@@ -127,20 +127,6 @@ constexpr std::strong_ordering operator<=>(const CheckedUint& a, const unsigned 
     return a <=> CheckedUint(b);
 }
 
-CheckedUint::CheckedUint(unsigned int initialValue): value(initialValue)
-{
-}
-
-CheckedUint::CheckedUint(unsigned long initialValue): value(initialValue)
-{
-    Assert(initialValue <= std::numeric_limits<unsigned int>::max());
-}
-
-CheckedUint::CheckedUint(unsigned long long initialValue) : value(initialValue)
-{
-    Assert(initialValue <= std::numeric_limits<unsigned int>::max());
-}
-
 //CheckedUint::CheckedUint(size_t initialValue): value(initialValue)
 //{
 //    Assert(initialValue <= std::numeric_limits<unsigned int>::max());
@@ -149,15 +135,3 @@ CheckedUint::CheckedUint(unsigned long long initialValue) : value(initialValue)
 //consteval CheckedUint::CheckedUint(size_t initialValue): value(initialValue) {
 //    static_assert(initialValue <= std::numeric_limits<unsigned int>::max());
 //}
-
-CheckedUint::CheckedUint(int initialValue): value(unsigned int(initialValue))
-{
-    if (CHECK_OVERFLOW) {
-        Assert(initialValue >= 0);
-    }
-    
-}
-
-CheckedUint::CheckedUint()
-{
-}

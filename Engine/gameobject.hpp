@@ -175,7 +175,7 @@ protected:
 
 	std::unique_ptr<GameobjectComponents> components;
 
-	friend class Pool;
+	friend Pool;
 	friend class RenderGroup;
 	friend class GraphicsEngine;
 	friend class PhysicsEngine; 
@@ -231,7 +231,7 @@ protected:
 	
 	float inverseMass;
 
-	friend class Pool;
+	friend Pool;
 	friend class PhysicsEngine;
 	friend struct StaticCollisionConstraint;
 	friend struct DynamicCollisionConstraint;

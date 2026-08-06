@@ -121,7 +121,7 @@ private:
 	std::unique_ptr<Gameobject> textobject; // may be nullptr
 	GuiContainer* container; // non-owning, always valid
 
-	GuiElement* parent;
+	GuiElement* parent = nullptr;
 	std::vector<std::shared_ptr<GuiElement>> children;
 
 	// unparents the GuiElement, if it has a parent.

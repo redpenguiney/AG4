@@ -83,7 +83,7 @@ void NetworkingEngine::Update() {
     }
     else {
         Assert(false);
-        std::unreachable();
+        //std::unreachable();
     }
 }
 
@@ -144,7 +144,7 @@ NetworkingEngine::NetworkingEngine() {
     if (!GameNetworkingSockets_Init(nullptr, err)) {
 		DebugLogError("Failed to initialize GameNetworkingSockets: ", err);
         Assert(false);
-        std::unreachable();
+        //std::unreachable();
     }
 
     SteamNetworkingUtils()->SetDebugOutputFunction(k_ESteamNetworkingSocketsDebugOutputType_Debug, SteamDebugCallback);

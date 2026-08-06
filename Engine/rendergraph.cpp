@@ -599,7 +599,7 @@ void RenderGraph::Compile() {
 			for (auto& n : pass.sources) {
 				auto& drawPass = drawPasses.at(n);
 				for (auto& usageDescriptor : drawPass->boundTextures) {
-					Texture* tex;
+					Texture* tex = nullptr;
 					if (std::holds_alternative<std::string>(usageDescriptor.texture)) {
 						tex = attachmentLocations.at(std::get<std::string>(usageDescriptor.texture));
 					}
@@ -608,7 +608,7 @@ void RenderGraph::Compile() {
 					}
 					else {
 						Assert(false);
-						std::unreachable();
+						//std::unreachable();
 					}
 					pass.textures.push_back(TextureBinding{
 						.textureToBind = tex,

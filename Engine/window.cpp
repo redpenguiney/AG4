@@ -535,5 +535,6 @@ std::optional<std::string> InputToString(InputObject input) {
         return std::nullopt;
     }
 
-    std::unreachable();
+    Assert(false);
+    //std::unreachable();
 }

@@ -72,12 +72,14 @@ std::string Shader::GetInfoLog() {
     {
         GLchar* InfoLog = new GLchar[InfoLogLength];
         glGetShaderInfoLog(shaderId, InfoLogLength, &CharsWritten, InfoLog);
-        return std::string(InfoLog);
+		auto s = std::string(InfoLog);
         delete[] InfoLog;
+        return s;
+
     };
 
     Assert(false);
-    std::unreachable();
+    //std::unreachable();
 }
 
 Shader::Shader(const char* path, GLenum shaderType):

@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <array>
 #include <set>
+#include <memory>
 
 class Mesh;
 class ShaderProgram;

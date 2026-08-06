@@ -110,7 +110,7 @@ void StaticCollisionConstraint::VelocityPass(float timestep) {
 
 	float deltaSpeed = glm::length2(deltaV);
 	if (deltaSpeed != 0) {
-		deltaSpeed = std::sqrtf(deltaSpeed);
+		deltaSpeed = glm::sqrt(deltaSpeed);
 		glm::vec3 torqueAxis1 = glm::cross(rotatedR1, deltaV/deltaSpeed);
 		float inertiaAroundTorqueAxis = 0;
 		if (glm::length2(torqueAxis1) != 0) {
@@ -175,7 +175,7 @@ void DynamicCollisionConstraint::VelocityPass(float timestep) {
 
 	float deltaSpeed = glm::length2(deltaV);
 	if (deltaSpeed != 0) {
-		deltaSpeed = std::sqrtf(deltaSpeed);
+		deltaSpeed = glm::sqrt(deltaSpeed);
 		glm::vec3 torqueAxis1 = glm::cross(rotatedR1, deltaV / deltaSpeed);
 		float inertiaAroundTorqueAxis1 = 0;
 		if (glm::length2(torqueAxis1) != 0) {
