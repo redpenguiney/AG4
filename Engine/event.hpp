@@ -84,7 +84,7 @@ public:
 
 	// Without providing an object, the provided function will be called when Fire() is called with any object, until the returned Connection is destroyed.
 	// WARNING: if you fail to store this Connection, the function will be instantly disconnected.
-	Connection Connect(ConnectableFunction f) {
+	[[nodiscard]] Connection Connect(ConnectableFunction f) {
 		return Connect(nullptr, f);
 	}
 

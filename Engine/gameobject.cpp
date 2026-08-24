@@ -31,8 +31,10 @@ std::optional<Collision> Gameobject::TestCollision(Gameobject* other)
     
 }
 
+uint64_t Gameobject::nextId = 0;
+
 #pragma warning(disable : 26495)
-Gameobject::Gameobject(const GameobjectCreateParams& params) {
+Gameobject::Gameobject(const GameobjectCreateParams& params): id(nextId++) {
     live = true;
     normalMatDirty = true;
     components = nullptr; // will be assigned on first creation of component

@@ -33,6 +33,8 @@ struct GameobjectCreateParams {
 
 class Gameobject {
 public:
+	const uint64_t id; // unique to the gameobject, never reused.
+
 	// We use a factory function so gameobjects are always created in an object pool.
 	// You own the returned pointer and may safely place it in whatever wrappers (std::shared_ptr, std::unique_ptr, etc.) you please.
 	static Gameobject* New(const GameobjectCreateParams& params);
@@ -149,6 +151,7 @@ public:
 	}
 
 protected:
+	static uint64_t nextId;
 	static inline std::unordered_map<Gameobject*, Skeleton> skeletons; // only contains gameobjects with skeletons.
 
 	Gameobject(const GameobjectCreateParams& params);
