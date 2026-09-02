@@ -55,10 +55,10 @@ public:
 
 	// if client, will only return local machine and server.
 	// do not call if state is not client, server, or servershuttingdown.
-	const std::vector<std::unique_ptr<Player>>& GetPlayers() const;
+	const std::vector<std::shared_ptr<Player>>& GetPlayers() const;
 
 	// do not call if state is not client, server, or servershuttingdown.
-	const std::unique_ptr<Player>& GetLocalMachinePlayer() const;
+	const std::shared_ptr<Player> GetLocalMachinePlayer() const;
 
 	static NetworkingEngine& Get();
 	void Update();
@@ -164,7 +164,10 @@ public:
 private:
 
 	// first entry is always local machine
-	std::vector<std::unique_ptr<Player>> players;
+	std::vector<std::shared_ptr<Player>> players;
+
+	// not populated for every player object
+	std::unordered_map<Player*, ConnectionInfo*> playerConnections;
 
 	struct ReceivingChannelInfo {
 		unsigned channel;

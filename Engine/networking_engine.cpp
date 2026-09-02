@@ -104,17 +104,17 @@ const NetworkState NetworkingEngine::GetState() const {
     return state;
 }
 
-const std::vector<std::unique_ptr<Player>>& NetworkingEngine::GetPlayers() const
+const std::vector<std::shared_ptr<Player>>& NetworkingEngine::GetPlayers() const
 {
     Assert(state == NetworkState::Client || state == NetworkState::Server || state == NetworkState::ServerShuttingDown);
     return players;
 }
 
-const std::unique_ptr<Player>& NetworkingEngine::GetLocalMachinePlayer() const
+const std::shared_ptr<Player> NetworkingEngine::GetLocalMachinePlayer() const
 {
     Assert(state == NetworkState::Client || state == NetworkState::Server || state == NetworkState::ServerShuttingDown);
     Assert(players.size() > 0);
-    Assert(players[0]->sockConnection == std::nullopt);
+    Assert(playerConnections.contains(players[0].get()) == false);
     return players[0];
 }
 
