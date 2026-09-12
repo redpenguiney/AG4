@@ -2,6 +2,11 @@
 #include "debug_prefabs.hpp"
 #include <window.hpp>
 #include <mainloop.hpp>
+#include "chat.hpp"
+
+GameState::GameState() : chat()
+{
+}
 
 void GameState::MakeGameplay() {
 	for (auto& obj : BuildPit({ 0, -10, 0 }, { 100, 10, 100 }, 0.2f, 1.0f)) {
@@ -20,7 +25,7 @@ void GameState::MakeGameplay() {
 	Mainloop::Get().physicsPaused = false;
 
 	GraphicsEngine::Get().currentCamera = worldcam;
-	static auto c = Window::Get().postInputProccessing.Connect([freecam, worldcam](Window*) {
+	static auto c = Window::Get().postInputProccessing.Connect([this, freecam, worldcam](Window*) {
 		if (Window::Get().PRESS_BEGAN_KEYS.contains(InputType::F)) {
 			if (GraphicsEngine::Get().currentCamera == worldcam) {
 				GraphicsEngine::Get().currentCamera = freecam;
@@ -31,6 +36,10 @@ void GameState::MakeGameplay() {
 		}
 		else if (Window::Get().PRESS_BEGAN_KEYS.contains(InputType::Space)) {
 			Mainloop::Get().physicsPaused = !Mainloop::Get().physicsPaused;
+		}
+		else if (Window::Get().PRESS_BEGAN_KEYS.contains(InputType::P)) {
+			DebugLogInfo("Sending " + std::to_string(NetworkingEngine::Get().IsClient()));
+			chat.SendMessage("Hello, world! client=" + std::to_string(NetworkingEngine::Get().IsClient()));
 		}
 	});
 }

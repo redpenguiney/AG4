@@ -1,4 +1,3 @@
-#pragma once
 #include "../Engine/debug_prefabs.hpp"
 #include "game_state.hpp"
 #include "game.hpp"

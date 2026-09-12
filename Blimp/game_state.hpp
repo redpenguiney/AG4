@@ -5,11 +5,16 @@
 #include "event.hpp"
 #include "gameobject.hpp"
 #include "body.hpp"
+#include "chat.hpp"
 
 class GuiElement;
 
 class GameState {
 public:
+	GameState();
+
+	Chat chat;
+
 	void MakeGameplay();
 
 

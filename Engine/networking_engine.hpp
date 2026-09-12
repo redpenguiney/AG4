@@ -11,6 +11,9 @@
 #include "log.hpp"
 #include <tuple>
 #include <GameNetworkingSockets/steam/steamnetworkingsockets.h>
+#include <type_traits>
+
+struct ConnectionInfo;
 
 enum class NetworkState {
 	Offline,
@@ -49,16 +52,28 @@ enum class PacketType : uint8_t {
 	UserMessage = 0, // 1 byte PacketType, 4 byte uint channel, then serialized data
 };
 
+class NetworkUserMessageConnection : public IConnection {
+private:
+	size_t connectionId;
+	unsigned channel;
+	friend class NetworkingEngine;
+	static inline size_t lastId = 0;
+public:
+	~NetworkUserMessageConnection();
+};
+
 class NetworkingEngine {
 public:
+	friend class NetworkUserMessageConnection;
+
 	const NetworkState GetState() const;
 
 	// if client, will only return local machine and server.
 	// do not call if state is not client, server, or servershuttingdown.
-	const std::vector<std::unique_ptr<Player>>& GetPlayers() const;
+	const std::vector<std::shared_ptr<Player>>& GetPlayers() const;
 
-	// do not call if state is not client, server, or servershuttingdown.
-	const std::unique_ptr<Player>& GetLocalMachinePlayer() const;
+	// will return nullptr if offline.
+	const std::shared_ptr<Player> GetLocalMachinePlayer() const;
 
 	static NetworkingEngine& Get();
 	void Update();
@@ -104,7 +119,7 @@ public:
 
 	// All given values must be serializable.
 	// IsHost() must be true.
-	// toWho must not be the local machine player.
+	// toWho must be connected and not the local machine player.
 	// May throw.
 	template <typename... Ts>
 	void SendUserMessageToClient(Player* toWho, unsigned channel, Ts... v);
@@ -122,19 +137,23 @@ public:
 	}
 
 	// TODO: bc stupid it deserializes the message seperately for each connection
+	// setup connections BEFORE calling Host() or TryJoin() to avoid missing early messages.
+	// Make sure to save the returned Connection object; like with events, on its destruction the callback function will be disconnected from the user message channel
 	template <typename... Ts>
-	void ConnectUserMessage(unsigned channel, std::function<void(Player*, Ts...)> callback) {
+	Connection ConnectUserMessage(unsigned channel, std::function<void(Player*, Ts...)> callback) {
 		if (!userEventChannels.contains(channel)) {
 			userEventChannels[channel] = ReceivingChannelInfo{
 				.channel = channel
 			};
 		}
-		userEventChannels[channel].connected.push_back([callback, channel](Player* recFrom, uint8_t* data, size_t dataSize) {
+
+		size_t connId = NetworkUserMessageConnection::lastId++;
+		userEventChannels[channel].connected.emplace_back(connId, [callback, channel](Player* recFrom, uint8_t* data, size_t dataSize) {
 			std::tuple<Ts...> deserialized;
 			try {
 				auto lambda = [&](auto& ...x) mutable {
 					auto mutate = [&](auto& y) mutable {
-						y = Deserialize<decltype(y)>(data, dataSize);
+						y = Deserialize<std::remove_reference_t<decltype(y)>>(data, dataSize);
 						};
 					(..., mutate(x)); 
 				};
@@ -148,9 +167,15 @@ public:
 			std::tuple<Player*, Ts...> args = std::tuple_cat(std::tuple<Player*>(recFrom), deserialized);
 			std::apply(callback, args);
 			});
+
+		NetworkUserMessageConnection* connIdPtr = new NetworkUserMessageConnection();
+		connIdPtr->connectionId = connId;
+		connIdPtr->channel = channel;
+		return std::unique_ptr<NetworkUserMessageConnection>(connIdPtr);
 	}
 	
 	// returns prior state and new state in that order.
+	// Fired immediately.
 	static inline Event<NetworkingEngine, NetworkState, NetworkState>& onNetworkStateChange = Event<NetworkingEngine, NetworkState, NetworkState>::New();
 	static inline Event<NetworkingEngine, ConnectionFailureReason, std::optional<std::string>>& onConnectionAttemptFailure = Event<NetworkingEngine, ConnectionFailureReason, std::optional<std::string>>::New();
 
@@ -159,16 +184,20 @@ public:
 	static inline Event<NetworkingEngine, Player*>& onPlayerAdded = Event<NetworkingEngine, Player*>::New();
 
 	// host only
-	// fired immediately before player and connection objects are destroyed
+	// fired immediately before connection objects are destroyed and player objects are removed from player list (also resulting in destruction if you don't save them)
 	static inline Event<NetworkingEngine, Player*>& onPlayerRemoved = Event<NetworkingEngine, Player*>::New();
 private:
 
 	// first entry is always local machine
-	std::vector<std::unique_ptr<Player>> players;
+	std::vector<std::shared_ptr<Player>> players;
+
+	// not populated for every player object; only remote peers that are still connected.
+	std::unordered_map<Player*, ConnectionInfo*> playerConnections;
 
 	struct ReceivingChannelInfo {
 		unsigned channel;
-		std::vector<std::function<void(uint8_t*, size_t)>> connected;
+		// pairs of (connection id, callback function)
+		std::vector<std::pair<size_t, std::function<void(Player*, uint8_t*, size_t)>>> connected;
 	};
 
 	std::unordered_map<unsigned, ReceivingChannelInfo> userEventChannels;
@@ -190,7 +219,7 @@ private:
 	friend class Server;
 	friend class Client;
 
-	void HandleUserMessage(uint8_t* data, int size);
+	void HandleUserMessage(Player* fromWho, uint8_t* data, size_t size);
 };
 
 struct ConnectionInfo {
@@ -227,6 +256,7 @@ public:
 	void UpdateClient();
 	void Disconnect();
 private:
+	// connection to the remote server
 	std::unique_ptr<ConnectionInfo> connection;
 
 	void HandleRecievedMessage(SteamNetworkingMessage_t* msg);
@@ -252,13 +282,15 @@ inline void NetworkingEngine::SendUserMessageToHost(unsigned channel, Ts ... v) 
 
 	std::unique_ptr<Client>& client = std::get<std::unique_ptr<Client>>(stateData);
 
+	auto& connectionInfo = client->connection;
+
 	int flags = k_nSteamNetworkingSend_Reliable; // TODO options
-	EResult sockError = SendMessageToConnection(client->connection->connection, packet, size, flags, nullptr);
+	EResult sockError = SteamNetworkingSockets()->SendMessageToConnection(connectionInfo->connection, packet, size, flags, nullptr);
 
 	free(packet);
 
 	if (sockError != EResult::k_EResultOK) {
-		throw std::runtime_error("Sockets were mad! ", sockError);
+		throw std::runtime_error("Sockets were mad! " + std::to_string(sockError));
 	}
 }
 
@@ -269,6 +301,7 @@ inline void NetworkingEngine::SendUserMessageToHost(unsigned channel, Ts ... v) 
 template<typename ...Ts>
 inline void NetworkingEngine::SendUserMessageToClient(Player* toWho, unsigned channel, Ts ...v) {
 	Assert(IsHost());
+	Assert(toWho->IsConnected());
 	Assert(toWho != GetLocalMachinePlayer().get());
 	size_t size = (SerializedSize(v) + ...) + SerializedSize((uint8_t)PacketType::UserMessage) + SerializedSize(channel);
 
@@ -280,12 +313,14 @@ inline void NetworkingEngine::SendUserMessageToClient(Player* toWho, unsigned ch
 
 	std::unique_ptr<Server>& server = std::get<std::unique_ptr<Server>>(stateData);
 	
+	auto connectionInfo = playerConnections.at(toWho);
+
 	int flags = k_nSteamNetworkingSend_Reliable; // TODO options
-	EResult sockError = SendMessageToConnection(toWho->sockConnection, packet, size, flags, nullptr);
+	EResult sockError = SteamNetworkingSockets()->SendMessageToConnection(connectionInfo->connection, packet, size, flags, nullptr);
 
 	free(packet);
 
 	if (sockError != EResult::k_EResultOK) {
-		throw std::runtime_error("Sockets were mad! ", sockError);
+		throw std::runtime_error("Sockets were mad! " + std::to_string(sockError));
 	}
 }

@@ -97,6 +97,7 @@ void GameState::MakeHostNewMenu() {
 	makeTextboxMenuOption("Port:", "41337");
 	makeTextboxMenuOption("Password:", "abc");
 	makeTextboxMenuOption("Max players:", "9999");
+	makeTextboxMenuOption("Your username:", "Alice");
 
 	optionsContainer->LayoutChildrenList(ListLayout{
 		.pixelStart = {0, -40},
@@ -261,6 +262,7 @@ void GameState::MakeJoinMenu() {
 
 	makeTextboxMenuOption("IP:", "127.0.0.1:41337");
 	makeTextboxMenuOption("Password:", "abc");
+	makeTextboxMenuOption("Your username:", "Bob");
 
 	optionsContainer->LayoutChildrenList(ListLayout{
 		.pixelStart = {0, -40},
@@ -428,8 +430,11 @@ void GameState::MakeClientLoadingScreen() {
 
 	auto connChange = NetworkingEngine::Get().onNetworkStateChange.Connect([this, status](NetworkingEngine*, NetworkState old, NetworkState now) {
 		if (old == NetworkState::ClientConnecting && now == NetworkState::Client) {
+			
 			menuContainer = nullptr;
 			menuEventConnections.clear();
+
+			MakeGameplay();
 		}
 		});
 	menuEventConnections.push_back(std::move(connChange));

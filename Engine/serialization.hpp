@@ -13,10 +13,23 @@
 #define BYTESWAP64(n) ((BYTESWAP32((n&0xFFFFFFFF00000000)>>32))|((BYTESWAP32(n&0x00000000FFFFFFFF))<<32))
 
 template<typename T>
-T Deserialize(uint8_t*& currentLocation, int& bytesRemaining) = delete;
+T Deserialize(uint8_t*& currentLocation, size_t& bytesRemaining) = delete;
 
 template <>
-inline int Deserialize(uint8_t*& currentLocation, int& bytesRemaining) {
+inline size_t Deserialize(uint8_t*& currentLocation, size_t& bytesRemaining) {
+	if (bytesRemaining < sizeof(size_t)) throw std::runtime_error("not enough data to read!");
+	size_t out;
+	memcpy(&out, currentLocation, sizeof(size_t));
+	currentLocation += sizeof(size_t);
+	bytesRemaining -= sizeof(size_t);
+	if constexpr (std::endian::native == std::endian::little) {
+		out = BYTESWAP64(out);
+	}
+	return out;
+}
+
+template <>
+inline int Deserialize(uint8_t*& currentLocation, size_t& bytesRemaining) {
 	if (bytesRemaining < sizeof(int)) throw std::runtime_error("not enough data to read!");
 	int out;
 	memcpy(&out, currentLocation, sizeof(int));
@@ -29,7 +42,7 @@ inline int Deserialize(uint8_t*& currentLocation, int& bytesRemaining) {
 }
 
 template <>
-inline unsigned int Deserialize(uint8_t*& currentLocation, int& bytesRemaining) {
+inline unsigned int Deserialize(uint8_t*& currentLocation, size_t& bytesRemaining) {
 	if (bytesRemaining < sizeof(unsigned int)) throw std::runtime_error("not enough data to read!");
 	unsigned int out;
 	memcpy(&out, currentLocation, sizeof(unsigned int));
@@ -42,7 +55,7 @@ inline unsigned int Deserialize(uint8_t*& currentLocation, int& bytesRemaining) 
 }
 
 template <>
-inline uint8_t Deserialize(uint8_t*& currentLocation, int& bytesRemaining) {
+inline uint8_t Deserialize(uint8_t*& currentLocation, size_t& bytesRemaining) {
 	if (bytesRemaining < sizeof(uint8_t)) throw std::runtime_error("not enough data to read!");
 	uint8_t out = *currentLocation;
 	currentLocation += sizeof(uint8_t);
@@ -50,9 +63,25 @@ inline uint8_t Deserialize(uint8_t*& currentLocation, int& bytesRemaining) {
 	return out;
 }
 
+template <>
+inline std::string Deserialize(uint8_t*& currentLocation, size_t& bytesRemaining) {
+	if (bytesRemaining < sizeof(size_t)) throw std::runtime_error("not enough data to read!");
+	size_t length = Deserialize<size_t>(currentLocation, bytesRemaining);
+	if (bytesRemaining < length) throw std::runtime_error("not enough data to read!");
+	std::string out(reinterpret_cast<char*>(currentLocation), length);
+	currentLocation += length;
+	bytesRemaining -= length;
+	return out;
+}
+
 template <typename T>
 size_t SerializedSize(const T& v) {
 	return sizeof(v);
+}
+
+template <>
+inline size_t SerializedSize(const std::string& v) {
+	return sizeof(size_t) + v.length();
 }
 
 template <typename T>
@@ -63,6 +92,16 @@ size_t SerializedSize(const std::vector<T>& v) {
 // it is assumed that there is enough space to copy in because you should have allocated the buffer currentLocation resides in using a SerializedSize() fold expression or something
 template <typename T>
 void Serialize(const T& valToSerialize, uint8_t*& currentLocation) = delete;
+
+template <>
+inline void Serialize(const size_t& val, uint8_t*& currentLocation) {
+	size_t in = val;
+	if constexpr (std::endian::native == std::endian::little) {
+		in = BYTESWAP64(in);
+	}
+	memcpy(currentLocation, &in, sizeof(in));
+	currentLocation += sizeof(in);
+}
 
 template <>
 inline void Serialize(const int& val, uint8_t*& currentLocation) {
@@ -89,4 +128,11 @@ inline void Serialize(const uint8_t& val, uint8_t*& currentLocation) {
 	uint8_t in = val;
 	memcpy(currentLocation, &in, sizeof(in));
 	currentLocation += sizeof(in);
+}
+
+template <>
+inline void Serialize(const std::string& val, uint8_t*& currentLocation) {
+	Serialize<size_t>(val.length(), currentLocation);
+	memcpy(currentLocation, val.data(), val.length());
+	currentLocation += val.length();
 }

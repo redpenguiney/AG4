@@ -27,6 +27,9 @@
     <ClCompile Include="body.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="chat.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="game_state.hpp">
@@ -39,6 +42,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="inventory.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="chat.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
