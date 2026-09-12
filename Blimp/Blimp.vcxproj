@@ -157,6 +157,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="body.cpp" />
+    <ClCompile Include="chat.cpp" />
     <ClCompile Include="game.cpp" />
     <ClCompile Include="main_menu.cpp" />
     <ClCompile Include="worldgen.cpp" />
@@ -168,6 +169,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="body.hpp" />
+    <ClInclude Include="chat.hpp" />
     <ClInclude Include="game_state.hpp" />
     <ClInclude Include="inventory.hpp" />
     <ClInclude Include="item.hpp" />
