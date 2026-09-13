@@ -38,6 +38,7 @@ void Client::SteamNetConnectionStatusChangedCallback(SteamNetConnectionStatusCha
         auto local = NetworkingEngine::Get().players.emplace_back(new Player());
         auto server = NetworkingEngine::Get().players.emplace_back(new Player());
 		NetworkingEngine::Get().playerConnections[server.get()] = client.connection.get();
+        client.connection->connectee = server.get();
         NetworkingEngine::Get().SetState(NetworkState::Client);
 
         
@@ -85,7 +86,6 @@ void Client::SteamNetConnectionStatusChangedCallback(SteamNetConnectionStatusCha
 }
 
 void Server::SteamNetConnectionStatusChangedCallback(SteamNetConnectionStatusChangedCallback_t* pInfo) {
-    DebugLogInfo("We're in.");
 
     Assert(NetworkingEngine::Get().IsHost());
     auto& server = *std::get<std::unique_ptr<Server>>(NetworkingEngine::Get().stateData);
@@ -101,6 +101,8 @@ void Server::SteamNetConnectionStatusChangedCallback(SteamNetConnectionStatusCha
         NetworkingEngine::Get().onPlayerAdded.FireNow(&NetworkingEngine::Get(), NetworkingEngine::Get().players.back().get());
     }
     else if (pInfo->m_info.m_eState == ESteamNetworkingConnectionState::k_ESteamNetworkingConnectionState_Connected) {
+        DebugLogInfo("Server: remote client has fully connected to us.");
+
         return; // we already connected to the client successfully, no action required
         // todo: are we sure?
     }
@@ -384,7 +386,18 @@ Client::~Client() {
 void Client::UpdateClient() {
     SteamNetworkingSockets()->RunCallbacks();
 
-
+    // recieve messages
+    SteamNetworkingMessage_t* message = nullptr;
+    while (true) {
+        int result = SteamNetworkingSockets()->ReceiveMessagesOnConnection(connection->connection, &message, 1);
+        if (result == 0) break;
+        if (result == -1) {
+            DebugLogError("YO WHAT WHY -1");
+            break;
+        }
+        Assert(connection->connectee);
+        HandleRecievedMessage(message);
+    }
 }
 
 void Client::Disconnect() {
