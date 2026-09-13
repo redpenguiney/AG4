@@ -176,6 +176,14 @@ void Window::SetMouseLocked(bool locked) {
 
 InputType glfwKeyToInputType(int key) {
     switch (key) {
+	case GLFW_KEY_SEMICOLON:
+		return InputType::Semicolon;
+	case GLFW_KEY_COMMA:
+		return InputType::Comma;
+    case GLFW_KEY_PERIOD:
+		return InputType::Period;
+	case GLFW_KEY_APOSTROPHE:
+		return InputType::Apostrophe;
     case GLFW_KEY_BACKSPACE:
         return InputType::Backspace;
     case GLFW_KEY_A:
@@ -511,6 +519,14 @@ std::optional<std::string> InputToString(InputObject input) {
         return " ";
     case InputType::Tab:
         return "\t";
+    case InputType::Apostrophe:
+		return input.shiftDown ? "\"" : "\'";
+    case InputType::Semicolon:
+		return input.shiftDown ? ":" : ";";
+    case InputType::Comma:
+        return input.shiftDown ? "<" : ",";
+	case InputType::Period:
+        return input.shiftDown ? ">" : ".";
     case InputType::Zero:
         return "0";
     case InputType::One:

@@ -13,6 +13,7 @@ void Client::HandleRecievedMessage(SteamNetworkingMessage_t* message) {
     Assert(bytesRemaining > 0);
 
     PacketType pktType = (PacketType)Deserialize<uint8_t>(currentPacketPosition, bytesRemaining);
+    DebugLogInfo("RECIEVED MESSAGE from server: pkt type ", (uint8_t)pktType);
 
 	Player* sender = connection->connectee;
     Assert(sender);
@@ -295,6 +296,7 @@ void NetworkingEngine::HandleUserMessage(Player* fromWho, uint8_t* data, size_t 
     if (size < sizeof(unsigned int)) return;
 
     unsigned int channel = Deserialize<unsigned int>(data, size);
+    DebugLogInfo("RECIEVED USER MESSAGE ON CHANNEL ", channel);
     if (userEventChannels.contains(channel)) {
         for (auto& f : userEventChannels[channel].connected) { // TODO: deserialization of entire message should happen here 
             f.second(fromWho, data, size);
@@ -335,8 +337,8 @@ void Server::UpdateServer() {
                 DebugLogError("YO WHAT WHY -1");
                 break;
             }
-            
-            HandleRecievedMessage(message);
+			Assert(p->connectee);
+            HandleRecievedMessage(message, p->connectee);
         }
     }
 }
@@ -347,20 +349,12 @@ void Server::ShutdownServer() {
     }
 }
 
-void Server::HandleRecievedMessage(SteamNetworkingMessage_t* message) {
+void Server::HandleRecievedMessage(SteamNetworkingMessage_t* message, Player* sender) {
     uint8_t* currentPacketPosition = reinterpret_cast<uint8_t*>(message->m_pData);
     size_t bytesRemaining = message->m_cbSize;
     Assert(bytesRemaining > 0);
 
     PacketType pktType = (PacketType)Deserialize<uint8_t>(currentPacketPosition, bytesRemaining);
-    Player* sender = nullptr;
-    for (auto& c : connections) {
-		if (c->connection == message->m_conn) {
-            sender = c->connectee;
-            break;
-		}
-    }
-    Assert(sender);
 
     switch (pktType) {
     case PacketType::UserMessage:

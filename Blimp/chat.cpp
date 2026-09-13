@@ -1,5 +1,6 @@
 #include "chat.hpp"
 #include "networking_engine.hpp"
+#include <log.hpp>
 
 Chat::Chat() {
 	networkStateConnection = NetworkingEngine::Get().onNetworkStateChange.Connect([this](NetworkingEngine*, NetworkState old, NetworkState now) {
@@ -26,6 +27,7 @@ void Chat::SendMessage(std::string message) {
 		for (auto& p : NetworkingEngine::Get().GetPlayers()) {
 			if (p->IsLocalMachine()) continue;
 			NetworkingEngine::Get().SendUserMessageToClient<std::string, std::string>(p.get(), SERVER_TO_CLIENT_MESSAGING_CHANNEL, ourUsername, message);
+			DebugLogInfo("Sending to client w/ username ", usernames.contains(p.get()) ? usernames[p.get()] : std::string("UNKNOWN"));
 		}
 	}
 	else if (NetworkingEngine::Get().IsReadyClient()) {
@@ -44,7 +46,7 @@ void Chat::OnNetworkStateChange(Chat* c, NetworkState old, NetworkState now)
 		c->messageConnections.clear();
 	}
 	else if (now == NetworkState::Server) {
-		c->messageConnections.push_back(NetworkingEngine::Get().onPlayerRemoved.Connect([c](NetworkingEngine*, Player* p) {
+		c->messageConnections.push_back(NetworkingEngine::Get().onPlayerRemoved.Connect([c](NetworkingEngine*, Player* p) { 
 			DebugLogInfo("PLAYER ", p->id, " DISCONNECTED");
 			c->usernames.erase(p);
 		}));

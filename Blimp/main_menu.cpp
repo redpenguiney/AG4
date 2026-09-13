@@ -174,6 +174,8 @@ void GameState::MakeHostNewMenu() {
 			options[0]->ApplyText("Invalid port");
 		}
 		else {
+			chat.SetUsername(options[3]->text);
+
 			HostServerParams params;
 			params.port = port;
 			NetworkingEngine::Get().Host(params);
@@ -325,6 +327,7 @@ void GameState::MakeJoinMenu() {
 		MakeMainMenu();
 		});
 	makeButton("Connect", [this, options]() {
+		chat.SetUsername(options[2]->text);
 		NetworkingEngine::Get().TryJoin(ConnectionAttemptParams{
 		.ip = options[0]->text,
 			});

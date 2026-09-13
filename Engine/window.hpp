@@ -75,6 +75,11 @@ enum class InputType: int {
 
     Backspace,
 
+    Period,
+    Comma,
+    Semicolon,
+    Apostrophe,
+
     Unknown
 };
 
@@ -219,4 +224,4 @@ private:
     static void ResizeCallback(GLFWwindow* window, int newWindowWidth, int newWindowHeight);
     static void MouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
     static void ScrollCallback(GLFWwindow* window, double deltaScrollX, double deltaScrollY);
-};
+}; 

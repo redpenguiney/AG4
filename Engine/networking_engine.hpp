@@ -242,7 +242,7 @@ private:
 	HSteamListenSocket listenSocket;
 	std::vector<std::unique_ptr<ConnectionInfo>> connections;
 
-	void HandleRecievedMessage(SteamNetworkingMessage_t* msg);
+	void HandleRecievedMessage(SteamNetworkingMessage_t* msg, Player* sender);
 	static void SteamNetConnectionStatusChangedCallback(SteamNetConnectionStatusChangedCallback_t* pInfo);
 
 	friend class NetworkingEngine; // only for the steam callback
@@ -317,7 +317,7 @@ inline void NetworkingEngine::SendUserMessageToClient(Player* toWho, unsigned ch
 
 	int flags = k_nSteamNetworkingSend_Reliable; // TODO options
 	EResult sockError = SteamNetworkingSockets()->SendMessageToConnection(connectionInfo->connection, packet, size, flags, nullptr);
-
+	DebugLogInfo("Sent to client on channel ", channel);
 	free(packet);
 
 	if (sockError != EResult::k_EResultOK) {
