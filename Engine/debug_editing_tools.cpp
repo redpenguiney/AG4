@@ -77,7 +77,7 @@ void TransformHandles(Gameobject* target) {
 	state->rotY = std::unique_ptr<Gameobject>(rotateAxis({ 0, 1, 0 }));
 	state->rotZ = std::unique_ptr<Gameobject>(rotateAxis({ 0, 0, 1 }));
 
-	state->connections.push_back(Window::Get().inputDown.Connect([state = state.get(), target](Window* w, InputObject input) {
+	state->connections.push_back(Window::Get().onInputDown.Connect([state = state.get(), target](Window* w, InputObject input) {
 
 		if (!w->IsMouseLocked() && input.input == InputType::LMB) {
 			glm::vec3 rayDir = GraphicsEngine::Get().currentCamera->ProjectToWorld(w->MOUSE_POS, w->Size());
@@ -97,7 +97,7 @@ void TransformHandles(Gameobject* target) {
 
 		}));
 
-	state->connections.push_back(Window::Get().inputUp.Connect([state = state.get()](Window* w, InputObject input) {
+	state->connections.push_back(Window::Get().onInputUp.Connect([state = state.get()](Window* w, InputObject input) {
 
 		if (input.input == InputType::LMB) {
 			state->gripped = nullptr;

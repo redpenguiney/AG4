@@ -162,6 +162,7 @@
     <ClCompile Include="hierachy_component.cpp" />
     <ClCompile Include="ik.cpp" />
     <ClCompile Include="indirect_draw_command.cpp" />
+    <ClCompile Include="input.cpp" />
     <ClCompile Include="let_me_hash_a_tuple.cpp" />
     <ClCompile Include="log.cpp" />
     <ClCompile Include="main.cpp" />
@@ -226,6 +227,7 @@
     <ClInclude Include="hierachy_component.hpp" />
     <ClInclude Include="ik.hpp" />
     <ClInclude Include="indirect_draw_command.hpp" />
+    <ClInclude Include="input.hpp" />
     <ClInclude Include="let_me_hash_a_tuple.hpp" />
     <ClInclude Include="light.hpp" />
     <ClInclude Include="mainloop.hpp" />

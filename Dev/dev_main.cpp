@@ -180,7 +180,7 @@ Game::Game(std::vector<const char*> launchArgs) {
 
 	////Mainloop::Get().stepPhysics = true;
 	//Mainloop::Get().physicsPaused = true;
-	static auto c = Window::Get().inputUp.Connect([this](Window*, InputObject input) {
+	static auto c = Window::Get().onInputUp.Connect([this](Window*, InputObject input) {
 		if (input.input == InputType::Space) Mainloop::Get().physicsPaused = !Mainloop::Get().physicsPaused;
 
 		if (input.input == InputType::T) {

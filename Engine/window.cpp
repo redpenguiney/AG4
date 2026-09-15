@@ -16,8 +16,9 @@ Window& Window::Get() {
 }
 
 Window::Window(int widthh, int heightt) :
-    inputDown(Event<Window, InputObject>::New()),
-    inputUp(Event<Window, InputObject>::New()),
+    onInput(Event<Window, InputObject>::New()),
+    onInputDown(Event<Window, InputObject>::New()),
+    onInputUp(Event<Window, InputObject>::New()),
     onScroll(Event<Window, double, double>::New()),
     postInputProccessing(Event<Window>::New()),
     onWindowResize(Event<Window, glm::uvec2, glm::uvec2>::New())
@@ -300,6 +301,20 @@ InputType glfwKeyToInputType(int key) {
     }
 }
 
+InputState glfwActionToInputState(int action) {
+    switch (action) {
+	case GLFW_PRESS:
+		return InputState::Down;
+	case GLFW_RELEASE:
+		return InputState::Up;
+	case GLFW_REPEAT:
+		return InputState::Held;
+    default:
+		DebugLogError("Unrecognized GLFW action ", action);
+		return InputState::Up;
+    }
+}
+
 void Window::UseCursor(const Cursor& cursor)
 {
     Assert(cursor.cursorHandle != nullptr);
@@ -312,6 +327,7 @@ void Window::UseCursor(const Cursor& cursor)
 void Window::KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
 
     InputObject input{
+		.state = glfwActionToInputState(action),
         .input = glfwKeyToInputType(key),
         .capitalized = (mods & GLFW_MOD_CAPS_LOCK) != (mods & GLFW_MOD_SHIFT),
         .altDown = bool(mods & GLFW_MOD_ALT),
@@ -324,20 +340,23 @@ void Window::KeyCallback(GLFWwindow* window, int key, int scancode, int action, 
     if (action == GLFW_PRESS) {
         Window::Get().PRESS_BEGAN_KEYS.insert(input.input);
         Window::Get().PRESSED_KEYS.insert(input.input);
-        Window::Get().inputDown.Fire(&Window::Get(), input);
+        Window::Get().onInputDown.Fire(&Window::Get(), input);
         Window::Get().PRESS_BEGAN_EVENTS.insert(input);
     }
     else if (action == GLFW_RELEASE) {
         Window::Get().PRESS_ENDED_KEYS.insert(input.input);
         Window::Get().PRESSED_KEYS.erase(input.input);
-        Window::Get().inputUp.Fire(&Window::Get(), input);
+        Window::Get().onInputUp.Fire(&Window::Get(), input);
         Window::Get().PRESS_ENDED_EVENTS.insert(input);
     }
+    
+    Window::Get().onInput.Fire(&Window::Get(), input);
 }
 
 void Window::MouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
 
     InputObject input{
+        .state = glfwActionToInputState(action),
         .capitalized = (mods & GLFW_MOD_CAPS_LOCK) != (mods & GLFW_MOD_SHIFT),
         .altDown = bool(mods & GLFW_MOD_ALT),
         .ctrlDown = bool(mods & GLFW_MOD_CONTROL),
@@ -353,19 +372,18 @@ void Window::MouseButtonCallback(GLFWwindow* window, int button, int action, int
         if (action == GLFW_RELEASE) {
             Window::Get().PRESS_ENDED_KEYS.insert(input.input);
             Window::Get().PRESSED_KEYS.erase(input.input);
-            Window::Get().inputUp.Fire(&Window::Get(), input);
+            Window::Get().onInputUp.Fire(&Window::Get(), input);
             Window::Get().PRESS_ENDED_EVENTS.insert(input);
         }
         else if (action == GLFW_PRESS) {
             Window::Get().PRESS_BEGAN_KEYS.insert(input.input);
             Window::Get().PRESSED_KEYS.insert(input.input);
-            Window::Get().inputDown.Fire(&Window::Get(), input);
+            Window::Get().onInputDown.Fire(&Window::Get(), input);
             Window::Get().PRESS_BEGAN_EVENTS.insert(input);
         }
+
+        Window::Get().onInput.Fire(&Window::Get(), input);
     }
-
-
-
 }
 
 void Window::ScrollCallback(GLFWwindow* window, double deltaScrollX, double deltaScrollY)
@@ -375,15 +393,18 @@ void Window::ScrollCallback(GLFWwindow* window, double deltaScrollX, double delt
     bool ctrl =Window::Get().PRESSED_KEYS.contains(InputType::Ctrl);
 
     auto input = InputObject{
+        .state = InputState::Down,
         .input = InputType::Scroll, .direction = {deltaScrollX, deltaScrollY}, .capitalized = false, .altDown = alt, .ctrlDown = ctrl, .shiftDown = shift
     };
 
    Window::Get().onScroll.Fire(&Window::Get(), deltaScrollX, deltaScrollY);
-   Window::Get().inputDown.Fire(&Window::Get(), input);
+   Window::Get().onInputDown.Fire(&Window::Get(), input);
    Window::Get().PRESS_BEGAN_KEYS.insert(input.input);
    Window::Get().PRESS_ENDED_KEYS.insert(input.input);
    Window::Get().PRESS_BEGAN_EVENTS.insert(input);
    Window::Get().PRESS_ENDED_EVENTS.insert(input);
+
+   Window::Get().onInput.Fire(&Window::Get(), input);
 }
 
 void Window::ResizeCallback(GLFWwindow* window, int newWindowWidth, int newWindowHeight) { // called on window resize
@@ -402,159 +423,3 @@ void Window::ResizeCallback(GLFWwindow* window, int newWindowWidth, int newWindo
 
 }
 
-std::optional<std::string> InputToString(InputObject input) {
-    if (input.capitalized) {
-        switch (input.input) {
-        case InputType::A:
-            return "A";
-        case InputType::B:
-            return "B";
-        case InputType::C:
-            return "C";
-        case InputType::D:
-            return "D";
-        case InputType::E:
-            return "E";
-        case InputType::F:
-            return "F";
-        case InputType::G:
-            return "G";
-        case InputType::H:
-            return "H";
-        case InputType::I:
-            return "I";
-        case InputType::J:
-            return "J";
-        case InputType::K:
-            return "K";
-        case InputType::L:
-            return "L";
-        case InputType::M:
-            return "M";
-        case InputType::N:
-            return "N";
-        case InputType::O:
-            return "O";
-        case InputType::P:
-            return "P";
-        case InputType::Q:
-            return "Q";
-        case InputType::R:
-            return "R";
-        case InputType::S:
-            return "S";
-        case InputType::T:
-            return "T";
-        case InputType::U:
-            return "U";
-        case InputType::V:
-            return "V";
-        case InputType::W:
-            return "W";
-        case InputType::X:
-            return "X";
-        case InputType::Y:
-            return "Y";
-        case InputType::Z:
-            return "Z";
-        }
-    }
-    else {
-        switch (input.input) {
-        case InputType::A:
-            return "a";
-        case InputType::B:
-            return "b";
-        case InputType::C:
-            return "c";
-        case InputType::D:
-            return "d";
-        case InputType::E:
-            return "e";
-        case InputType::F:
-            return "f";
-        case InputType::G:
-            return "g";
-        case InputType::H:
-            return "h";
-        case InputType::I:
-            return "i";
-        case InputType::J:
-            return "j";
-        case InputType::K:
-            return "k";
-        case InputType::L:
-            return "l";
-        case InputType::M:
-            return "m";
-        case InputType::N:
-            return "n";
-        case InputType::O:
-            return "o";
-        case InputType::P:
-            return "p";
-        case InputType::Q:
-            return "q";
-        case InputType::R:
-            return "r";
-        case InputType::S:
-            return "s";
-        case InputType::T:
-            return "t";
-        case InputType::U:
-            return "u";
-        case InputType::V:
-            return "v";
-        case InputType::W:
-            return "w";
-        case InputType::X:
-            return "x";
-        case InputType::Y:
-            return "y";
-        case InputType::Z:
-            return "z";
-        }
-    }
-
-    switch (input.input) {
-    case InputType::Space:
-        return " ";
-    case InputType::Tab:
-        return "\t";
-    case InputType::Apostrophe:
-		return input.shiftDown ? "\"" : "\'";
-    case InputType::Semicolon:
-		return input.shiftDown ? ":" : ";";
-    case InputType::Comma:
-        return input.shiftDown ? "<" : ",";
-	case InputType::Period:
-        return input.shiftDown ? ">" : ".";
-    case InputType::Enter:
-        return "\n";
-    case InputType::Zero:
-        return "0";
-    case InputType::One:
-        return "1";
-    case InputType::Two:
-        return "2";
-    case InputType::Three:
-        return "3";
-    case InputType::Four:
-        return "4";
-    case InputType::Five:
-        return "5";
-    case InputType::Six:
-        return "6";
-    case InputType::Seven:
-        return "7";
-    case InputType::Eight:
-        return "8";
-    case InputType::Nine:
-        return "9";
-    default:
-        return std::nullopt;
-    }
-
-    Assert(false);
-    //std::unreachable();
-}

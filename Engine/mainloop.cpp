@@ -59,9 +59,11 @@ void Mainloop::Run() {
 		}
 
 		Window::Get().Update();
-		NetworkingEngine::Get().Update();
-		BaseEvent::FlushEventQueue(); // frankly unneccesary
+		BaseEvent::FlushEventQueue();
 
-		if (quitIfTryingToCloseWidnow && Window::Get().ShouldClose()) quit = true;
+		NetworkingEngine::Get().Update();
+		BaseEvent::FlushEventQueue();
+
+		if (quitIfTryingToCloseWindow && Window::Get().ShouldClose()) quit = true;
 	}
 }

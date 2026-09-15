@@ -16,7 +16,7 @@ public:
 	bool stepPhysics = false;
 
 	// sets quit = true if Window::Get().ShouldClose() returns true.
-	bool quitIfTryingToCloseWidnow = true;
+	bool quitIfTryingToCloseWindow = true;
 
 	float simulationTimestep = 1.0f / 60.0f; // number of seconds physics simulation is stepped by every frame
 

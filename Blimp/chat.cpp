@@ -71,6 +71,7 @@ void Chat::BuildUi() {
 	inputBox->pixelSize = { -4, 30 };
 	inputBox->pixelPosition = { 2, 2 };
 	inputBox->SetEmptyText("");
+	inputBox->clearOnFocus = false;
 	inputBox->hAlign = HorizontalAlignMode::Left;
 	chatUiFrame->RefreshTransform();
 

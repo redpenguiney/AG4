@@ -244,6 +244,7 @@ void GuiElement::LayoutChildrenList(ListLayout params) {
 
 void GuiElement::MakeTextobject() {
     textobject = nullptr;
+
     if (!text.empty()) {
         Assert(font);
         MeshCreateParams textmeshparams = MeshCreateParams::DefaultText();
@@ -261,30 +262,33 @@ void GuiElement::MakeTextobject() {
         //DebugLogInfo("Size ", size, " margins ", format.topMargin, " ", format.bottomMargin);
 
         textmeshparams.LoadText(*font, text, format);
-        textmeshparams.normalizeSize = false;
-        auto textmesh = Mesh::New(std::move(textmeshparams));
-        GameobjectCreateParams textobjectparams;
-        textobjectparams.mesh = textmesh;
-        if (!container->elementPasses.contains(font.get())) {
-            Assert(font);
-            static int i = 0;
-            std::shared_ptr<DrawPass> newPass = DrawPass::FromTemplate(*container->elementPasses[nullptr]);
-            newPass->drawnObjects.clear();
-            newPass->name = "SCREEN_GUI_PRESENTATION_FONT_" + std::to_string(i++);
-            newPass->dependencies.push_back("FRAMES_DRAWN");
-            newPass->outputs.pop_back();
-            newPass->uniformSupplier = SupplyTextUniforms;
-            newPass->boundTextures.push_back(TextureUsageDescriptor{
-                .texture = font,
-                .textureUsageLocation = "fontMap",
-                .willRead = true
-                });
-            container->elementPasses.emplace(font.get(), newPass);
+
+        if (!textmeshparams.vertices.empty()) { // checking text.empty() is insufficient bc whitespace characters/etc., and Mesh does not allow empty meshes
+            textmeshparams.normalizeSize = false;
+            auto textmesh = Mesh::New(std::move(textmeshparams));
+            GameobjectCreateParams textobjectparams;
+            textobjectparams.mesh = textmesh;
+            if (!container->elementPasses.contains(font.get())) {
+                Assert(font);
+                static int i = 0;
+                std::shared_ptr<DrawPass> newPass = DrawPass::FromTemplate(*container->elementPasses[nullptr]);
+                newPass->drawnObjects.clear();
+                newPass->name = "SCREEN_GUI_PRESENTATION_FONT_" + std::to_string(i++);
+                newPass->dependencies.push_back("FRAMES_DRAWN");
+                newPass->outputs.pop_back();
+                newPass->uniformSupplier = SupplyTextUniforms;
+                newPass->boundTextures.push_back(TextureUsageDescriptor{
+                    .texture = font,
+                    .textureUsageLocation = "fontMap",
+                    .willRead = true
+                    });
+                container->elementPasses.emplace(font.get(), newPass);
+            }
+            textobjectparams.renderPasses = { container->elementPasses[font.get()], };
+            textobject = std::unique_ptr<Gameobject>(Gameobject::New(textobjectparams));
+            RefreshGraphics();
+            RefreshTransform();
         }
-        textobjectparams.renderPasses = { container->elementPasses[font.get()], };
-        textobject = std::unique_ptr<Gameobject>(Gameobject::New(textobjectparams));
-        RefreshGraphics();
-        RefreshTransform();
     }
 }
 
