@@ -121,14 +121,15 @@ void GuiElement::InitGuiEvents() {
             }
             if (!w->PRESS_BEGAN_EVENTS.empty()) {
                 currentlyFocused->RefreshText();
+				currentlyFocused->onTextChanged.FireNow(currentlyFocused);
             }
         }
     });
 }
 
-std::shared_ptr<GuiElement> GuiElement::New(GuiContainer& storeIn, std::shared_ptr<Texture> background, std::shared_ptr<Texture> font)
+std::shared_ptr<GuiElement> GuiElement::New(GuiContainer& storeIn, const GuiCreateParams params)
 {
-    auto ptr = std::shared_ptr<GuiElement>(new GuiElement(storeIn, background, font));
+    auto ptr = std::shared_ptr<GuiElement>(new GuiElement(storeIn, params));
     //storeIn.contents.push_back(ptr.get());
     return ptr;
 }
@@ -287,23 +288,23 @@ void GuiElement::MakeTextobject() {
     }
 }
 
-GuiElement::GuiElement(GuiContainer& storeIn, std::shared_ptr<Texture> background, std::shared_ptr<Texture> font):
-texture(background),
-font(font),
+GuiElement::GuiElement(GuiContainer& storeIn, const GuiCreateParams uiparams):
+texture(uiparams.background),
+font(uiparams.font),
 container(&storeIn)
 {
     elementsList.push_back(this);
 
     GameobjectCreateParams params;
     params.mesh = Mesh::GuiQuad();
-    if (!storeIn.elementPasses.contains(background.get())) {
-        Assert(background);
+    if (!storeIn.elementPasses.contains(uiparams.background.get())) {
+        Assert(uiparams.background);
         static int i = 0;
         std::shared_ptr<DrawPass> newPass = DrawPass::FromTemplate(*storeIn.elementPasses[nullptr]);
         newPass->name = "SCREEN_GUI_PRESENTATION_TEXTURED_" + std::to_string(i++);
-        container->elementPasses.emplace(background.get(), newPass);
+        container->elementPasses.emplace(uiparams.background.get(), newPass);
     }
-    params.renderPasses = { storeIn.elementPasses[background.get()],};
+    params.renderPasses = { storeIn.elementPasses[uiparams.background.get()],};
     params.primitiveType = GL_TRIANGLES;
     gameobject = std::unique_ptr<Gameobject>(Gameobject::New(params));
 
@@ -333,10 +334,10 @@ std::vector<std::shared_ptr<GuiContainer>>& GuiContainer::Containers() {
     return c;
 }
 
-std::shared_ptr<TextboxElement> TextboxElement::New(GuiContainer& storeIn, std::shared_ptr<Texture> background, std::shared_ptr<Texture> font)
+std::shared_ptr<TextboxElement> TextboxElement::New(GuiContainer& storeIn, GuiCreateParams params)
 {
-    Assert(font);
-    auto ptr = std::shared_ptr<TextboxElement>(new TextboxElement(storeIn, background, font));
+    Assert(params.font);
+    auto ptr = std::shared_ptr<TextboxElement>(new TextboxElement(storeIn, params));
     return ptr;
 }
 
@@ -361,6 +362,7 @@ TextboxElement::~TextboxElement() {
 void TextboxElement::ApplyText(std::string txt) {
     text = txt;
     isEmpty = text.empty();
+	onTextChanged.FireNow(this);
     RefreshText();
 }
 
@@ -384,8 +386,21 @@ void TextboxElement::Unfocus() {
     currentlyFocused = nullptr;
 }
 
-TextboxElement::TextboxElement(GuiContainer& storeIn, std::shared_ptr<Texture> background, std::shared_ptr<Texture> font)
-: GuiElement(storeIn, background, font) {
+TextboxElement::TextboxElement(GuiContainer& storeIn, const GuiCreateParams params)
+: GuiElement(storeIn, params) {
     text = emptyText;
     RefreshText();
+}
+
+std::shared_ptr<ScrollableElement> ScrollableElement::New(GuiContainer& storeIn, ScrollableGuiCreateParams uiparams)
+{
+    auto ptr = std::shared_ptr<ScrollableElement>(new ScrollableElement(storeIn, uiparams));
+
+    return ptr;
+}
+
+ScrollableElement::ScrollableElement(GuiContainer& storeIn, ScrollableGuiCreateParams uiparams) :
+	GuiElement(storeIn, uiparams)
+{
+    
 }

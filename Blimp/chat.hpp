@@ -22,10 +22,15 @@ public:
 	constexpr static unsigned CLIENT_TO_SERVER_MESSAGING_CHANNEL = 1001;
 	constexpr static unsigned SERVER_TO_CLIENT_MESSAGING_CHANNEL = 1002;
 
+	// oldest first
 	std::vector<Message> messages;
 
 	// reposition as you see fit
-	std::unique_ptr<GuiElement> ui;
+	std::shared_ptr<GuiElement> chatUiFrame;
+
+	// don't call before BuildUi()
+	// initially true
+	void SetVisible(bool v);
 
 	Chat();
 	~Chat() = default;
@@ -36,7 +41,17 @@ public:
 	Chat(const Chat&) = delete;
 
 	void SendMessage(std::string message);
+
+	// fired immediately.
+	// will be fired for messages originally sent by the local machine.
+		// though, for clients there will still be a delay since the message must be sent to the server and then back to the client before it is received.
+	static inline Event<Chat, const Message&>& onMessageReceived = Event<Chat, const Message&>::New();
 private:
+	bool chatVisible = true;
+
+	void BuildUi();
+	std::shared_ptr<GuiElement> GetMessageUiElement(const Message& m);
+
 	std::string ourUsername = "[you]";
 
 	static void OnNetworkStateChange(Chat* c, NetworkState oldState, NetworkState newState);
@@ -44,6 +59,11 @@ private:
 	// server only, on client the server tells us the username for each message
 	std::unordered_map<Player*, std::string> usernames;
 
+	std::vector<Connection> uiConnections;
 	std::vector<Connection> messageConnections;
 	Connection networkStateConnection;
+	
+	// nonowning, populated by BuildUi()
+	TextboxElement* inputBox;
+	ScrollableElement* messageList;
 };

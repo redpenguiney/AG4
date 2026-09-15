@@ -9,6 +9,8 @@ GameState::GameState() : chat()
 }
 
 void GameState::MakeGameplay() {
+	chat.SetVisible(true);
+
 	for (auto& obj : BuildPit({ 0, -10, 0 }, { 100, 10, 100 }, 0.2f, 1.0f)) {
 		staticObjects.emplace_back(obj);
 	}

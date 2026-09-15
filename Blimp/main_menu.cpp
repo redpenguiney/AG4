@@ -3,39 +3,25 @@
 #include "window.hpp"
 #include "game_state.hpp"
 #include <networking_engine.hpp>
+#include "ui_colors.hpp"
 
-glm::vec3 MAIN_COLOR(0.75, 0.4, 0.9);
-glm::vec3 DARK_COLOR(0.65, 0.3, 0.8);
-glm::vec3 HIGHLIGHT_COLOR(0.95, 0.6, 1);
-glm::vec3 CONTRAST_COLOR(1, 1, 1);
 
-std::shared_ptr<Texture> GeoFont(unsigned size) {
-	TextureCreateParams menuFontParams({ TextureSource("../fonts/Arial.ttf"), });
-	menuFontParams.fontHeight = size;
-	menuFontParams.format = Texture::Grayscale_8Bit;
-	return std::make_shared<Texture>(menuFontParams, Texture::Texture2D);
-}
-
-template <unsigned fontSize>
-std::shared_ptr<Texture>& GetMenuFont() {
-	static auto font = GeoFont(fontSize);
-	return font;
-}
 
 void GameState::MakeHostNewMenu() {
+
 	menuContainer = nullptr;
 	menuEventConnections.clear();
 
 	menuContainer = GuiElement::New(*GetScreenGuiContainer());
-	menuContainer->backgroundColor = glm::vec4(MAIN_COLOR, 1.0f);
+	menuContainer->backgroundColor = glm::vec4(UI_PREFABS::MAIN, 1.0f);
 	menuContainer->anchorPoint = { 0.0, 0.0 };
 	menuContainer->percentagePosition = { 0.5, 0.5 };
 	menuContainer->pixelPosition = { 0, 0 };
 	menuContainer->pixelSize = { 450, 400 };
 	menuContainer->RefreshGraphics();
 	menuContainer->RefreshTransform();
-	auto headerFont = GetMenuFont<24>();
-	auto mainTextFont = GetMenuFont<18>();
+	auto headerFont = UI_PREFABS::GetMenuFont<24>();
+	auto mainTextFont = UI_PREFABS::GetMenuFont<18>();
 
 	auto optionsContainer = GuiElement::New(*GetScreenGuiContainer());
 	optionsContainer->SetParent(menuContainer.get());
@@ -51,7 +37,7 @@ void GameState::MakeHostNewMenu() {
 	std::vector <TextboxElement*> options;
 	int nOption = 0;
 	auto makeTextboxMenuOption = [optionsContainer, mainTextFont, &nOption, &options](std::string optionName, std::string defaultValue) {
-		auto option = GuiElement::New(*GetScreenGuiContainer(), nullptr, nullptr);
+		auto option = GuiElement::New(*GetScreenGuiContainer());
 		option->SetParent(optionsContainer.get());
 		option->pixelSize = { 0, 30 };
 		option->percentageSize = { 1.0, 0 };
@@ -61,7 +47,7 @@ void GameState::MakeHostNewMenu() {
 		option->RefreshGraphics();
 		option->RefreshTransform();
 
-		auto label = GuiElement::New(*GetScreenGuiContainer(), nullptr, mainTextFont);
+		auto label = GuiElement::New(*GetScreenGuiContainer(), GuiCreateParams{ .font = mainTextFont });
 		label->SetParent(option.get());
 		label->percentageSize = { 0.6, 1};
 		label->pixelSize = { -2, -4 };
@@ -71,12 +57,12 @@ void GameState::MakeHostNewMenu() {
 		label->depth = optionsContainer->depth - 1;
 		label->wrapText = false;
 		label->hAlign = HorizontalAlignMode::Left;
-		label->backgroundColor = glm::vec4(DARK_COLOR, 1.0f);
-		label->textColor = glm::vec4(CONTRAST_COLOR, 1.0f);
+		label->backgroundColor = glm::vec4(UI_PREFABS::DARK, 1.0f);
+		label->textColor = glm::vec4(UI_PREFABS::CONTRAST, 1.0f);
 		label->text = optionName;
 		label->RefreshText();
 
-		auto entryField = TextboxElement::New(*GetScreenGuiContainer(), nullptr, mainTextFont);
+		auto entryField = TextboxElement::New(*GetScreenGuiContainer(), GuiCreateParams{ .font = mainTextFont });
 		entryField->SetParent(option.get());
 		entryField->percentageSize = { 0.4, 1 };
 		entryField->pixelSize = { -2, -4 };
@@ -87,7 +73,7 @@ void GameState::MakeHostNewMenu() {
 		entryField->wrapText = false;
 		entryField->hAlign = HorizontalAlignMode::Right;
 		entryField->backgroundColor = glm::vec4(0, 0, 0, 1.0f);
-		entryField->textColor = glm::vec4(CONTRAST_COLOR, 1.0f);
+		entryField->textColor = glm::vec4(UI_PREFABS::CONTRAST, 1.0f);
 		entryField->clearOnFocus = false;
 		entryField->ApplyText(defaultValue);
 
@@ -119,7 +105,7 @@ void GameState::MakeHostNewMenu() {
 
 	nOption = 0;
 	auto makeButton = [this, buttonsContainer, mainTextFont, &nOption](std::string label, std::function<void()> onActivate) {
-		auto butt = GuiElement::New(*GetScreenGuiContainer(), nullptr, mainTextFont);
+		auto butt = GuiElement::New(*GetScreenGuiContainer(), GuiCreateParams{ .font = mainTextFont });
 		butt->SetParent(buttonsContainer.get());
 		butt->percentageSize = { 0, 0 };
 		butt->pixelSize = { 60, 30 };
@@ -129,19 +115,19 @@ void GameState::MakeHostNewMenu() {
 		butt->depth = buttonsContainer->depth - 2;
 		butt->wrapText = false;
 		butt->hAlign = HorizontalAlignMode::Center;
-		butt->backgroundColor = glm::vec4(DARK_COLOR, 1.0f);
-		butt->textColor = glm::vec4(CONTRAST_COLOR, 1.0f);
+		butt->backgroundColor = glm::vec4(UI_PREFABS::DARK, 1.0f);
+		butt->textColor = glm::vec4(UI_PREFABS::CONTRAST, 1.0f);
 		butt->text = label;
 		butt->RefreshText();
 
 		auto hOnConnection = butt->onHoverBegin.Connect(butt.get(), [this](GuiElement* elem) {
-			elem->backgroundColor = glm::vec4(HIGHLIGHT_COLOR, 0.5f);
+			elem->backgroundColor = glm::vec4(UI_PREFABS::HIGHLIGHT, 0.5f);
 			elem->RefreshGraphics();
 			Window::Get().UseCursor(Window::Get().systemSelectionCursor);
 			});
 		menuEventConnections.push_back(std::move(hOnConnection));
 		auto hOffConnection = butt->onHoverEnd.Connect(butt.get(), [this](GuiElement* elem) {
-			elem->backgroundColor = glm::vec4(DARK_COLOR, 0.5f);
+			elem->backgroundColor = glm::vec4(UI_PREFABS::DARK, 0.5f);
 			elem->RefreshGraphics();
 			Window::Get().UseCursor(Window::Get().systemPointerCursor);
 			});
@@ -195,15 +181,15 @@ void GameState::MakeJoinMenu() {
 	menuEventConnections.clear();
 
 	menuContainer = GuiElement::New(*GetScreenGuiContainer());
-	menuContainer->backgroundColor = glm::vec4(MAIN_COLOR, 1.0f);
+	menuContainer->backgroundColor = glm::vec4(UI_PREFABS::MAIN, 1.0f);
 	menuContainer->anchorPoint = { 0.0, 0.0 };
 	menuContainer->percentagePosition = { 0.5, 0.5 };
 	menuContainer->pixelPosition = { 0, 0 };
 	menuContainer->pixelSize = { 450, 400 };
 	menuContainer->RefreshGraphics();
 	menuContainer->RefreshTransform();
-	auto headerFont = GetMenuFont<24>();
-	auto mainTextFont = GetMenuFont<18>();
+	auto headerFont = UI_PREFABS::GetMenuFont<24>();
+	auto mainTextFont = UI_PREFABS::GetMenuFont<18>();
 
 	auto optionsContainer = GuiElement::New(*GetScreenGuiContainer());
 	optionsContainer->SetParent(menuContainer.get());
@@ -219,7 +205,7 @@ void GameState::MakeJoinMenu() {
 	std::vector <TextboxElement*> options;
 	int nOption = 0;
 	auto makeTextboxMenuOption = [optionsContainer, mainTextFont, &nOption, &options](std::string optionName, std::string defaultValue) {
-		auto option = GuiElement::New(*GetScreenGuiContainer(), nullptr, nullptr);
+		auto option = GuiElement::New(*GetScreenGuiContainer());
 		option->SetParent(optionsContainer.get());
 		option->pixelSize = { 0, 30 };
 		option->percentageSize = { 1.0, 0 };
@@ -229,7 +215,7 @@ void GameState::MakeJoinMenu() {
 		option->RefreshGraphics();
 		option->RefreshTransform();
 
-		auto label = GuiElement::New(*GetScreenGuiContainer(), nullptr, mainTextFont);
+		auto label = GuiElement::New(*GetScreenGuiContainer(), GuiCreateParams{ .font = mainTextFont });
 		label->SetParent(option.get());
 		label->percentageSize = { 0.6, 1 };
 		label->pixelSize = { -2, -4 };
@@ -239,12 +225,12 @@ void GameState::MakeJoinMenu() {
 		label->depth = optionsContainer->depth - 1;
 		label->wrapText = false;
 		label->hAlign = HorizontalAlignMode::Left;
-		label->backgroundColor = glm::vec4(DARK_COLOR, 1.0f);
-		label->textColor = glm::vec4(CONTRAST_COLOR, 1.0f);
+		label->backgroundColor = glm::vec4(UI_PREFABS::DARK, 1.0f);
+		label->textColor = glm::vec4(UI_PREFABS::CONTRAST, 1.0f);
 		label->text = optionName;
 		label->RefreshText();
 
-		auto entryField = TextboxElement::New(*GetScreenGuiContainer(), nullptr, mainTextFont);
+		auto entryField = TextboxElement::New(*GetScreenGuiContainer(), GuiCreateParams{ .font = mainTextFont });
 		entryField->SetParent(option.get());
 		entryField->percentageSize = { 0.4, 1 };
 		entryField->pixelSize = { -2, -4 };
@@ -255,7 +241,7 @@ void GameState::MakeJoinMenu() {
 		entryField->wrapText = false;
 		entryField->hAlign = HorizontalAlignMode::Right;
 		entryField->backgroundColor = glm::vec4(0, 0, 0, 1.0f);
-		entryField->textColor = glm::vec4(CONTRAST_COLOR, 1.0f);
+		entryField->textColor = glm::vec4(UI_PREFABS::CONTRAST, 1.0f);
 		entryField->clearOnFocus = false;
 		entryField->ApplyText(defaultValue);
 
@@ -286,7 +272,7 @@ void GameState::MakeJoinMenu() {
 
 	nOption = 0;
 	auto makeButton = [this, buttonsContainer, mainTextFont, &nOption](std::string label, std::function<void()> onActivate) {
-		auto butt = GuiElement::New(*GetScreenGuiContainer(), nullptr, mainTextFont);
+		auto butt = GuiElement::New(*GetScreenGuiContainer(), GuiCreateParams{ .font = mainTextFont });
 		butt->SetParent(buttonsContainer.get());
 		butt->percentageSize = { 0, 0 };
 		butt->pixelSize = { 80, 30 };
@@ -296,19 +282,19 @@ void GameState::MakeJoinMenu() {
 		butt->depth = buttonsContainer->depth - 2;
 		butt->wrapText = false;
 		butt->hAlign = HorizontalAlignMode::Center;
-		butt->backgroundColor = glm::vec4(DARK_COLOR, 1.0f);
-		butt->textColor = glm::vec4(CONTRAST_COLOR, 1.0f);
+		butt->backgroundColor = glm::vec4(UI_PREFABS::DARK, 1.0f);
+		butt->textColor = glm::vec4(UI_PREFABS::CONTRAST, 1.0f);
 		butt->text = label;
 		butt->RefreshText();
 
 		auto hOnConnection = butt->onHoverBegin.Connect(butt.get(), [this](GuiElement* elem) {
-			elem->backgroundColor = glm::vec4(HIGHLIGHT_COLOR, 0.5f);
+			elem->backgroundColor = glm::vec4(UI_PREFABS::HIGHLIGHT, 0.5f);
 			elem->RefreshGraphics();
 			Window::Get().UseCursor(Window::Get().systemSelectionCursor);
 			});
 		menuEventConnections.push_back(std::move(hOnConnection));
 		auto hOffConnection = butt->onHoverEnd.Connect(butt.get(), [this](GuiElement* elem) {
-			elem->backgroundColor = glm::vec4(DARK_COLOR, 0.5f);
+			elem->backgroundColor = glm::vec4(UI_PREFABS::DARK, 0.5f);
 			elem->RefreshGraphics();
 			Window::Get().UseCursor(Window::Get().systemPointerCursor);
 			});
@@ -321,7 +307,7 @@ void GameState::MakeJoinMenu() {
 		nOption++;
 		};
 
-	makeButton("Return", [this]() {
+	makeButton("Cancel", [this]() {
 		//menuEventConnections.clear();
 		//menuContainer = nullptr;
 		MakeMainMenu();
@@ -358,14 +344,14 @@ void GameState::MakeClientLoadingScreen() {
 	menuEventConnections.clear();
 
 	menuContainer = GuiElement::New(*GetScreenGuiContainer());
-	menuContainer->backgroundColor = glm::vec4(MAIN_COLOR, 1.0);
+	menuContainer->backgroundColor = glm::vec4(UI_PREFABS::MAIN, 1.0);
 	menuContainer->anchorPoint = { 0.0, 0.0 };
 	menuContainer->percentagePosition = { 0.5, 0.5 };
 	menuContainer->pixelPosition = { 0, 0 };
 	menuContainer->pixelSize = { 500, 200};
 	menuContainer->RefreshGraphics();
 
-	auto statusText = GuiElement::New(*GetScreenGuiContainer(), nullptr, GetMenuFont<18>());
+	auto statusText = GuiElement::New(*GetScreenGuiContainer(), GuiCreateParams{ .font = UI_PREFABS::GetMenuFont<18>() });
 	statusText->SetParent(menuContainer.get());
 	statusText->backgroundColor.w = 0;
 	statusText-> percentageSize = { 1, 1 };
@@ -373,15 +359,15 @@ void GameState::MakeClientLoadingScreen() {
 	statusText->anchorPoint = { 0.0, 0.0 };
 	statusText->percentagePosition = { 0.5, 0.5 };
 	statusText->text = "Connecting to server...";
-	statusText->textColor = glm::vec4(CONTRAST_COLOR, 1.0f);
+	statusText->textColor = glm::vec4(UI_PREFABS::CONTRAST, 1.0f);
 	statusText->hAlign = HorizontalAlignMode::Center;
 	statusText->vAlign = VerticalAlignMode::Center;
 	statusText->wrapText = true;
 	statusText->RefreshText();
 
-	auto cancelButton = GuiElement::New(*GetScreenGuiContainer(), nullptr, GetMenuFont<18>());
+	auto cancelButton = GuiElement::New(*GetScreenGuiContainer(), GuiCreateParams{ .font = UI_PREFABS::GetMenuFont<18>() });
 	cancelButton->SetParent(menuContainer.get());
-	cancelButton->backgroundColor = glm::vec4(DARK_COLOR, 1.0f);
+	cancelButton->backgroundColor = glm::vec4(UI_PREFABS::DARK, 1.0f);
 	cancelButton->percentageSize = { 0, 0 };
 	cancelButton->pixelSize = { 80, 30 };
 	cancelButton->percentagePosition = { 0.5, 0 };
@@ -390,17 +376,17 @@ void GameState::MakeClientLoadingScreen() {
 	cancelButton->depth = menuContainer->depth - 1;
 	cancelButton->wrapText = false;
 	cancelButton->hAlign = HorizontalAlignMode::Center;
-	cancelButton->textColor = glm::vec4(CONTRAST_COLOR, 1.0f);
+	cancelButton->textColor = glm::vec4(UI_PREFABS::CONTRAST, 1.0f);
 	cancelButton->text = "Cancel";
 	cancelButton->RefreshText();
 	auto hOnConnection = cancelButton->onHoverBegin.Connect(cancelButton.get(), [this](GuiElement* elem) {
-		elem->backgroundColor = glm::vec4(HIGHLIGHT_COLOR, 0.5f);
+		elem->backgroundColor = glm::vec4(UI_PREFABS::HIGHLIGHT, 0.5f);
 		elem->RefreshGraphics();
 		Window::Get().UseCursor(Window::Get().systemSelectionCursor);
 		});
 	menuEventConnections.push_back(std::move(hOnConnection));
 	auto hOffConnection = cancelButton->onHoverEnd.Connect(cancelButton.get(), [this](GuiElement* elem) {
-		elem->backgroundColor = glm::vec4(DARK_COLOR, 0.5f);
+		elem->backgroundColor = glm::vec4(UI_PREFABS::DARK, 0.5f);
 		elem->RefreshGraphics();
 		Window::Get().UseCursor(Window::Get().systemPointerCursor);
 		});
@@ -437,6 +423,7 @@ void GameState::MakeClientLoadingScreen() {
 			menuContainer = nullptr;
 			menuEventConnections.clear();
 
+			chat.SetVisible(true);
 			MakeGameplay();
 		}
 		});
@@ -444,6 +431,8 @@ void GameState::MakeClientLoadingScreen() {
 }
 
 void GameState::MakeMainMenu() {
+	chat.SetVisible(false);
+
 	menuContainer = nullptr;
 	menuEventConnections.clear();
 
@@ -455,30 +444,30 @@ void GameState::MakeMainMenu() {
 	menuContainer->pixelSize = { 250, 350 };
 	menuContainer->RefreshGraphics();
 
-	auto menuFont = GetMenuFont<30>();
+	auto menuFont = UI_PREFABS::GetMenuFont<30>();
 
 	auto makeMenuButton = [this, menuFont](std::string label, int order, std::function<void()> onActivate) {
-		auto butt = GuiElement::New(*GetScreenGuiContainer(), nullptr, menuFont);
+		auto butt = GuiElement::New(*GetScreenGuiContainer(), GuiCreateParams{ .font = menuFont });
 		butt->SetParent(menuContainer.get());
 		butt->anchorPoint = { -0.5, 0.5};
 		butt->percentageSize = { 1, 0 };
 		butt->pixelSize = { 0, 30 };
 		butt->wrapText = false;
 		butt->hAlign = HorizontalAlignMode::Left;
-		butt->backgroundColor = glm::vec4(MAIN_COLOR, 0.5f);
-		butt->textColor = glm::vec4(CONTRAST_COLOR, 1.0f);
+		butt->backgroundColor = glm::vec4(UI_PREFABS::MAIN, 0.5f);
+		butt->textColor = glm::vec4(UI_PREFABS::CONTRAST, 1.0f);
 		butt->text = label;
 		butt->sortOrder = order;
 		butt->RefreshText();
 
 		auto hOnConnection = butt->onHoverBegin.Connect(butt.get(), [this](GuiElement* elem) {
-			elem->backgroundColor = glm::vec4(HIGHLIGHT_COLOR, 0.5f);
+			elem->backgroundColor = glm::vec4(UI_PREFABS::HIGHLIGHT, 0.5f);
 			elem->RefreshGraphics();
 			Window::Get().UseCursor(Window::Get().systemSelectionCursor);
 			}); 
 		menuEventConnections.push_back(std::move(hOnConnection));
 		auto hOffConnection = butt->onHoverEnd.Connect(butt.get(), [this](GuiElement* elem) {
-			elem->backgroundColor = glm::vec4(MAIN_COLOR, 0.5f);
+			elem->backgroundColor = glm::vec4(UI_PREFABS::MAIN, 0.5f);
 			elem->RefreshGraphics();
 			Window::Get().UseCursor(Window::Get().systemPointerCursor);
 			});

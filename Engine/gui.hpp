@@ -43,12 +43,19 @@ struct ListLayout {
 	glm::vec2 percentStride = { 0, 0 };
 };
 
+struct GuiCreateParams {
+	std::shared_ptr<Texture> background = nullptr;
+	std::shared_ptr<Texture> font = nullptr;
+
+	bool clipChildren = false; // TODO unimplemented 
+};
+
 class GuiElement: public std::enable_shared_from_this<GuiElement> {
 public:
 	static inline std::vector<GuiElement*> elementsList;
 	static inline std::vector<GuiElement*> elementsBeingHoveredOn;
 	static void InitGuiEvents();
-	static std::shared_ptr<GuiElement> New(GuiContainer& storeIn, std::shared_ptr<Texture> background = nullptr, std::shared_ptr<Texture> font = nullptr);
+	static std::shared_ptr<GuiElement> New(GuiContainer& storeIn, const GuiCreateParams params = GuiCreateParams{});
 
 	virtual ~GuiElement();
 
@@ -96,15 +103,15 @@ public:
 
 	bool hover = false;
 
-	static inline Event<GuiElement>& onHoverBegin = Event<GuiElement>::New();;
-	static inline Event<GuiElement>& onHoverEnd = Event<GuiElement>::New();;
+	static inline Event<GuiElement>& onHoverBegin = Event<GuiElement>::New();
+	static inline Event<GuiElement>& onHoverEnd = Event<GuiElement>::New();
 	static inline Event<GuiElement, InputObject>& onInputBegin = Event<GuiElement, InputObject>::New();
 	static inline Event<GuiElement, InputObject>& onInputEnd = Event<GuiElement, InputObject>::New();
 
 protected:
 	static inline TextboxElement* currentlyFocused = nullptr;
 
-	GuiElement(GuiContainer& storeIn, std::shared_ptr<Texture> background, std::shared_ptr<Texture> font);
+	GuiElement(GuiContainer& storeIn, const GuiCreateParams params);
 
 private:
 	glm::ivec2 GetParentBounds();
@@ -130,8 +137,8 @@ private:
 
 class TextboxElement : public GuiElement {
 public:
-	// background may be nullptr, font is mandatory
-	static std::shared_ptr<TextboxElement> New(GuiContainer& storeIn, std::shared_ptr<Texture> background, std::shared_ptr<Texture> font);
+	// GuiCreateParams MUST contain a non-null font
+	static std::shared_ptr<TextboxElement> New(GuiContainer& storeIn, const GuiCreateParams params);
 
 	bool clearOnFocus = true;
 
@@ -149,14 +156,44 @@ public:
 
 	void Focus();
 	void Unfocus();
+
+	// also fired for ApplyText()
+	// todo: will sometimes fire erronously
+	static inline Event<TextboxElement>& onTextChanged = Event<TextboxElement>::New();
+
 private:
-	TextboxElement(GuiContainer& storeIn, std::shared_ptr<Texture> background, std::shared_ptr<Texture> font);
+	TextboxElement(GuiContainer& storeIn, const GuiCreateParams params);
 	bool isEmpty = true;
 	std::string emptyText = "type here";
 
 	friend class GuiElement;
 };
 
+enum class ScrollbarOrientation {
+	Horizontal,
+	Vertical,
+	Both
+};
 
+struct ScrollableGuiCreateParams : public GuiCreateParams {
+	ScrollbarOrientation orientation = ScrollbarOrientation::Vertical;
+};
+
+class ScrollableElement : public GuiElement {
+public:
+
+	static std::shared_ptr<ScrollableElement> New(GuiContainer& storeIn, ScrollableGuiCreateParams uiparams);
+
+	// parent whatever scrollable things you want to this canvas.
+	std::shared_ptr<GuiElement> canvas;
+
+	std::shared_ptr<GuiElement> verticalScrollbar; // nullptr if not scrollable vertically
+	std::shared_ptr<GuiElement> horizontalScrollbar; // nullptr if not scrollable horizontally
+private:
+	ScrollableElement(GuiContainer& storeIn, ScrollableGuiCreateParams uiparams);
+
+	std::shared_ptr<GuiElement> clippingMask; // canvas is parented to this
+	friend class GuiElement;
+};
 
 // TODO: 3d guis (billboard, surface)
