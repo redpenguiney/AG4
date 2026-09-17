@@ -181,6 +181,14 @@ InputType glfwKeyToInputType(int key) {
 		return InputType::Enter;
 	case GLFW_KEY_SEMICOLON:
 		return InputType::Semicolon;
+    case GLFW_KEY_MINUS:
+        return InputType::Minus;
+    case GLFW_KEY_EQUAL:
+        return InputType::Equals;
+    case GLFW_KEY_BACKSLASH:
+        return InputType::BackSlash;
+    case GLFW_KEY_SLASH:
+        return InputType::ForwardSlash;
 	case GLFW_KEY_COMMA:
 		return InputType::Comma;
     case GLFW_KEY_PERIOD:

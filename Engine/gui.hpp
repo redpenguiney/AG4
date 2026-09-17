@@ -105,8 +105,10 @@ public:
 
 	static inline Event<GuiElement>& onHoverBegin = Event<GuiElement>::New();
 	static inline Event<GuiElement>& onHoverEnd = Event<GuiElement>::New();
-	static inline Event<GuiElement, InputObject>& onInputBegin = Event<GuiElement, InputObject>::New();
-	static inline Event<GuiElement, InputObject>& onInputEnd = Event<GuiElement, InputObject>::New();
+
+	// note; fired even if no focus, input will still fallthrough to other things on stack regardless of connection here.
+	// create a second InputContext for your special ui input to avoid this if neccesary.
+	static inline Event<GuiElement, InputObject>& onInput = Event<GuiElement, InputObject>::New();
 
 protected:
 	static inline TextboxElement* currentlyFocused = nullptr;
@@ -158,7 +160,7 @@ public:
 	void Unfocus();
 
 	// also fired for ApplyText()
-	// todo: will sometimes fire erronously
+	// todo: will sometimes fire erronously or fire multiple times in a frame
 	static inline Event<TextboxElement>& onTextChanged = Event<TextboxElement>::New();
 
 private:

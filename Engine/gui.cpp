@@ -80,14 +80,6 @@ void GuiElement::InitGuiEvents() {
 
         for (auto& p : w->PRESS_BEGAN_EVENTS) {
             if (p.input == InputType::LMB) leftClick = true;
-            for (auto& ui : elementsBeingHoveredOn) {
-                onInputBegin.Fire(ui, p);
-            }
-        }
-        for (auto& p : w->PRESS_ENDED_EVENTS) {
-            for (auto& ui : elementsBeingHoveredOn) {
-                onInputEnd.Fire(ui, p);
-            }
         }
 
         if (leftClick) {
@@ -108,21 +100,37 @@ void GuiElement::InitGuiEvents() {
         }
         textboxFocusDone:;
 
+    });
+
+    static auto inputContext = InputStack::Get().PushContext(InputStack::GUI_INPUT_PRIORITY);
+    static auto connection3 = InputStack::onInput.Connect(inputContext.get(), [](InputContext* ctx, InputObject input) {
+        for (auto& ui : elementsBeingHoveredOn) {
+            onInput.Fire(ui, input);
+        }
+
         if (currentlyFocused) {
-            for (auto& p : w->PRESS_BEGAN_EVENTS) {
-                if (auto s = InputToString(p)) {
-                    currentlyFocused->text += s.value();
-                }
-                else if (p.input == InputType::Backspace) {
-                    if (!currentlyFocused->text.empty()) {
-                        currentlyFocused->text.pop_back();
-                    }
+            if (input.state == InputState::Up) return;
+            bool mod = false;
+
+            if (auto s = InputToString(input)) {
+                currentlyFocused->text += s.value();
+                mod = true;
+            }
+            else if (input.input == InputType::Backspace) {
+                if (!currentlyFocused->text.empty()) {
+                    currentlyFocused->text.pop_back();
+                    mod = true;
                 }
             }
-            if (!w->PRESS_BEGAN_EVENTS.empty()) {
+
+            // todo: will wastefully refresh multiple times if multiple keypresses in a frame
+            if (mod) {
                 currentlyFocused->RefreshText();
-				currentlyFocused->onTextChanged.FireNow(currentlyFocused);
+                currentlyFocused->onTextChanged.FireNow(currentlyFocused);
             }
+        }
+        else {
+            ctx->Fallthrough(input);
         }
     });
 }

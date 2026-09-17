@@ -43,6 +43,12 @@ enum class InputType : int {
     Nine,
     Zero,
 
+    Minus,
+    Equals,
+
+    BackSlash, // (it's "\")
+    ForwardSlash, // (it's "/")
+
     Space,
     Tab,
     Escape,
@@ -79,7 +85,7 @@ enum class InputType : int {
     Semicolon,
     Apostrophe,
 
-    Unknown
+    Unknown,
 };
 
 
@@ -151,6 +157,8 @@ private:
 // Window's input events always fire no matter the context, so doing input handling there is bad (consider trying to handle w either moving forward or typing in UI or etc.)
 class InputStack {
 public:
+    constexpr static int GUI_INPUT_PRIORITY = 1000;
+
     // For the love of god make sure you call the variant of Connect() taking a specific InputContext
     static inline Event<InputContext, InputObject>& onInput = Event<InputContext, InputObject>::New();
     static InputStack& Get();

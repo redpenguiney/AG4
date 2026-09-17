@@ -132,8 +132,8 @@ void GameState::MakeHostNewMenu() {
 			Window::Get().UseCursor(Window::Get().systemPointerCursor);
 			});
 		menuEventConnections.push_back(std::move(hOffConnection));
-		auto clickConnection = butt->onInputEnd.Connect(butt.get(), [onActivate](GuiElement*, InputObject input) {
-			if (input.input == InputType::LMB) onActivate();
+		auto clickConnection = butt->onInput.Connect(butt.get(), [onActivate](GuiElement*, InputObject input) {
+			if (input.input == InputType::LMB && input.state == InputState::Up) onActivate();
 			});
 		menuEventConnections.push_back(std::move(clickConnection));
 
@@ -299,8 +299,8 @@ void GameState::MakeJoinMenu() {
 			Window::Get().UseCursor(Window::Get().systemPointerCursor);
 			});
 		menuEventConnections.push_back(std::move(hOffConnection));
-		auto clickConnection = butt->onInputEnd.Connect(butt.get(), [onActivate](GuiElement*, InputObject input) {
-			if (input.input == InputType::LMB) onActivate();
+		auto clickConnection = butt->onInput.Connect(butt.get(), [onActivate](GuiElement*, InputObject input) {
+			if (input.input == InputType::LMB && input.state == InputState::Up) onActivate();
 			});
 		menuEventConnections.push_back(std::move(clickConnection));
 
@@ -391,8 +391,8 @@ void GameState::MakeClientLoadingScreen() {
 		Window::Get().UseCursor(Window::Get().systemPointerCursor);
 		});
 	menuEventConnections.push_back(std::move(hOffConnection));
-	auto clickConnection = cancelButton->onInputEnd.Connect(cancelButton.get(), [this](GuiElement*, InputObject input) {
-		if (input.input == InputType::LMB) {
+	auto clickConnection = cancelButton->onInput.Connect(cancelButton.get(), [this](GuiElement*, InputObject input) {
+		if (input.input == InputType::LMB && input.state == InputState::Up) {
 			if (NetworkingEngine::Get().GetState() == NetworkState::ClientConnecting) NetworkingEngine::Get().CancelJoin();
 			MakeJoinMenu();
 		}
@@ -472,8 +472,8 @@ void GameState::MakeMainMenu() {
 			Window::Get().UseCursor(Window::Get().systemPointerCursor);
 			});
 		menuEventConnections.push_back(std::move(hOffConnection));
-		auto clickConnection = butt->onInputEnd.Connect(butt.get(), [onActivate](GuiElement*, InputObject input) {
-			if (input.input == InputType::LMB) onActivate();
+		auto clickConnection = butt->onInput.Connect(butt.get(), [onActivate](GuiElement*, InputObject input) {
+			if (input.input == InputType::LMB && input.state == InputState::Up) onActivate();
 			});
 		menuEventConnections.push_back(std::move(clickConnection));
 		};

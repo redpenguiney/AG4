@@ -150,6 +150,20 @@ std::optional<std::string> InputToString(InputObject input) {
         return input.shiftDown ? "*" : "8";
     case InputType::Nine:
         return input.shiftDown ? "(" : "9";
+    case InputType::Minus:
+        return input.shiftDown ? "_" : "-";
+    case InputType::Equals:
+        return input.shiftDown ? "+" : "=";
+    case InputType::ForwardSlash:
+        return input.shiftDown ? "?" : "/";
+    case InputType::BackSlash:
+        return input.shiftDown ? "|" : "\\";
+    case InputType::Grave:
+        return input.shiftDown ? "~" : "`";
+    case InputType::LBracket:
+        return input.shiftDown ? "{" : "[";
+    case InputType::RBracket:
+        return input.shiftDown ? "}" : "]";
     default:
         return std::nullopt;
     }

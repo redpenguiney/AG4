@@ -47,6 +47,8 @@ public:
 	void SetPos(glm::dvec3);
 
 private:
+	std::unique_ptr<InputContext> inputContext;
+
 	friend class LocalPlayerController;
 
 	std::vector<Connection> conns;

@@ -32,6 +32,8 @@ static std::shared_ptr<DrawPass> GetHumanoidDrawPass() {
 Body::Body(std::unique_ptr<BodyController> c, BodyCreateParams bodyParams):
 	controller(std::move(c))
 {
+	inputContext = InputStack::Get().PushContext();
+
 	controller->body = this;
 
 	conns.push_back(Mainloop::Get().preRender.Connect([this](Mainloop*, float dt) { 
