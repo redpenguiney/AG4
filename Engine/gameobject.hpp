@@ -58,6 +58,8 @@ public:
 	void SetInstanceAttribute(const VertexAttribute& attrib, glm::vec4 value);
 	void SetInstanceAttribute(const VertexAttribute& attrib, float value);
 
+	void ChangeDrawPasses(std::vector<std::shared_ptr<DrawPass>> newDrawPasses);
+
 	const glm::mat3x3& GetRotSclMatrix();
 
 	bool Live();
@@ -70,6 +72,9 @@ public:
 
 	float elasticity;
 	float friction;
+
+	// returns 0 if no mesh
+	GLenum GetPrimitiveType() const;
 
 	std::shared_ptr<Mesh> GetMesh();
 

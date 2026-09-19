@@ -10,6 +10,13 @@ Gameobject* Gameobject::New(const GameobjectCreateParams& params)
     return MemoryPool<Gameobject, const GameobjectCreateParams&>::Get().New(params);
 }
 
+GLenum Gameobject::GetPrimitiveType() const {
+    if (!meshpool) return 0;
+    else {
+        return renderGroup->primitiveType;
+    }
+}
+
 std::shared_ptr<Mesh> Gameobject::GetMesh() {
     if (!meshpool) return nullptr;
     else {
@@ -48,7 +55,7 @@ Gameobject::Gameobject(const GameobjectCreateParams& params): id(nextId++) {
     rotSclDirty = true;
 
     if (params.mesh) {
-        RenderGroup::FindRendergroupForGameobject(*this, params);
+        RenderGroup::FindRendergroupForGameobject(*this, params.mesh, params.renderPasses, params.primitiveType);
         
         if (params.mesh->bones.size() > 0) {
 			skeletons.emplace(std::make_pair(this, Skeleton(params.mesh->bones.size())));
@@ -135,6 +142,15 @@ void Gameobject::SetInstanceAttribute(const VertexAttribute& attrib, glm::vec4 v
 void Gameobject::SetInstanceAttribute(const VertexAttribute& attrib, float value) {
     Assert(attrib.nComponents == 1 && attrib.type == VertexScalarType::f32);
     SetInstanceAttribute(attrib, reinterpret_cast<VertexScalar*>(&value));
+}
+
+void Gameobject::ChangeDrawPasses(std::vector<std::shared_ptr<DrawPass>> newDrawPasses) {
+    if (meshpool) {
+        auto m = GetMesh();
+        auto pT = GetPrimitiveType();
+        renderGroup->RemoveGameobject(*this);
+        RenderGroup::FindRendergroupForGameobject(*this, m, newDrawPasses, pT );
+    }
 }
 
 const glm::mat3x3& Gameobject::GetRotSclMatrix() {

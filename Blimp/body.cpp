@@ -32,7 +32,6 @@ static std::shared_ptr<DrawPass> GetHumanoidDrawPass() {
 Body::Body(std::unique_ptr<BodyController> c, BodyCreateParams bodyParams):
 	controller(std::move(c))
 {
-	inputContext = InputStack::Get().PushContext();
 
 	controller->body = this;
 
@@ -95,6 +94,26 @@ void Body::SetPos(glm::dvec3 pos) {
 }
 
 LocalPlayerController::LocalPlayerController() {
+	inputContext = std::move(InputStack::Get().PushContext());
+	inputConn = InputStack::onInput.Connect([this](InputContext*, InputObject input) {
+		int change = 0;
+		if (input.state == InputState::Down) change = 1;
+		else if (input.state != InputState::Up) return;
+
+		if (input.input == InputType::W) {
+			moveInput.x = change;
+		}
+		else if (input.input == InputType::S) {
+			moveInput.x = -change;
+		}
+		else if (input.input == InputType::D) {
+			moveInput.y = change;
+		}
+		else if (input.input == InputType::A) {
+			moveInput.y = -change;
+		}
+	});
+
 	camera = std::make_shared<Camera>();
 	lookPitch = 0;
 	lookYaw = 0;
@@ -103,6 +122,8 @@ LocalPlayerController::LocalPlayerController() {
 void LocalPlayerController::Update(float dt) {
 	if (GraphicsEngine::Get().currentCamera == camera) {
 		if (Window::Get().IsMouseLocked()) {
+			DebugLogInfo("Move ", moveInput);
+
 			lookPitch += 0.01f * Window::Get().MOUSE_DELTA.y;
 			lookYaw += 0.01f * Window::Get().MOUSE_DELTA.x;
 			lookPitch = std::clamp(lookPitch, -glm::radians(89.0f), glm::radians(89.0f));
@@ -113,19 +134,22 @@ void LocalPlayerController::Update(float dt) {
 			glm::vec3 right = LookVector(0, lookYaw + glm::radians(90.0f));
 			float forwardVel = glm::dot(body->collider->velocity, forward);
 			float rightVel = glm::dot(body->collider->velocity, right);
-			if (Window::Get().PRESSED_KEYS.contains(InputType::W)) {
-				body->collider->velocity += forward * (5.0f - forwardVel);
-			}
-			else if (Window::Get().PRESSED_KEYS.contains(InputType::S)) {
-				body->collider->velocity += forward * (-5.0f - forwardVel);
-			}
+			
+			if (moveInput.x == +1) body->collider->velocity += forward * (5.0f * glm::normalize(glm::vec2(moveInput)).x - forwardVel);
+			if (moveInput.x == -1) body->collider->velocity += forward * (5.0f * glm::normalize(glm::vec2(moveInput)).x - forwardVel);
+			if (moveInput.y == +1) body->collider->velocity += right * (5.0f * glm::normalize(glm::vec2(moveInput)).y - rightVel);
+			if (moveInput.y == -1) body->collider->velocity += right * (5.0f * glm::normalize(glm::vec2(moveInput)).y - rightVel);
 
-			if (Window::Get().PRESSED_KEYS.contains(InputType::D)) {
-				body->collider->velocity += right * (5.0f - rightVel);
-			}
-			else if (Window::Get().PRESSED_KEYS.contains(InputType::A)) {
-				body->collider->velocity += right * (-5.0f - rightVel);
-			}
+			//if (moveInput.y != 0) body->collider->velocity += right * glm::normalize(glm::vec2(moveInput)).y;
+
+			
+
+			//if (Window::Get().PRESSED_KEYS.contains(InputType::D)) {
+				//body->collider->velocity += right * (5.0f - rightVel);
+			//}
+			//else if (Window::Get().PRESSED_KEYS.contains(InputType::A)) {
+				//body->collider->velocity += right * (-5.0f - rightVel);
+			//}
 		}
 		body->collider->GetComponent<Hierarchy>()->Transform(glm::quatLookAt(glm::vec3(LookVector(0.0f, lookYaw)), glm::vec3(0, 1, 0)));
 

@@ -6,6 +6,7 @@ class Gameobject;
 class Physobject;
 class Body;
 class Camera;
+class InputContext; 
 
 class BodyController {
 public:
@@ -25,10 +26,16 @@ class LocalPlayerController: public BodyController {
 public:
 	LocalPlayerController();
 
+	// x is forwards, y is rightwards
+	glm::ivec2 moveInput = glm::ivec2(0, 0);
+
 	float lookYaw;
 	float lookPitch;
 
 	std::shared_ptr<Camera> camera;
+
+	std::unique_ptr<InputContext> inputContext;
+	Connection inputConn;
 
 	void Update(float dt) override;
 	void FixedUpdate(float dt) override;
@@ -47,8 +54,6 @@ public:
 	void SetPos(glm::dvec3);
 
 private:
-	std::unique_ptr<InputContext> inputContext;
-
 	friend class LocalPlayerController;
 
 	std::vector<Connection> conns;

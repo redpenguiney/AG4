@@ -111,20 +111,20 @@ const std::shared_ptr<Mesh>& RenderGroup::GetMesh(Gameobject* obj) {
 	return meshUsers.at(obj);
 }
 
-void RenderGroup::AddGameobject(Gameobject& obj, const GameobjectCreateParams& params) {
+void RenderGroup::AddGameobject(Gameobject& obj, const std::shared_ptr<Mesh>& mesh) {
 	obj.drawInstanceIndex = meshpool->AddInstance();
 	obj.renderGroup = this;
 	obj.meshpool = meshpool.get();
 
 	IndirectDrawCommand command;
-	command.baseVertex = params.mesh->baseVertex;
-	command.count = params.mesh->numIndices;
-	command.firstIndex = params.mesh->firstIndex;
+	command.baseVertex = mesh->baseVertex;
+	command.count = mesh->numIndices;
+	command.firstIndex = mesh->firstIndex;
 	command.baseInstance = obj.drawInstanceIndex;
 	command.instanceCount = 1;
 	AddDrawCommand(command);
 
-	meshUsers[&obj] = params.mesh;
+	meshUsers[&obj] = mesh;
 
 
 }
@@ -160,12 +160,12 @@ void RenderGroup::AddDrawCommand(IndirectDrawCommand cmd) {
 	commands.push_back(cmd);
 }
 
-void RenderGroup::FindRendergroupForGameobject(Gameobject& obj, const GameobjectCreateParams& params) {
+void RenderGroup::FindRendergroupForGameobject(Gameobject& obj, const std::shared_ptr<Mesh>& mesh, const std::vector<std::shared_ptr<DrawPass>>& renderPasses, GLenum primitiveType) {
 	RenderGroup* group = nullptr;
 
-	if (renderGroupsByMeshpool.contains(params.mesh->pool.get())) {
-		for (auto& g : renderGroupsByMeshpool.at(params.mesh->pool.get())) {
-			if (g->primitiveType == params.primitiveType && g->drawPasses == params.renderPasses) {
+	if (renderGroupsByMeshpool.contains(mesh->pool.get())) {
+		for (auto& g : renderGroupsByMeshpool.at(mesh->pool.get())) {
+			if (g->primitiveType == primitiveType && g->drawPasses == renderPasses) {
 				group = g.get();
 				break;
 			}
@@ -173,16 +173,16 @@ void RenderGroup::FindRendergroupForGameobject(Gameobject& obj, const Gameobject
 	}
 
 	if (!group) {
-		group = new RenderGroup(params.renderPasses, params.mesh->pool, params.primitiveType);
+		group = new RenderGroup(renderPasses, mesh->pool, primitiveType);
 		//DebugLogInfo("Made group ", group, " for ", params.renderPasses[0]->name);
 		//if (renderGroupsByMeshpool.contains(params.mesh->pool.get())) {
 			//DebugLogInfo("Already had meshpool in map.");
 		//}
-		renderGroupsByMeshpool[params.mesh->pool.get()].push_back(std::shared_ptr<RenderGroup>(group));
+		renderGroupsByMeshpool[mesh->pool.get()].push_back(std::shared_ptr<RenderGroup>(group));
 	}
 	else {
 		//DebugLogInfo("Already had group ", group, " for ", params.renderPasses[0]->name);
 	}
 
-	group->AddGameobject(obj, params);
+	group->AddGameobject(obj, mesh);
 }

@@ -195,6 +195,7 @@ std::unique_ptr<InputContext> InputStack::PushContext(int priority) {
             else if ((**current).next == nullptr) {
                 c->prev = *current;
                 (**current).next = c;
+                break;
             }
             else {
                 current = &(**current).next;
@@ -202,6 +203,10 @@ std::unique_ptr<InputContext> InputStack::PushContext(int priority) {
         }
     }
     return std::unique_ptr<InputContext>(c);
+}
+
+InputStack::~InputStack() {
+    //DebugLogInfo("DIE INPUT STACK");
 }
 
 InputStack::InputStack() {

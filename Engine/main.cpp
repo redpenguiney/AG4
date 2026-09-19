@@ -38,6 +38,7 @@ int main(int numArgs, const char* argArray[]) {
 	Window::Get();
 	GraphicsEngine::Get();
 	GameobjectSAS();
+	InputStack::Get();
 	//GetScreenGuiContainer();
 	GuiElement::InitGuiEvents();
 

@@ -15,7 +15,7 @@ class RenderGroup {
 public:
 	const GLenum primitiveType;
 
-	static void FindRendergroupForGameobject(Gameobject& obj, const GameobjectCreateParams& params);
+	static void FindRendergroupForGameobject(Gameobject& obj, const std::shared_ptr<Mesh>& mesh, const std::vector<std::shared_ptr<DrawPass>>& renderPasses, GLenum primitiveType);
 
 	const std::vector<std::shared_ptr<DrawPass>> drawPasses;
 
@@ -27,7 +27,7 @@ public:
 	const std::shared_ptr<Mesh>& GetMesh(Gameobject* obj);
 
 private:
-	void AddGameobject(Gameobject& obj, const GameobjectCreateParams& params);
+	void AddGameobject(Gameobject& obj, const std::shared_ptr<Mesh>& mesh);
 
 	RenderGroup(std::vector<std::shared_ptr<DrawPass>> drawPasses, std::shared_ptr<Meshpool> meshpool, GLenum primitiveType);
 	RenderGroup(const RenderGroup&&) = delete;

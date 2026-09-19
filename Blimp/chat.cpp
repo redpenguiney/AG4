@@ -81,6 +81,8 @@ void Chat::BuildUi() {
 			inputBox->ApplyText("");
 		}
 	}));
+
+	auto messageBoxPtr = ScrollableElement::New(*GetScreenGuiContainer(), ScrollableGuiCreateParams{ .orientation = ScrollbarOrientation::Vertical });
 }
 
 void Chat::OnNetworkStateChange(Chat* c, NetworkState old, NetworkState now)

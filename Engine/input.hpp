@@ -168,7 +168,7 @@ public:
     // higher priority contexts recieve input first.
 	std::unique_ptr<InputContext> PushContext(int priority = 0);
 
-    ~InputStack() = default;
+    ~InputStack();
 private:
     InputStack();
 
