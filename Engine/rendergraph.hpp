@@ -182,6 +182,8 @@ private:
 		std::shared_ptr<AttachmentResource> hardwareResource;
 	};
 
+	glm::uvec2 ActualAttachmentSize(const Framebuffer::Attachment& attachment);
+
 	bool Compatible(const FramebufferRenderTargetDescriptor& requirements, const FramebufferResource& resource);
 
 	FramebufferResource& GetFramebuffer(FramebufferRenderTargetDescriptor params);

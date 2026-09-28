@@ -595,10 +595,12 @@ void RenderGraph::Compile() {
 	for (auto& [attachmentName, logicalAttachment] : logicalAttachments) {
 
 		// try to assign existing hardware attachment if a valid one exists to enable aliasing and reuse across compilations
+		// TODO: overly restrictive aliasing. With judicous glViewporting/etc. a large hardware attachment could simultaneously service several smaller ones, which would obviously be useful for some stuff
 		std::shared_ptr<AttachmentResource> rsrc = nullptr;
 		for (auto& candidate : hardwareAttachments) {
 
-			// must be same format
+			// must be same size/format
+			if (ActualAttachmentSize(candidate->attachment) != AttachmentSize(attachmentName)) continue;
 			if (candidate->format != logicalAttachment.descriptor) continue;
 
 			// can't alias if usages overlap
@@ -817,6 +819,15 @@ glm::uvec2 RenderGraph::AttachmentSize(std::string name) {
 	glm::uvec2 size = logicalAttachments[name].descriptor.size;
 	size += glm::uvec2(glm::ceil(glm::vec2(Window::Get().Size()) * logicalAttachments[name].descriptor.windowSize));
 	return size;
+}
+
+glm::uvec2 RenderGraph::ActualAttachmentSize(const Framebuffer::Attachment& attachment) {
+	if (std::holds_alternative<std::shared_ptr<Texture>>(attachment)) {
+		return std::get<std::shared_ptr<Texture>>(attachment)->GetSize();
+	}
+	else {
+		return std::get<std::shared_ptr<Renderbuffer>>(attachment)->size;
+	}
 }
 
 bool RenderGraph::Compatible(const FramebufferRenderTargetDescriptor& requirements, const FramebufferResource& hardwareResource)
