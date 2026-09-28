@@ -15,17 +15,17 @@ public:
 	constexpr static inline bool CHECK_OVERFLOW = true;
 
 	// intializes value
-	constexpr CheckedUint(unsigned int initialValue) : value(initialValue)
+	constexpr CheckedUint(unsigned int initialValue) : value(static_cast<unsigned int>(initialValue))
 	{
 
 	}
 
-	constexpr CheckedUint(unsigned long initialValue) : value(initialValue)
+	constexpr CheckedUint(unsigned long initialValue) : value(static_cast<unsigned int>(initialValue))
 	{
 		Assert(initialValue <= std::numeric_limits<unsigned int>::max());
 	}
 
-	constexpr CheckedUint(unsigned long long initialValue) : value(initialValue)
+	constexpr CheckedUint(unsigned long long initialValue) : value(static_cast<unsigned int>(initialValue))
 	{
 		Assert(initialValue <= std::numeric_limits<unsigned int>::max());
 	}
@@ -38,7 +38,7 @@ public:
 	//consteval CheckedUint(size_t initialValue);
 
 	// checks for negative
-	constexpr CheckedUint(int initialValue) : value((unsigned int)initialValue)
+	constexpr CheckedUint(int initialValue) : value(static_cast<unsigned int>(initialValue))
 	{
 		if (CHECK_OVERFLOW) {
 			Assert(initialValue >= 0);

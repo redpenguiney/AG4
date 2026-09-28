@@ -9,11 +9,14 @@
 #include <algorithm>
 #include "buffered_buffer.hpp"
 #include <climits>
+#include <window.hpp>
 
 constexpr bool ANNOTATE_FRAMES_FOR_RENDERDOC = true; // TODO: turning this on randomly breaks rendering
 
 RenderGraph::RenderGraph() {
-	
+	connections.push_back(Window::Get().onWindowResize.Connect([this](Window*, glm::uvec2 oldSize, glm::uvec2 newSize) {
+		dirty = true; // TODO: could technically add check to see if anything cares about window size. but like let's be real everything should care about window size.
+	}));
 }
 
 //static void BindRenderTarget(FramebufferRenderTargetDescriptor target) {
@@ -131,7 +134,7 @@ void RenderGraph::Render() {
 			glEnable(GL_DEPTH_TEST);
 			if (p.params.depthTestMode == DepthTestMode::Disabled) {
 				glDepthFunc(GL_ALWAYS);
-				//glDisable(GL_DEPTH_TEST); // supposedly this cooks the depth mask?
+				//glDisable(GL_DEPTH_TEST); // todo: supposedly this cooks the depth mask?
 			}
 			else {
 				glDepthFunc(static_cast<GLenum>(p.params.depthTestMode));
@@ -147,7 +150,17 @@ void RenderGraph::Render() {
 			}
 
 			glPolygonMode(GL_FRONT_AND_BACK, static_cast<GLenum>(p.params.polygonFillMode));
-				
+			
+			if (p.params.stencilTestMode == DepthTestMode::Disabled) {
+				glDisable(GL_STENCIL_TEST);
+			}
+			else {
+				glEnable(GL_STENCIL_TEST);
+				glStencilMask(p.params.stencilWriteMask);
+				glStencilFunc(static_cast<GLenum>(p.params.stencilTestMode), p.params.stencilTestComparisonValue, p.params.stencilTestMask);
+				glStencilOp(static_cast<GLenum>(p.params.stencilTestFailureAction), static_cast<GLenum>(p.params.stencilTestSuccessDepthTestFailureAction), static_cast<GLenum>(p.params.stencilTestSuccessDepthTestSuccessAction));
+			}
+
 			int activeTexture = 0;
 			for (auto& f : p.textures) {
 				if (f.shaderSamplerName == "fontMap") {
@@ -176,7 +189,7 @@ void RenderGraph::Render() {
 						unsigned baseVertexOffset = renderGroup->meshpool->vertices.GetOffset() / renderGroup->meshpool->format.GetNonInstancedVertexSize();
 						unsigned firstIndexOffset = renderGroup->meshpool->indices.GetOffset();
 						unsigned instanceOffset = renderGroup->meshpool->instances.GetOffset() / renderGroup->meshpool->format.GetInstancedVertexSize();
-						glDrawElementsInstancedBaseVertexBaseInstance(renderGroup->primitiveType, c.count, GL_UNSIGNED_INT, (void*)(unsigned int)((c.firstIndex + firstIndexOffset)), c.instanceCount, c.baseVertex + baseVertexOffset, c.baseInstance + instanceOffset);
+						glDrawElementsInstancedBaseVertexBaseInstance(renderGroup->primitiveType, c.count, GL_UNSIGNED_INT, (void*)(uintptr_t)(unsigned int)((c.firstIndex + firstIndexOffset)), c.instanceCount, c.baseVertex + baseVertexOffset, c.baseInstance + instanceOffset);
 					}
 				}
 
@@ -264,8 +277,14 @@ void RenderGraph::AddPass(std::shared_ptr<RenderPass> pass) {
 			}
 
 			// Validate that all attachments written to exist
-			for (auto& attachment : fbt.colorAttachments) Assert(attachments.contains(attachment.attachmentName));
-			if (fbt.depthStencilAttachment) Assert(attachments.contains(fbt.depthStencilAttachment->attachmentName));
+			for (auto& attachment : fbt.colorAttachments) {
+				Assert(logicalAttachments.contains(attachment.attachmentName));
+				//Assert(logicalAttachments[attachment.attachmentName].hardwareResource != nullptr); won't exist until compiletime
+			}
+			if (fbt.depthStencilAttachment) {
+				Assert(logicalAttachments.contains(fbt.depthStencilAttachment->attachmentName));
+				//Assert(logicalAttachments[fbt.depthStencilAttachment->attachmentName].hardwareResource != nullptr); won't exist until compiletime 
+			}
 
 			// Validate that all attachments written to are the same size.
 			glm::uvec2 size;
@@ -299,31 +318,57 @@ void RenderGraph::RemovePass(std::shared_ptr<RenderPass> pass) {
 	dirty = true;
 }
 
-void RenderGraph::CreateAttachment(FramebufferAttachmentFormatDescriptor attachment) {
-	Assert(!attachments.contains(attachment.resourceName));
-	Assert(attachment.format != Texture::Auto_8Bit);
-
+static Framebuffer::Attachment GetAttachmentForDescriptor(FramebufferAttachmentFormatDescriptor params) {
+	Assert(params.format != Texture::Auto_8Bit);
+	
+	glm::uvec2 attachmentSize = params.size + glm::uvec2(glm::ceil(params.windowSize * glm::vec2(Window::Get().Size())));
 
 	Framebuffer::Attachment a;
-	if (attachment.renderbuffer) {
+	if (params.renderbuffer) {
 		RenderbufferCreateParams rbp{
-			.storageFormat = static_cast<GLenum>(attachment.format),
-			.size = attachment.size,
+			.storageFormat = static_cast<GLenum>(params.format),
+			.size = attachmentSize,
 		};
 		a = std::make_shared<Renderbuffer>(rbp);
 	}
 	else {
 		TextureCreateParams tcp({});
-		tcp.format = attachment.format;
+		tcp.format = params.format;
 		tcp.wrappingBehaviour = Texture::WrapClampToEdge;
-		tcp.renderBuffer = attachment.renderbuffer;
-		a = std::make_shared<Texture>(attachment.size, tcp, Texture::Texture2DFlat);
+		tcp.renderBuffer = params.renderbuffer;
+		a = std::make_shared<Texture>(attachmentSize, tcp, Texture::Texture2DFlat);
 	}
 
-	AttachmentResource resource{ .name = attachment.resourceName, .hardwareResource = a, .accesses = {}, .destroy = false };
-	attachments.emplace(attachment.resourceName, resource);
+	return a;
+}
 
-	dirty = true;
+void RenderGraph::CreateAttachment(FramebufferAttachmentFormatDescriptor descriptor) {
+	if (logicalAttachments.contains(descriptor.resourceName)) {
+		if (logicalAttachments[descriptor.resourceName].descriptor == descriptor) {
+			return; // no need to recompile rendergraph
+		}
+		else { // update existing attachment
+			logicalAttachments[descriptor.resourceName].descriptor = descriptor;
+			dirty = true;
+		}
+	}
+	else {
+		// declare new logical attachment
+		LogicalAttachmentResource attachment;
+		attachment.descriptor = descriptor;
+		attachment.hardwareResource = nullptr;
+		logicalAttachments.emplace(descriptor.resourceName, attachment);
+	}
+	//Assert(!logicalAttachments.contains(attachment.resourceName));
+
+
+
+	
+
+	//AttachmentResource resource{ .name = attachment.resourceName, .hardwareResource = a, .accesses = {}, .destroy = false };
+	//attachments.emplace(attachment.resourceName, resource);
+
+	//dirty = true;
 }
 
 void RenderGraph::DeclareUniformBuffer(std::string name, size_t size) {
@@ -356,21 +401,35 @@ void RenderGraph::Compile() {
 	dirty = false;
 	renderOrder.clear();
 
+	// disconnect hardware stuff from logical stuff; it will all be reassigned during graph compilation
+	for (auto& [n, l] : logicalBuffers) {
+		// ubos are persistent
+		if (!l.ubo) l.hardwareResource = nullptr;
+	}
+
+	for (auto& [n, l] : logicalAttachments) {
+		l.hardwareResource = nullptr;
+		l.firstWrite = INT_MAX;
+		l.lastRead = INT_MIN;
+	}
+
+	// flag hardware stuff for destruction; things that we can't reuse will be actually destroyed at end of graph compilation.
 	for (auto& f : framebuffers) {
 		f.destroy = true;
 		f.attachmentLocations.clear();
 		f.readableAttachments.clear();
 	}
 
-	for (auto& [n, l] : logicalBuffers) {
-		// ubos are persistent
-		if (!l.ubo) l.hardwareResource = nullptr;
-	}
-
 	for (auto& f : hardwareBuffers) {
 		if (f->ubo) continue;
 		f->destroy = true;
 		f->accesses.clear();
+	}
+
+	for (auto& a : hardwareAttachments) {
+		//a.accesses.clear();
+		a->users.clear();
+		//a.destroy = true; don't need a destroy flag, destroy if no users
 	}
 
 	for (auto& [n,p] : drawPasses) {
@@ -380,7 +439,7 @@ void RenderGraph::Compile() {
 	}
 
 	// Use Khan's algorithm to topologically sort our render passes into an order that ensures any node is visited only after its dependencies are.
-		// This sort also minimizes OpenGL state changes by trying to keep passes with the same framebuffer/shaders/textures/etc. close together
+		// TODO: This sort should also minimize OpenGL state changes by trying to keep passes with the same framebuffer/shaders/textures/etc. close together
 	std::vector<std::shared_ptr<RenderPass>> output;
 	{
 		std::unordered_set<std::string> orphans;
@@ -484,12 +543,16 @@ void RenderGraph::Compile() {
 				auto descriptor = std::get<FramebufferRenderTargetDescriptor>(drawPass->renderTarget);
 				for (auto& a : descriptor.colorAttachments) {
 					Assert(logicalResources.contains(a.attachmentName));
+					Assert(logicalAttachments.contains(a.attachmentName));
 					//logicalResources[a.attachmentName].framebufferAttachmentInfo = a;
 					logicalResources[a.attachmentName].type = ResourceType::FramebufferAttachment;
 					//set.writtenAttachments.push_back(a.resourceName);
+
+					logicalAttachments[a.attachmentName].firstWrite = std::min(passI, logicalAttachments[a.attachmentName].firstWrite);
 				}
 				if (descriptor.depthStencilAttachment) {
 					Assert(logicalResources.contains(descriptor.depthStencilAttachment->attachmentName));
+					Assert(logicalAttachments.contains(descriptor.depthStencilAttachment->attachmentName));
 					logicalResources[descriptor.depthStencilAttachment->attachmentName].type = ResourceType::FramebufferAttachment;
 				}
 			}
@@ -499,6 +562,14 @@ void RenderGraph::Compile() {
 		}
 		else {
 			Assert(false);
+		}
+
+		for (auto& reqTexBinding : output[passI]->boundTextures) {
+			if (std::holds_alternative<std::string>(reqTexBinding.texture)) {
+				auto attachmentName = std::get<std::string>(reqTexBinding.texture);
+				Assert(logicalAttachments.contains(attachmentName));
+				logicalAttachments[attachmentName].lastRead = std::max(passI, logicalAttachments[attachmentName].lastRead);
+			}
 		}
 		
 		passI++;
@@ -520,7 +591,43 @@ void RenderGraph::Compile() {
 		Assert(rsrc.lifetime.lastWritePassIndex < rsrc.lifetime.firstReadPassIndex);
 	}
 
-	
+	// Assign hardware attachments
+	for (auto& [attachmentName, logicalAttachment] : logicalAttachments) {
+
+		// try to assign existing hardware attachment if a valid one exists to enable aliasing and reuse across compilations
+		std::shared_ptr<AttachmentResource> rsrc = nullptr;
+		for (auto& candidate : hardwareAttachments) {
+
+			// must be same format
+			if (candidate->format != logicalAttachment.descriptor) continue;
+
+			// can't alias if usages overlap
+			bool okay = true;
+			for (auto& user : candidate->users) {
+				if (user->lastRead > logicalAttachment.firstWrite && user->firstWrite < logicalAttachment.lastRead) {
+					okay = false;
+					break;
+				}
+			}
+			if (!okay) continue;
+
+			rsrc = candidate;
+			break;
+		}
+
+		// otherwise make a new one
+		if (!rsrc) {
+			rsrc = std::make_shared<AttachmentResource>();
+			rsrc->attachment = GetAttachmentForDescriptor(logicalAttachment.descriptor);
+			rsrc->format = logicalAttachment.descriptor;
+			hardwareAttachments.push_back(rsrc);
+		}
+
+		logicalAttachment.hardwareResource = rsrc;
+		rsrc->users.push_back(&logicalAttachment);
+	}
+
+
 
 	std::unordered_map<std::string, Texture*> attachmentLocations;
 
@@ -563,9 +670,9 @@ void RenderGraph::Compile() {
 
 					if (target.depthStencilAttachment && target.depthStencilAttachment->loadPolicy == AttachmentLoadPolicy::Clear) {
 						glDepthMask(true);
-						glStencilMask(true);
+						glStencilMask(0xFFFF);
 						glClearDepth(target.depthStencilAttachment->clearColor.x);
-						glClearStencil(target.depthStencilAttachment->clearColor.y);
+						glClearStencil((GLint)target.depthStencilAttachment->clearColor.y);
 						glClear(GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT); // TODO WHAT IF THEY DONT WANNA CLEAR BOTH
 					}
 					};
@@ -677,8 +784,8 @@ void RenderGraph::Compile() {
 		}
 	}*/
 
-	// destroy unused framebuffers
-	for (unsigned i = 0; i < framebuffers.size(); i++) {
+		// destroy unused framebuffers
+	for (size_t i = 0; i < framebuffers.size(); i++) {
 		if (framebuffers[i].destroy) {
 			framebuffers[i] = framebuffers.back();
 			framebuffers.pop_back();
@@ -687,22 +794,28 @@ void RenderGraph::Compile() {
 	}
 
 	// destroy unused hardware buffers
-	for (unsigned i = 0; i < hardwareBuffers.size(); i++) {
+	for (size_t i = 0; i < hardwareBuffers.size(); i++) {
 		if (hardwareBuffers[i]->destroy) {
 			hardwareBuffers[i] = hardwareBuffers.back();
 			hardwareBuffers.pop_back();
 			i--;
 		}
 	}
+
+	// destroy unused hardware attachments
+	for (size_t i = 0; i < hardwareAttachments.size(); i++) {
+		if (hardwareAttachments[i]->users.empty()) {
+			hardwareAttachments[i] = hardwareAttachments.back();
+			hardwareAttachments.pop_back();
+			i--;
+		}
+	}
 }
 
 glm::uvec2 RenderGraph::AttachmentSize(std::string name) {
-	Assert(attachments.contains(name));
-	glm::uvec2 size;
-	if (std::holds_alternative < std::shared_ptr<Texture>>(attachments[name].hardwareResource))
-		size = std::get<std::shared_ptr<Texture>>(attachments[name].hardwareResource)->GetSize();
-	else
-		size = std::get<std::shared_ptr<Renderbuffer>>(attachments[name].hardwareResource)->size;
+	Assert(logicalAttachments.contains(name));
+	glm::uvec2 size = logicalAttachments[name].descriptor.size;
+	size += glm::uvec2(glm::ceil(glm::vec2(Window::Get().Size()) * logicalAttachments[name].descriptor.windowSize));
 	return size;
 }
 
@@ -739,11 +852,11 @@ RenderGraph::FramebufferResource& RenderGraph::GetFramebuffer(FramebufferRenderT
 	std::unordered_map<std::string, Texture*> textures;
 	unsigned i = 0;
 	for (auto& att : params.colorAttachments) {
-		colorAttachments.push_back(attachments.at(att.attachmentName).hardwareResource);
+		colorAttachments.push_back(logicalAttachments.at(att.attachmentName).hardwareResource->attachment);
 	}
 	std::optional<Framebuffer::Attachment> depthStencil;
 	if (params.depthStencilAttachment.has_value()) {
-		depthStencil.emplace(attachments.at(params.depthStencilAttachment->attachmentName).hardwareResource);
+		depthStencil.emplace(logicalAttachments.at(params.depthStencilAttachment->attachmentName).hardwareResource->attachment);
 	}
 	auto framebuffer = std::make_shared<Framebuffer>(size.x, size.y, colorAttachments, depthStencil);
 	for (unsigned j = 0; j < colorAttachments.size(); j++) {

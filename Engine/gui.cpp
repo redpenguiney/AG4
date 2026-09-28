@@ -13,6 +13,12 @@ static void SupplyTextUniforms(std::shared_ptr<BaseShaderProgram> shader) {
 
 // not static bc mingw says so
 std::shared_ptr<GuiContainer> ScreenGui() {
+    // declare attachments for rendering screengui
+    //GraphicsEngine::AddAttachment()
+
+    // setup renderpass for blitting screengui to window
+
+
     auto pass = std::shared_ptr<DrawPass>(new DrawPass());
     pass->outputs.push_back(WINDOW_RESOURCE_NAME);
     pass->outputs.push_back("FRAMES_DRAWN");
@@ -42,8 +48,8 @@ std::shared_ptr<GuiContainer> GetScreenGuiContainer()
     return container;
 }
 
-void GuiElement::InitGuiEvents() {
-
+void GuiElement::InitGui() {
+    // setup connections
     static auto connection1 = Window::Get().onWindowResize.Connect([](Window*, glm::uvec2, glm::uvec2) {
         for (auto& ui : elementsList) {
             if (ui->font) ui->RefreshText();

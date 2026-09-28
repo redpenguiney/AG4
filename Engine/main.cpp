@@ -39,8 +39,8 @@ int main(int numArgs, const char* argArray[]) {
 	GraphicsEngine::Get();
 	GameobjectSAS();
 	InputStack::Get();
-	//GetScreenGuiContainer();
-	GuiElement::InitGuiEvents();
+	GuiElement::InitGui();
+	GetScreenGuiContainer();
 
 	{
 		auto& CL = ClusteredLighting::Get();
@@ -78,13 +78,13 @@ int main(int numArgs, const char* argArray[]) {
 		GraphicsEngine::Get().AddAttachment(FramebufferAttachmentFormatDescriptor{
 			.resourceName = "FINAL_SCENE",
 			.format = Texture::RGBA_16Float,
-			.size = {1024, 1024},
+			.windowSize = {1.0f, 1.0f},
 			});
 		GraphicsEngine::Get().AddAttachment(FramebufferAttachmentFormatDescriptor{
 			.resourceName = "FINAL_SCENE_DEPTH",
 			.renderbuffer = false,
 			.format = Texture::DEPTH24_STENCIL8,
-			.size = {1024, 1024},
+			.windowSize = {1.0f, 1.0f},
 			});
 
 		GraphicsEngine::Get().ForceAddDrawPass(newPass);
@@ -116,11 +116,11 @@ int main(int numArgs, const char* argArray[]) {
 
 	//Mainloop::Get().stepPhysics = true;
 	Mainloop::Get().physicsPaused = true;
-	Window::Get().onInputUp.Connect([](auto, InputObject input) {
+	/*auto conn = Window::Get().onInputUp.Connect([](auto, InputObject input) {
 		if (input.input == InputType::Tab) {
 			Window::Get().SetMouseLocked(!Window::Get().IsMouseLocked());
 		}
-		});
+		});*/
 
 	// by making Game static, we enable users to also use local static variables and guarantee that they will be destroyed before Game is.
 	static Game g(launchArgs);

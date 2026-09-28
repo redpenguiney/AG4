@@ -54,7 +54,7 @@ class GuiElement: public std::enable_shared_from_this<GuiElement> {
 public:
 	static inline std::vector<GuiElement*> elementsList;
 	static inline std::vector<GuiElement*> elementsBeingHoveredOn;
-	static void InitGuiEvents();
+	static void InitGui();
 	static std::shared_ptr<GuiElement> New(GuiContainer& storeIn, const GuiCreateParams params = GuiCreateParams{});
 
 	virtual ~GuiElement();

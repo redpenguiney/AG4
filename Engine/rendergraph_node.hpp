@@ -28,10 +28,26 @@ struct TextureCreateParams;
 //	DEPTH_32_FLOAT = GL_DEPTH_COMPONENT32F
 //};
 
+// (also used for stencil test.)
 enum class DepthTestMode : GLenum {
-	Disabled = GL_ALWAYS, // values in depth buffer are ignored for rendering purposes.
+	Disabled = 0, // values in depth buffer are ignored for rendering purposes. default for stencil test
 	Less = GL_LESS,
-	LEqual = GL_LEQUAL // Use this for normal stuff.
+	LEqual = GL_LEQUAL, // Use this for normal stuff.
+	Equal = GL_EQUAL,
+	AlwaysFail = GL_NEVER,
+	AlwaysPass = GL_ALWAYS // test always passes, but different from Disabled because stencil operations will run. Don't use on depth buffer, probably.
+};
+
+// how you modify stencil buffer
+enum class StencilOperation : GLenum {
+	Keep = GL_KEEP, // do nothing to stencil buffer
+	Zero = GL_ZERO, // write zero to stencil buffer
+	Set = GL_REPLACE, // write DrawingParameters::stencilTestComparisonValue to stencil buffer
+	IncrementClamped = GL_INCR, // increments stencil buffer by 1, clamps at max value
+	IncrementWrapping = GL_INCR_WRAP,
+	DecrementClamped = GL_DECR, // decrements stencil buffer by 1, clamps at 0
+	DecrementWrapping = GL_DECR_WRAP,
+	BitwiseInvert = GL_INVERT
 };
 
 // See https://learnopengl.com/Advanced-OpenGL/Blending
@@ -87,7 +103,12 @@ struct FramebufferAttachmentFormatDescriptor {
 	Texture::TextureFormat format = Texture::RGBA_16Float;
 	glm::uvec2 size = {128, 128};
 	
+	// adds the window size multiplied by the given vec2 and rounded up to whatever the requested framebuffer size is. 
+	// recommended when you want to ensure that framebuffer is same size as window.
+	// Will dynamically update the attachment whenever window size changes.
+	glm::vec2 windowSize = { 0, 0 };
 
+	bool operator==(const FramebufferAttachmentFormatDescriptor&) const = default;
 };
 
 struct FramebufferAttachmentUsageDescriptor {
@@ -134,6 +155,8 @@ using RenderTargetDescriptor = std::variant<FramebufferRenderTargetDescriptor, W
 //	std::string bufferName;
 //};
 
+// if a string, then it better be the name of an attachment.
+// if TextureCreateParams, then TODO add support for that first.
 using TextureHandle = std::variant<std::string, std::shared_ptr<Texture>, TextureCreateParams>;
 
 struct TextureUsageDescriptor {
@@ -156,7 +179,7 @@ enum class PolygonFillMode {
 	Lines = GL_LINE // wireframe
 };
 
-struct RenderingParameters {
+struct DrawingParameters {
 	std::shared_ptr<ShaderProgram> shader;
 
 	bool blending = false;
@@ -166,6 +189,19 @@ struct RenderingParameters {
 	DepthTestMode depthTestMode = DepthTestMode::LEqual;
 	bool writeDepthBuffer = true; // (depth mask)
 	PolygonFillMode polygonFillMode = PolygonFillMode::Fill;
+
+	DepthTestMode stencilTestMode = DepthTestMode::Disabled;
+	GLint stencilTestComparisonValue = 0; // value stencil buffer contents is compared to (based on specified test mode) to decide whether to pass the test
+	GLuint stencilTestMask = 0xFFFF; // ANDed with with comparison value and stencil buffer value before performing test
+
+	StencilOperation stencilTestFailureAction = StencilOperation::Keep;
+	StencilOperation stencilTestSuccessDepthTestFailureAction = StencilOperation::Keep;
+
+	// also executed when no depth testing occurs
+	StencilOperation stencilTestSuccessDepthTestSuccessAction = StencilOperation::Keep;
+
+	// all 1s = stencil writes unaffected, all 0s = attempts to write stencil buffer do nothing.
+	GLuint stencilWriteMask = 0xFFFF;
 
 	// Scissor test
 	bool scissoringEnabled = false;
@@ -215,7 +251,7 @@ public:
 
 	std::vector<RenderGroup*> drawnObjects; // managed by RenderGroups, non-owning
 
-	RenderingParameters params;
+	DrawingParameters params;
 private:
 	DrawPass(const DrawPass& other) = default;
 };

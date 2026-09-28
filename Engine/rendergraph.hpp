@@ -5,6 +5,7 @@
 #include <string>
 #include <functional>
 #include "framebuffer.hpp"
+#include <event.hpp>
 
 class BaseShaderProgram;
 class Meshpool;
@@ -41,7 +42,7 @@ struct ProcessedDrawPass {
 	std::vector<TextureBinding> textures;
 	//std::vector<RenderGroup*> thingsToDraw; 
 	
-	RenderingParameters params;
+	DrawingParameters params;
 
 	GLbitfield dependencyWriteMemoryBarrierBits = 0;
 	//std::vector<BufferBinding> bufferBindings;
@@ -99,6 +100,7 @@ public:
 	void AddPass(std::shared_ptr<RenderPass> pass);
 	void RemovePass(std::shared_ptr<RenderPass> pass);
 
+	// if attachment.name is for an attachment which already exists, the existing attachment descriptor will be replaced with this one.
 	void CreateAttachment(FramebufferAttachmentFormatDescriptor attachment);
 
 	void DeclareUniformBuffer(std::string name, size_t size);
@@ -121,6 +123,21 @@ private:
 
 	glm::uvec2 AttachmentSize(std::string name);
 
+	// 1. renderpasses state that they want to read/write an attachment, specified by name
+	// 2. AddAttachment() is called to associate that name with a requested format (the logical attachment).
+	// 3. AddAttachment() may be called subsequent times to modify the format associated with a name.
+	// 4. The render graph associates each logical attachment with an actual Framebuffer::Attachment object (the hardware attachment).
+	// 5. At render graph compilation:
+		// a. All preexisting hardware attachments are marked for removal.
+		// b. Accesses of each logical attachment are recorded.
+		// c. Each logical attachment is assigned a hardware attachment.
+			// If a preexisting hardware attachment of compatible format exists...
+			// ...and no other logical attachment assigned to it has conflicting accesses...
+			// Use it.
+			// Otherwise, generate a new hardware attachment.
+		// d. delete unused hardware attachments.
+		// e. do framebuffer generation
+
 	struct FramebufferResource {
 		std::shared_ptr<Framebuffer> hardwareResource;
 		std::unordered_map<std::string, GLenum> attachmentLocations;
@@ -128,13 +145,15 @@ private:
 		bool destroy;
 	};
 
+	struct LogicalAttachmentResource;
+
 	struct AttachmentResource {
-		std::string name;
-		Framebuffer::Attachment hardwareResource;
-		std::vector<ResourceLifeTime> accesses;
-		bool destroy;
+		Framebuffer::Attachment attachment;
+		std::vector<LogicalAttachmentResource*> users; // non-owning/owned by corresponding LogicalAttachmentResources
+		FramebufferAttachmentFormatDescriptor format;
 	};
 
+	
 	struct BackedBufferResource {
 		BackedBufferResource(BufferedBuffer buf);
 		std::vector<ResourceLifeTime> accesses;
@@ -153,9 +172,21 @@ private:
 		bool ubo;
 	};
 
+	struct LogicalAttachmentResource {
+		//std::string name; name is in descriptor object
+		FramebufferAttachmentFormatDescriptor descriptor;
+
+		// used to decide whether two LogicalAttachmentResources can alias the same hardwareResource
+		int firstWrite, lastRead;
+
+		std::shared_ptr<AttachmentResource> hardwareResource;
+	};
+
 	bool Compatible(const FramebufferRenderTargetDescriptor& requirements, const FramebufferResource& resource);
 
 	FramebufferResource& GetFramebuffer(FramebufferRenderTargetDescriptor params);
+
+	std::unordered_map<std::string, LogicalAttachmentResource> logicalAttachments;
 
 	std::unordered_map<std::string, LogicalBufferResource> logicalBuffers;
 	std::vector<std::shared_ptr<BackedBufferResource>> hardwareBuffers;
@@ -165,8 +196,10 @@ private:
 	std::unordered_map<std::string, std::shared_ptr<ComputePass>> computePasses;
 
 	std::vector<FramebufferResource> framebuffers;
-	std::unordered_map<std::string, AttachmentResource> attachments;
+	std::vector<std::shared_ptr<AttachmentResource>> hardwareAttachments;
 
 	// Ordered based on the dependency graph of the RenderPasses in each RenderSet, and then in an order intended to improve performance by reducing OpenGL state changes
 	std::vector<std::variant<ProcessedDrawPass, ProcessedComputePass>> renderOrder;
+
+	std::vector<Connection> connections;
 };

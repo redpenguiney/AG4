@@ -26,6 +26,9 @@ public:
 	void UploadToUniformBuffer(std::string name, void* data, size_t len, size_t destOffset);
 
 	void AddAttachment(FramebufferAttachmentFormatDescriptor attachment);
+
+	// will make the draw pass always be executed, regardless of whether any gameobjects use it.
+	// this is potentially neccesary when this drawpass is the only thing that writes/supplies another pass's dependency.
 	void ForceAddDrawPass(std::shared_ptr<DrawPass> pass);
 
 	// Default renderpasses for newly created GameobjectCreateParams. Will have a reasonable default, but change at your discretion. 
