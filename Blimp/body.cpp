@@ -122,10 +122,10 @@ LocalPlayerController::LocalPlayerController() {
 void LocalPlayerController::Update(float dt) {
 	if (GraphicsEngine::Get().currentCamera == camera) {
 		if (Window::Get().IsMouseLocked()) {
-			DebugLogInfo("Move ", moveInput);
+			//DebugLogInfo("Move ", moveInput);
 
-			lookPitch += 0.01f * Window::Get().MOUSE_DELTA.y;
-			lookYaw += 0.01f * Window::Get().MOUSE_DELTA.x;
+			lookPitch += 0.01f * (float)Window::Get().MOUSE_DELTA.y;
+			lookYaw += 0.01f * (float)Window::Get().MOUSE_DELTA.x;
 			lookPitch = std::clamp(lookPitch, -glm::radians(89.0f), glm::radians(89.0f));
 			if (lookYaw < 0.0f) lookYaw += glm::radians(360.0f);
 			lookYaw = std::fmod(lookYaw, glm::radians(360.0f));

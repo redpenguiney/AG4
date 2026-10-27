@@ -85,11 +85,12 @@ void GameState::MakeHostNewMenu() {
 	makeTextboxMenuOption("Max players:", "9999");
 	makeTextboxMenuOption("Your username:", "Alice");
 
-	optionsContainer->LayoutChildrenList(ListLayout{
-		.pixelStart = {0, -40},
-		.percentStart = {0.0, 1.0},
-		.pixelStride = {0, -30},
-		});
+	auto layout = std::make_unique<ListLayout>();
+	layout->pixelStart = { 0, -40 };
+	layout->rootPercentStart = { 0.0, 1.0 };
+	layout->pixelStride = { 0, -30 };
+
+	optionsContainer->childrenLayout = std::move(layout);
 	optionsContainer->RefreshTransform();
 
 	auto buttonsContainer = GuiElement::New(*GetScreenGuiContainer());
@@ -252,11 +253,11 @@ void GameState::MakeJoinMenu() {
 	makeTextboxMenuOption("Password:", "abc");
 	makeTextboxMenuOption("Your username:", "Bob");
 
-	optionsContainer->LayoutChildrenList(ListLayout{
-		.pixelStart = {0, -40},
-		.percentStart = {0.0, 1.0},
-		.pixelStride = {0, -30},
-		});
+	auto layout = std::make_unique<ListLayout>();
+	layout->pixelStart = { 0, -40 };
+	layout->rootPercentStart = { 0.0, 1.0 };
+	layout->pixelStride = { 0, -30 };
+	optionsContainer->childrenLayout = std::move(layout);
 	optionsContainer->RefreshTransform();
 
 	auto buttonsContainer = GuiElement::New(*GetScreenGuiContainer());
@@ -489,9 +490,9 @@ void GameState::MakeMainMenu() {
 		});
 
 
-	menuContainer->LayoutChildrenList(ListLayout{
-		.percentStart = {0.0, 1.0},
-		.pixelStride = {0, -50},
-		});
+	auto layout = std::make_unique<ListLayout>();
+	layout->rootPercentStart = { 0.0, 1.0 };
+	layout->pixelStride = {0, -50};
+	menuContainer->childrenLayout = std::move(layout);
 	menuContainer->RefreshTransform();
 }

@@ -47,6 +47,8 @@ public:
 		// though, for clients there will still be a delay since the message must be sent to the server and then back to the client before it is received.
 	static inline Event<Chat, const Message&>& onMessageReceived = Event<Chat, const Message&>::New();
 private:
+	int nMessagesLogged = 0;
+
 	bool chatVisible = true;
 
 	void BuildUi();
@@ -55,6 +57,8 @@ private:
 	std::string ourUsername = "[you]";
 
 	static void OnNetworkStateChange(Chat* c, NetworkState oldState, NetworkState newState);
+
+	void AddUiForMessage(std::string& message, std::string sender);
 
 	// server only, on client the server tells us the username for each message
 	std::unordered_map<Player*, std::string> usernames;

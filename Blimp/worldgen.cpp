@@ -40,8 +40,8 @@ void GameState::MakeGameplay() {
 			Mainloop::Get().physicsPaused = !Mainloop::Get().physicsPaused;
 		}
 		else if (Window::Get().PRESS_BEGAN_KEYS.contains(InputType::P)) {
-			DebugLogInfo("Sending " + std::to_string(NetworkingEngine::Get().IsClient()));
-			chat.SendMessage("Hello, world! client=" + std::to_string(NetworkingEngine::Get().IsClient()));
+			//DebugLogInfo("Sending " + std::to_string(NetworkingEngine::Get().IsClient()));
+			//chat.SendMessage("Hello, world! client=" + std::to_string(NetworkingEngine::Get().IsClient()));
 		}
 	});
 }

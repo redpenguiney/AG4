@@ -20,6 +20,15 @@ enum class VerticalAlignMode {
 	Bottom
 };
 
+// Information about the mesh created from text.
+struct LoadedTextInfo {
+	// if false, then the values of all other fields are undefined.
+	bool success = false;
+
+	// the height of the text, not including margins. (after wrapping, if it was enabled)
+	int heightPixels;
+};
+
 struct TextFormatting {
 	// Text mesh will be strictly constrained by left and right margins if wrapping is enabled. 
 	// If wrapping is not enabled, then left/right margins are only respected for left/right horizontal alignments respectively.
@@ -77,7 +86,7 @@ public:
 	// meshVertexFormat should already be set to what you want when you call this. 
 	// Only sets position/UVs, and requires SpecialVertexAttributeNames to be used for position and UVs.
 	// Written positions are in pixel space; you should probably NOT use normalizeSize with this.
-	void LoadText(Texture& fontmap, std::string text, TextFormatting formatting);
+	LoadedTextInfo LoadText(Texture& fontmap, std::string text, TextFormatting formatting);
 
     MeshCreateParams() = default;
     MeshCreateParams(MeshCreateParams&&) noexcept = default;

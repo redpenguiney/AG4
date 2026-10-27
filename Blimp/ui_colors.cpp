@@ -4,5 +4,6 @@ std::shared_ptr<Texture> UI_PREFABS::GeoFont(unsigned size) {
 	TextureCreateParams menuFontParams({ TextureSource("../fonts/Arial.ttf"), });
 	menuFontParams.fontHeight = size;
 	menuFontParams.format = Texture::Grayscale_8Bit;
+	menuFontParams.filteringBehaviour = Texture::LinearTextureFiltering;
 	return std::make_shared<Texture>(menuFontParams, Texture::Texture2D);
 }

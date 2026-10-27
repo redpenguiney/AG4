@@ -7,37 +7,114 @@
 #include "assert.hpp"
 #include "window.hpp"
 
+static constexpr int MAX_STENCIL_DEPTH = 8;
+
 static void SupplyTextUniforms(std::shared_ptr<BaseShaderProgram> shader) {
     shader->Uniform("fontMappingEnabled", true);
 }
 
-// not static bc mingw says so
+// not static bc friend (well actually bc mingw says so)
 std::shared_ptr<GuiContainer> ScreenGui() {
     // declare attachments for rendering screengui
-    //GraphicsEngine::AddAttachment()
+    GraphicsEngine::Get().AddAttachment(FramebufferAttachmentFormatDescriptor{
+        .resourceName = "SCREEN_GUI_COLOR",
+        .format = Texture::RGBA_8Bit,
+        .windowSize = {1, 1}
+        });
+    GraphicsEngine::Get().AddAttachment(FramebufferAttachmentFormatDescriptor{
+        .resourceName = "SCREEN_GUI_DEPTH_STENCIL",
+        .format = Texture::DEPTH24_STENCIL8,
+        .windowSize = {1, 1}
+        });
 
-    // setup renderpass for blitting screengui to window
+    // setup drawpass for blitting screengui to window
+    auto blitPass = std::make_shared<DrawPass>();
+    blitPass->name = "blit_screengui";
+    auto rt = WindowRenderTargetDescriptor();
+    rt.loadPolicy = AttachmentLoadPolicy::Load;
+    rt.clearDepth = false;
+    blitPass->renderTarget = rt;
+    blitPass->dependencies.push_back("POST_PROC");
+    blitPass->dependencies.push_back("SCREEN_GUI_COLOR");
+    blitPass->outputs.push_back("FRAMES_DRAWN");
+    blitPass->boundTextures.push_back(TextureUsageDescriptor{
+        .texture = "SCREEN_GUI_COLOR",
+        .textureUsageLocation = "guiTextureColor"
+        });
+    blitPass->outputs.push_back(WINDOW_RESOURCE_NAME);
+    blitPass->params.depthTestMode = DepthTestMode::Disabled;
+    blitPass->params.writeDepthBuffer = false;
+    blitPass->params.cullMode = FaceCulling::Backface;
+    blitPass->params.shader = ShaderProgram::New("../shaders/gui_postproc_vertex.glsl", "../shaders/gui_postproc_fragment.glsl");
+    blitPass->params.blending = true;
 
+    // setup quad used to do so
+    GameobjectCreateParams quadParams;
+    quadParams.mesh = Mesh::Quad();
+    quadParams.renderPasses = { blitPass, };
+    static std::shared_ptr<Gameobject> blitQuad(Gameobject::New(quadParams));
 
+    // drawpass for clearing gui buffer
+    auto clearPass = std::make_shared<DrawPass>();
+    clearPass->name = "clear_gui";
+    clearPass->outputs.push_back("GUI_BUFF_CLEAR");
+    clearPass->outputs.push_back("GUI_STENCIL_READY");
+    clearPass->outputs.push_back("SCREEN_GUI_COLOR");
+    clearPass->outputs.push_back("SCREEN_GUI_DEPTH_STENCIL");
+    clearPass->renderTarget = FramebufferRenderTargetDescriptor{
+        .colorAttachments = {
+            FramebufferAttachmentUsageDescriptor {
+                .attachmentName = "SCREEN_GUI_COLOR",
+                .loadPolicy = AttachmentLoadPolicy::Clear,
+            },
+        },
+        .depthStencilAttachment = FramebufferAttachmentUsageDescriptor {
+            .attachmentName = "SCREEN_GUI_DEPTH_STENCIL",
+            .loadPolicy = AttachmentLoadPolicy::Clear,
+            .clearColor = {1, 0, 0, 0}
+        }
+    };
+    for (int i = 0; i < MAX_STENCIL_DEPTH; i++) {
+        clearPass->outputs.push_back("GUI_STENCIL_" + std::to_string(i) + "_WRITTEN_BIT");
+    }
+
+    GraphicsEngine::Get().ForceAddDrawPass(clearPass);
+
+    // create default drawpass for gui elements
     auto pass = std::shared_ptr<DrawPass>(new DrawPass());
-    pass->outputs.push_back(WINDOW_RESOURCE_NAME);
-    pass->outputs.push_back("FRAMES_DRAWN");
-    pass->dependencies.push_back("POST_PROC");
+    pass->dependencies.push_back("GUI_BUFF_CLEAR");
+    pass->dependencies.push_back("GUI_STENCIL_READY");
+    pass->outputs.push_back("SCREEN_GUI_COLOR");
+    pass->outputs.push_back("SCREEN_GUI_DEPTH_STENCIL");
+    pass->outputs.push_back("GUI_STENCIL_" + std::to_string(0) + "_WRITTEN_BIT");
     pass->name = "SCREEN_GUI_PRESENTATION_UNTEXTURED";
     pass->params.cullMode = FaceCulling::Backface;
-    pass->renderTarget = WindowRenderTargetDescriptor{
-        .loadPolicy = AttachmentLoadPolicy::Load, 
-        .clearDepth = false, 
-        //.blendingSrcFactor = BlendFactorMode::OneMinusSrcAlpha,
-        //.blendingDstFactor = BlendFactorMode::SrcAlpha,
-        //.blendFunc = BlendingEquation::Addition,
+    pass->renderTarget = FramebufferRenderTargetDescriptor {
+        .colorAttachments = {
+            FramebufferAttachmentUsageDescriptor {
+                .attachmentName = "SCREEN_GUI_COLOR",
+                .loadPolicy = AttachmentLoadPolicy::Load
+            },
+        },
+        .depthStencilAttachment = FramebufferAttachmentUsageDescriptor {
+            .attachmentName = "SCREEN_GUI_DEPTH_STENCIL",
+            .loadPolicy = AttachmentLoadPolicy::Load
+        }
     };
+    pass->params.stencilTestComparisonValue = 0xFF;
+    pass->params.stencilTestMode = DepthTestMode::LEqual;
+    pass->params.stencilTestSuccessDepthTestSuccessAction = StencilOperation::Set;
+    pass->params.stencilTestMask.reset();
+    pass->params.stencilWriteMask.reset().set(0, true);
+    //pass->params.stencilWriteMask = 0xFF;
     //pass->uniformSupplier = std::nullopt;
     //pass->params.depthTestMode = DepthTestMode::Disabled;
     pass->params.shader = ShaderProgram::New("../shaders/gui_vertex.glsl", "../shaders/gui_fragment.glsl");
     
+    pass->params.blending = true;
+
     auto container = std::make_shared<GuiContainer>();
-    container->elementPasses[nullptr] = pass;
+    container->elementPasses[GuiPassRequirements(nullptr, 0)] = pass;
     GuiContainer::Containers().push_back(container);
     return container;
 }
@@ -50,10 +127,14 @@ std::shared_ptr<GuiContainer> GetScreenGuiContainer()
 
 void GuiElement::InitGui() {
     // setup connections
-    static auto connection1 = Window::Get().onWindowResize.Connect([](Window*, glm::uvec2, glm::uvec2) {
+    static auto connection1 = Window::Get().onWindowResize.Connect([](Window*, glm::uvec2 old, glm::uvec2 neww) {
+        DebugLogInfo("Resizing window from ", old, " ", neww, ": updating ui");
         for (auto& ui : elementsList) {
             if (ui->font) ui->RefreshText();
-            else ui->RefreshTransform();
+        }
+
+        for (auto& ui : elementsList) {
+            if (ui->parent == nullptr) ui->RefreshTransform();
         }
         });
 
@@ -179,8 +260,21 @@ void GuiElement::RefreshTransform() {
 
     if (textobject) {
         //DebugLogInfo("Text placed at ", objectCenterPosition);
-        textobject->SetPosition(glm::dvec3(objectCenterPosition, -(depth - 0.001)));
+        glm::dvec3 textPos = glm::dvec3(objectCenterPosition, -(depth - 0.001));
+
+        // ensure text is on integer pixel coordinates
+        //if (std::fmod(textobject->Scale().x, 2.0) == 0.0) {
+            //textPos.x += 0.5;
+        //}
+        //if (std::fmod(textobject->Scale().y, 2.0) == 0.0) {
+            //textPos.y += 0.5;
+        //}
+        textobject->SetPosition(textPos);
         textobject->SetRotation(glm::angleAxis(rotation, glm::vec3(0, 0, 1)));
+    }
+
+    if (childrenLayout) {
+        childrenLayout->Apply(*this);
     }
 
     for (auto& child : children) {
@@ -200,13 +294,20 @@ void GuiElement::RefreshGraphics() {
 void GuiElement::RefreshText() {
     Assert(font);
     textobject = nullptr;
-    MakeTextobject();
+    MakeTextobject(GetStencilDepth());
+}
+
+int GuiElement::TextHeight() {
+    return textHeightPixels;
 }
 
 void GuiElement::SetParent(GuiElement* newParent) {
     Orphan();
     parent = newParent;
     parent->children.push_back(shared_from_this());
+
+    int newDepth = GetStencilDepth();
+    UpdateStencilDepth(newDepth);
 }
 
 glm::ivec2 GuiElement::GetPixelSize() {
@@ -241,22 +342,11 @@ glm::ivec2 GuiElement::GetParentOffset() {
     }
 }
 
-void GuiElement::LayoutChildrenList(ListLayout params) {
-    // sort children
-    std::sort(children.begin(), children.end(), [](const std::shared_ptr<GuiElement>& a, const std::shared_ptr<GuiElement>& b) -> bool { return a->sortOrder < b->sortOrder; });
+//void GuiElement::LayoutChildrenList(ListLayout params) {
+    
+//}
 
-    glm::ivec2 pixelPos = params.pixelStart;
-    glm::vec2 percentPos = params.percentStart;
-    for (auto& c : children) {
-        c->pixelPosition = pixelPos;
-        pixelPos += params.pixelStride;
-        c->percentagePosition += percentPos;
-        percentPos += params.percentStride;
-        c->RefreshTransform();
-    }
-}
-
-void GuiElement::MakeTextobject() {
+void GuiElement::MakeTextobject(int stencilDepth) {
     textobject = nullptr;
 
     if (!text.empty()) {
@@ -275,38 +365,54 @@ void GuiElement::MakeTextobject() {
 
         //DebugLogInfo("Size ", size, " margins ", format.topMargin, " ", format.bottomMargin);
 
-        textmeshparams.LoadText(*font, text, format);
+        auto result = textmeshparams.LoadText(*font, text, format);
 
-        if (!textmeshparams.vertices.empty()) { // checking text.empty() is insufficient bc whitespace characters/etc., and Mesh does not allow empty meshes
+        if (result.success && !textmeshparams.vertices.empty()) { // checking text.empty() is insufficient bc whitespace characters/etc., and Mesh does not allow empty meshes
             textmeshparams.normalizeSize = false;
             auto textmesh = Mesh::New(std::move(textmeshparams));
             GameobjectCreateParams textobjectparams;
             textobjectparams.mesh = textmesh;
-            if (!container->elementPasses.contains(font.get())) {
+
+            auto key = GuiPassRequirements(font.get(), stencilDepth);
+            if (!container->elementPasses.contains(key)) {
                 Assert(font);
                 static int i = 0;
-                std::shared_ptr<DrawPass> newPass = DrawPass::FromTemplate(*container->elementPasses[nullptr]);
+                std::shared_ptr<DrawPass> newPass = DrawPass::FromTemplate(*container->elementPasses.at(GuiPassRequirements(nullptr, 0)));
                 newPass->drawnObjects.clear();
+                std::erase_if(newPass->outputs, [stencilDepth](const std::string& s) { return s.find("_WRITTEN_BIT") != std::string::npos; });
+                newPass->outputs. push_back("GUI_STENCIL_" + std::to_string(stencilDepth) + "_WRITTEN_BIT");
+                std::erase_if(newPass->dependencies, [stencilDepth](const std::string& s) { return s.find("_WRITTEN_BIT") != std::string::npos; });
+                if (stencilDepth != 0) {
+                    newPass->dependencies.push_back("GUI_STENCIL_" + std::to_string(stencilDepth - 1) + "_WRITTEN_BIT");
+                }
                 newPass->name = "SCREEN_GUI_PRESENTATION_FONT_" + std::to_string(i++);
-                newPass->dependencies.push_back("FRAMES_DRAWN");
-                newPass->outputs.pop_back();
+                newPass->params.stencilTestMask.reset();
+                if (stencilDepth != 0) newPass->params.stencilTestMask.set(stencilDepth - 1, true);
+                newPass->params.stencilWriteMask.reset().set(stencilDepth, true);
+                //newPass->outputs.pop_back();
                 newPass->uniformSupplier = SupplyTextUniforms;
                 newPass->boundTextures.push_back(TextureUsageDescriptor{
                     .texture = font,
                     .textureUsageLocation = "fontMap",
                     .willRead = true
                     });
-                container->elementPasses.emplace(font.get(), newPass);
+                container->elementPasses.emplace(key, newPass);
             }
-            textobjectparams.renderPasses = { container->elementPasses[font.get()], };
+            textobjectparams.renderPasses = { container->elementPasses[key], };
             textobject = std::unique_ptr<Gameobject>(Gameobject::New(textobjectparams));
             RefreshGraphics();
             RefreshTransform();
+
+            textHeightPixels = result.heightPixels;
+        }
+        else {
+            textHeightPixels = 0;
         }
     }
 }
 
 GuiElement::GuiElement(GuiContainer& storeIn, const GuiCreateParams uiparams):
+clipChildren(uiparams.clipChildren),
 texture(uiparams.background),
 font(uiparams.font),
 container(&storeIn)
@@ -315,14 +421,21 @@ container(&storeIn)
 
     GameobjectCreateParams params;
     params.mesh = Mesh::GuiQuad();
-    if (!storeIn.elementPasses.contains(uiparams.background.get())) {
+    auto key = GuiPassRequirements(uiparams.background.get(), 0);
+    if (!storeIn.elementPasses.contains(key)) {
         Assert(uiparams.background);
         static int i = 0;
-        std::shared_ptr<DrawPass> newPass = DrawPass::FromTemplate(*storeIn.elementPasses[nullptr]);
+        std::shared_ptr<DrawPass> newPass = DrawPass::FromTemplate(*storeIn.elementPasses[GuiPassRequirements(nullptr, 0)]);
         newPass->name = "SCREEN_GUI_PRESENTATION_TEXTURED_" + std::to_string(i++);
-        container->elementPasses.emplace(uiparams.background.get(), newPass);
+        newPass->boundTextures.push_back(TextureUsageDescriptor{
+                    .texture = uiparams.background,
+                    .textureUsageLocation = "colorMap",
+                    .willRead = true
+            });
+        container->elementPasses.emplace(key, newPass);
+        
     }
-    params.renderPasses = { storeIn.elementPasses[uiparams.background.get()],};
+    params.renderPasses = { storeIn.elementPasses[key],};
     params.primitiveType = GL_TRIANGLES;
     gameobject = std::unique_ptr<Gameobject>(Gameobject::New(params));
 
@@ -330,7 +443,54 @@ container(&storeIn)
     RefreshTransform();
 
     if (font) {
-        MakeTextobject();
+        MakeTextobject(0);
+    }
+}
+
+int GuiElement::GetStencilDepth() {
+    if (parent) return std::min(MAX_STENCIL_DEPTH - 1, (parent->clipChildren ? 1 : 0) + parent->GetStencilDepth());
+    return 0;
+}
+
+void GuiElement::UpdateStencilDepth(int stencilDepth) {
+    auto key = GuiPassRequirements(texture.get(), stencilDepth);
+    if (!container->elementPasses.contains(key)) {
+        static int i = 0;
+        std::shared_ptr<DrawPass> newPass = DrawPass::FromTemplate(*container->elementPasses[GuiPassRequirements(nullptr, 0)]);
+        std::erase_if(newPass->outputs, [stencilDepth](const std::string& s) { return s.find("_WRITTEN_BIT") != std::string::npos; });
+        newPass->outputs.push_back("GUI_STENCIL_" + std::to_string(stencilDepth) + "_WRITTEN_BIT");
+
+        std::erase_if(newPass->outputs, [stencilDepth](const std::string& s) { return s.find("_WRITTEN_BIT") != std::string::npos; });
+        if (stencilDepth != 0) {
+            newPass->dependencies.push_back("GUI_STENCIL_" + std::to_string(stencilDepth - 1) + "_WRITTEN_BIT");
+        }
+
+        //newPass->params.stencilTestMask.reset().set(depth - 1, true);
+        newPass->params.stencilTestMask.reset();
+        if (stencilDepth != 0) newPass->params.stencilTestMask.set(stencilDepth - 1, true);
+        newPass->params.stencilWriteMask.reset().set(stencilDepth, true);
+        newPass->name = "SCREEN_GUI_PRESENTATION_STENCILED_" + std::to_string(i++) + "_D" + std::to_string(stencilDepth);
+        if (texture) {
+            newPass->boundTextures.push_back(TextureUsageDescriptor{
+                        .texture = texture,
+                        .textureUsageLocation = "colorMap",
+                        .willRead = true
+                });
+        }
+        container->elementPasses.emplace(key, newPass);
+    }
+    std::vector<std::shared_ptr<DrawPass>> mainObjPasses = { container->elementPasses[key],};
+    gameobject->ChangeDrawPasses(mainObjPasses);
+
+    if (textobject) {
+        //std::vector<std::shared_ptr<DrawPass>> mainObjPasses = { container->elementPasses[GuiPassRequirements(font.get(), depth)], };
+        //textobject->ChangeDrawPasses(mainObjPasses);
+        MakeTextobject(stencilDepth);
+    }
+
+    if (clipChildren) stencilDepth += 1;
+    for (auto& c : children) {
+        c->UpdateStencilDepth(stencilDepth);
     }
 }
 
@@ -417,8 +577,36 @@ std::shared_ptr<ScrollableElement> ScrollableElement::New(GuiContainer& storeIn,
     return ptr;
 }
 
+void ScrollableElement::RefreshGraphics() {
+    GuiElement::RefreshGraphics();
+    canvas->RefreshGraphics();
+    if (horizontalScrollbar) horizontalScrollbar->RefreshGraphics();
+    if (verticalScrollbar) verticalScrollbar->RefreshGraphics();
+}
+
 ScrollableElement::ScrollableElement(GuiContainer& storeIn, ScrollableGuiCreateParams uiparams) :
 	GuiElement(storeIn, uiparams)
 {
-    
+    canvas = GuiElement::New(storeIn, GuiCreateParams{ .background = uiparams.background, .clipChildren = true });
+    canvas->SetParent(this);
+    canvas->pixelPosition = { 0, 0 };
+    canvas->percentagePosition = { 0, 1 };
+    canvas->anchorPoint = { -0.5, 0.5 };
+    canvas->percentageSize = { 1, 1 };
+    canvas->pixelSize = { uiparams.orientation == ScrollbarOrientation::Horizontal ? 0 : -uiparams.scrollbarSizePixels, uiparams.orientation == ScrollbarOrientation::Vertical ? 0 : -uiparams.scrollbarSizePixels };
+}
+
+void ListLayout::Apply(GuiElement& target) {
+    // sort children
+    std::sort(target.children.begin(), target.children.end(), [](const std::shared_ptr<GuiElement>& a, const std::shared_ptr<GuiElement>& b) -> bool { return a->sortOrder < b->sortOrder; });
+
+    glm::ivec2 pixelPos = pixelStart;
+    glm::vec2 percentPos = rootPercentStart;
+    for (auto& c : target.children) {
+        c->pixelPosition = pixelPos;
+        pixelPos += pixelStride + glm::ivec2(glm::vec2(c->GetPixelSize()) * childPercentStride);
+        c->percentagePosition = percentPos;
+        percentPos += rootPercentStride;
+        //c->RefreshTransform();
+    }
 }

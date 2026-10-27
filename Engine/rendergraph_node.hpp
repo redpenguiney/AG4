@@ -1,6 +1,7 @@
 #pragma once
 #include <memory>
 #include <vector>
+#include <bitset>
 #include <functional>
 #include "glm/vec4.hpp"
 #include "glm/vec2.hpp"
@@ -33,6 +34,8 @@ enum class DepthTestMode : GLenum {
 	Disabled = 0, // values in depth buffer are ignored for rendering purposes. default for stencil test
 	Less = GL_LESS,
 	LEqual = GL_LEQUAL, // Use this for normal stuff.
+	Greater = GL_GREATER,
+	GEqual = GL_GEQUAL,
 	Equal = GL_EQUAL,
 	AlwaysFail = GL_NEVER,
 	AlwaysPass = GL_ALWAYS // test always passes, but different from Disabled because stencil operations will run. Don't use on depth buffer, probably.
@@ -100,8 +103,14 @@ struct FramebufferAttachmentFormatDescriptor {
 	//// -1 if not drawing to this attachment. (TODO why would you want that?)
 	//int drawBuffer = -1; 
 
+	// unused if renderbuffer
+	Texture::TextureFilteringBehaviour filteringBehaviour = Texture::NoTextureFiltering; 
+	// unused if renderbuffer
+	Texture::TextureWrappingBehaviour wrappingBehaviour = Texture::WrapClampToEdge;
+
 	Texture::TextureFormat format = Texture::RGBA_16Float;
-	glm::uvec2 size = {128, 128};
+
+	glm::uvec2 size = {0, 0};
 	
 	// adds the window size multiplied by the given vec2 and rounded up to whatever the requested framebuffer size is. 
 	// recommended when you want to ensure that framebuffer is same size as window.
@@ -192,7 +201,7 @@ struct DrawingParameters {
 
 	DepthTestMode stencilTestMode = DepthTestMode::Disabled;
 	GLint stencilTestComparisonValue = 0; // value stencil buffer contents is compared to (based on specified test mode) to decide whether to pass the test
-	GLuint stencilTestMask = 0xFFFF; // ANDed with with comparison value and stencil buffer value before performing test
+	std::bitset<8> stencilTestMask = 0xFF; // ANDed with with comparison value and stencil buffer value before performing test
 
 	StencilOperation stencilTestFailureAction = StencilOperation::Keep;
 	StencilOperation stencilTestSuccessDepthTestFailureAction = StencilOperation::Keep;
@@ -201,7 +210,7 @@ struct DrawingParameters {
 	StencilOperation stencilTestSuccessDepthTestSuccessAction = StencilOperation::Keep;
 
 	// all 1s = stencil writes unaffected, all 0s = attempts to write stencil buffer do nothing.
-	GLuint stencilWriteMask = 0xFFFF;
+	std::bitset<8> stencilWriteMask = 0xFF;
 
 	// Scissor test
 	bool scissoringEnabled = false;

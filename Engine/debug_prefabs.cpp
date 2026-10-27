@@ -368,8 +368,8 @@ std::shared_ptr<Camera> ImplGetFreecam() {
 
 		if (Window::Get().IsMouseLocked()) {
 
-			freecamPitch += 0.01f * Window::Get().MOUSE_DELTA.y;
-			freecamYaw += 0.01f * Window::Get().MOUSE_DELTA.x;
+			freecamPitch += 0.01f * (float)Window::Get().MOUSE_DELTA.y;
+			freecamYaw += 0.01f * (float)Window::Get().MOUSE_DELTA.x;
 			freecamPitch = std::clamp(freecamPitch, -glm::radians(89.0f), glm::radians(89.0f));
 			if (freecamYaw < 0.0f) freecamYaw += glm::radians(360.0f);
 			freecamYaw = std::fmod(freecamYaw, glm::radians(360.0f));

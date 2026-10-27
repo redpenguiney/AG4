@@ -78,7 +78,7 @@ void StaticCollisionConstraint::PositionPass(float timestep, unsigned posIter){
 		return;
 	}
 	
-	PBDHelpers::ApplyPositionalCorrectionStatic(a, rotatedR1, dnormal, penetration, totalNormalLagrange, 0, timestep);
+	PBDHelpers::ApplyPositionalCorrectionStatic(a, rotatedR1, dnormal, (float)penetration, totalNormalLagrange, 0, timestep);
 }
 
 void StaticCollisionConstraint::VelocityPass(float timestep) {
@@ -144,7 +144,7 @@ void DynamicCollisionConstraint::PositionPass(float timestep, unsigned posIter) 
 		return;
 	}
 
-	PBDHelpers::ApplyPositionalCorrectionDynamic(a, b, rotatedR1, rotatedR2, collisionNormal, penetration, totalNormalLagrange, 0, timestep);
+	PBDHelpers::ApplyPositionalCorrectionDynamic(a, b, rotatedR1, rotatedR2, collisionNormal, (float)penetration, totalNormalLagrange, 0, timestep);
 }
 
 void DynamicCollisionConstraint::VelocityPass(float timestep) {

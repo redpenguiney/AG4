@@ -38,6 +38,9 @@ void Chat::SetUsername(std::string name)
 }
 
 void Chat::SendMessage(std::string message) {
+	if (message.empty()) return;
+	if (message.back() == '\n') message.pop_back();
+
 	if (NetworkingEngine::Get().IsHost()) {
 		messages.push_back({ ourUsername, message });
 		for (auto& p : NetworkingEngine::Get().GetPlayers()) {
@@ -45,6 +48,8 @@ void Chat::SendMessage(std::string message) {
 			NetworkingEngine::Get().SendUserMessageToClient<std::string, std::string>(p.get(), SERVER_TO_CLIENT_MESSAGING_CHANNEL, ourUsername, message);
 			DebugLogInfo("Sending to client w/ username ", usernames.contains(p.get()) ? usernames[p.get()] : std::string("UNKNOWN"));
 		}
+
+		AddUiForMessage(message, ourUsername);
 	}
 	else if (NetworkingEngine::Get().IsReadyClient()) {
 		//messages.push_back({ ourUsername, message }); message won't appear until server sends it back to us
@@ -56,7 +61,7 @@ void Chat::SendMessage(std::string message) {
 }
 
 void Chat::BuildUi() {
-	chatUiFrame = GuiElement::New(*GetScreenGuiContainer(), GuiCreateParams{});
+	chatUiFrame = GuiElement::New(*GetScreenGuiContainer(), GuiCreateParams{ .clipChildren = false});
 	chatUiFrame->backgroundColor = glm::vec4(UI_PREFABS::MAIN, 0.5f);
 	chatUiFrame->anchorPoint = { -0.5, -0.5 };
 	chatUiFrame->pixelPosition = { 8, 8 };
@@ -84,6 +89,42 @@ void Chat::BuildUi() {
 
 	auto messageBoxPtr = ScrollableElement::New(*GetScreenGuiContainer(), ScrollableGuiCreateParams{ .orientation = ScrollbarOrientation::Vertical });
 	messageBoxPtr->SetParent(chatUiFrame.get());
+	messageBoxPtr->depth = -10.0f;
+	messageBoxPtr->anchorPoint = { -0.5, 0.5 };
+	messageBoxPtr->percentageSize = { 1, 1 };
+	messageBoxPtr->pixelSize = { -4, -38 };
+	messageBoxPtr->percentagePosition = { 0, 1 };
+	messageBoxPtr->pixelPosition = { 2, -2 };
+	messageBoxPtr->backgroundColor = { 0, 0, 0, 0 };
+	messageBoxPtr->canvas->backgroundColor = { 0, 0, 0, 0.5 };
+	auto layout = std::make_unique<ListLayout>();
+	layout->childPercentStride = { 0, 1 };
+	messageBoxPtr->canvas->childrenLayout = std::move(layout);
+
+	messageList = messageBoxPtr.get();
+
+	messageBoxPtr->RefreshTransform();
+	messageBoxPtr->RefreshGraphics();
+}
+
+std::shared_ptr<GuiElement> Chat::GetMessageUiElement(const Message& m) {
+	auto element = GuiElement::New(*GetScreenGuiContainer(), GuiCreateParams{ .font = UI_PREFABS::GetMenuFont<14>() });
+	element->sortOrder = -(nMessagesLogged++);
+	element->text = m.sender + " said: \"" + m.content + "\"";
+	element->percentageSize = { 1, 0 };
+	element->pixelPosition = { 0, 0 };
+	element->backgroundColor = { 0, 0, 0, 0 };
+	element->textColor = glm::vec4(UI_PREFABS::CONTRAST, 1.0f);
+	element->anchorPoint = { -0.5, -0.5 };
+	element->pixelSize = { 0, 64 }; // TODO: method to get neccesary height/size to contain the wrapped text
+	element->wrapText = true;
+	element->hAlign = HorizontalAlignMode::Left;
+	element->vAlign = VerticalAlignMode::Top; 
+	element->depth = -20;
+	element->RefreshTransform();
+	element->RefreshText();
+	element->pixelSize = { 0, element->TextHeight() };
+	return element;
 }
 
 void Chat::OnNetworkStateChange(Chat* c, NetworkState old, NetworkState now)
@@ -111,6 +152,8 @@ void Chat::OnNetworkStateChange(Chat* c, NetworkState old, NetworkState now)
 			}
 			c->messages.push_back({ c->usernames[from], message });
 
+			c->AddUiForMessage(message, c->usernames[from]);
+
 			onMessageReceived.FireNow(c, c->messages.back());
 
 			// forward message to all other players
@@ -129,7 +172,18 @@ void Chat::OnNetworkStateChange(Chat* c, NetworkState old, NetworkState now)
 			DebugLogInfo("Recieved message from ", username, ": ", message);
 			c->messages.push_back({ username, message });
 
+			c->AddUiForMessage(message, username);
+
 			onMessageReceived.FireNow(c, c->messages.back());
 		})));
+	}
+}
+
+void Chat::AddUiForMessage(std::string& message, std::string sender)
+{
+	if (messageList && messageList->canvas) {
+		auto element = GetMessageUiElement(Message{ .sender = sender, .content = message });
+		element->SetParent(messageList->canvas.get());
+		messageList->RefreshTransform();
 	}
 }

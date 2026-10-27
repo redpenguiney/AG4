@@ -16,6 +16,20 @@ class DrawPass;
 class GuiElement;
 class TextboxElement;
 
+struct GuiPassRequirements {
+	Texture* tex = nullptr; // nullptr for untextured
+	int stencilDepth = 0;
+
+	bool operator==(const GuiPassRequirements&) const noexcept = default;
+};
+
+template <>
+struct std::hash<GuiPassRequirements> {
+	std::size_t operator()(const GuiPassRequirements& req) const noexcept {
+		return std::hash<Texture*>{}(req.tex) ^ (std::hash<int>{}(req.stencilDepth) << 1);
+	}
+};
+
 class GuiContainer {
 public:
 	~GuiContainer() = default;
@@ -23,7 +37,15 @@ private:
 	// flat array of all GuiElements, including their descendants
 	//std::vector<GuiElement*> contents;
 	//std::shared_ptr<DrawPass> pass;
-	std::unordered_map<Texture*, std::shared_ptr<DrawPass>> elementPasses;
+
+	
+
+	// lazily populated map of passes using a given combination of parameters which require different drawpasses.
+		// (which currently is just texture for fonts and stencil depth for masking)
+		// Initially filled with only the one for no texture and stencilDepth 0, other passes are copied/tweaked from that.
+	std::unordered_map<GuiPassRequirements, std::shared_ptr<DrawPass>> elementPasses;
+
+
 	static std::vector<std::shared_ptr<GuiContainer>>& Containers();
 
 	friend class GuiElement;
@@ -34,20 +56,37 @@ private:
 // Returns the GuiContainer for normal stuff that's just getting rendered directly to the screen.
 std::shared_ptr<GuiContainer> GetScreenGuiContainer();
 
-// percents are with respect to size of object LayoutChildrenList() is being called on.
-// pixels are still absolute
-struct ListLayout {
-	glm::ivec2 pixelStart = { 0, 0 };
-	glm::vec2 percentStart = { 0, 0 };
-	glm::ivec2 pixelStride = { 0, 0 };
-	glm::vec2 percentStride = { 0, 0 };
-};
+
+//struct ListLayout {
+	
+//};
 
 struct GuiCreateParams {
 	std::shared_ptr<Texture> background = nullptr;
 	std::shared_ptr<Texture> font = nullptr;
 
 	bool clipChildren = false; // TODO unimplemented 
+};
+
+class UiChildrenLayout {
+public:
+	virtual void Apply(GuiElement& target) = 0;
+	virtual ~UiChildrenLayout() = default;
+};
+
+// rootPercent<parameter>s are with respect to size of object LayoutChildrenList() is being called on.
+// childPercent<parameter>s are with respect to size of the children of the object LayoutChildrenList() is being called on.
+// pixels are still absolute
+class ListLayout: public UiChildrenLayout {
+public:
+	glm::ivec2 pixelStart = { 0, 0 };
+	glm::vec2 rootPercentStart = { 0, 0 };
+	//glm::vec2 childPercentStart = { 0, 0 };
+	glm::ivec2 pixelStride = { 0, 0 };
+	glm::vec2 rootPercentStride = { 0, 0 };
+	glm::vec2 childPercentStride = { 0, 0 };
+
+	void Apply(GuiElement& target);
 };
 
 class GuiElement: public std::enable_shared_from_this<GuiElement> {
@@ -57,19 +96,28 @@ public:
 	static void InitGui();
 	static std::shared_ptr<GuiElement> New(GuiContainer& storeIn, const GuiCreateParams params = GuiCreateParams{});
 
+	friend class ListLayout;
+
+	// nullptr if no layout.
+	// used to force children to be laid out in a grid/list/etc. format.
+	std::unique_ptr<UiChildrenLayout> childrenLayout = nullptr;
+
 	virtual ~GuiElement();
 
-	// Call to apply transform/hierarchy changes.
+	// Call to apply transform/hierarchy/children layout changes.
 	// Recursively calls RefreshTransform() on the GuiElement's children.
 	void RefreshTransform();
 	// Call to apply color/etc. changes.
-	void RefreshGraphics();
+	virtual void RefreshGraphics();
 	// Call to apply text changes.
 	// You also need to call this if the ui changes size and you want wrapped text to adjust.
 	void RefreshText();
 
+	// updated by RefreshText(). returns 0 if no text.
+	int TextHeight();
+
 	// Sets position of children and calls RefreshTransform() on them.
-	void LayoutChildrenList(ListLayout params);
+	//void LayoutChildrenList(ListLayout params);
 
 	// in radians. Only use for elements without children that don't need to use the input/hover events (TODO ADD SUPPORT FOR THAT)
 	float rotation = 0.0f;
@@ -83,9 +131,9 @@ public:
 	float depth = 0.0f;
 
 	glm::ivec2 pixelPosition = { 0, 0 };
-	glm::vec2 percentagePosition = { 0.0, 0.0 };
+	glm::vec2 percentagePosition = { 0.0, 0.0 }; // percentage is of parent size
 	glm::ivec2 pixelSize = { 100, 100 };
-	glm::vec2 percentageSize = { 0.0, 0.0 };
+	glm::vec2 percentageSize = { 0.0, 0.0 }; // percentage is of parent size
 	glm::vec2 anchorPoint = { 0.0f, 0.0f }; // (0.5, 0.5) is top right corner, (-0.5, -0.5) is bottom left
 
 	glm::vec4 backgroundColor = { 1.0, 1.0, 1.0, 1.0 };
@@ -96,6 +144,7 @@ public:
 	VerticalAlignMode vAlign = VerticalAlignMode::Center;
 	bool wrapText = true;
 	// Unsafe if not calling through a std::shared_ptr<GuiElement>.
+	// Make sure to call RefreshTransform afterward!
 	void SetParent(GuiElement* newParent);
 
 	glm::ivec2 GetPixelSize();
@@ -116,16 +165,22 @@ protected:
 	GuiElement(GuiContainer& storeIn, const GuiCreateParams params);
 
 private:
+	int GetStencilDepth();
+	void UpdateStencilDepth(int depth);
+
 	glm::ivec2 GetParentBounds();
 	glm::ivec2 GetParentOffset();
 
-	void MakeTextobject();
+	void MakeTextobject(int stencilDepth);
 
 	GuiElement(const GuiElement&) = delete;
+
+	bool clipChildren;
 
 	std::shared_ptr<Texture> texture; // nullptr if no texture
 	std::shared_ptr<Texture> font; // nullptr if no text
 
+	int textHeightPixels = 0; // 0 if no text. doesn't count margins. updated by RefreshText()
 	std::unique_ptr<Gameobject> gameobject;
 	std::unique_ptr<Gameobject> textobject; // may be nullptr
 	GuiContainer* container; // non-owning, always valid
@@ -134,6 +189,7 @@ private:
 	std::vector<std::shared_ptr<GuiElement>> children;
 
 	// unparents the GuiElement, if it has a parent.
+	// (doesn't touch the drawpasses).
 	void Orphan();
 };
 
@@ -179,6 +235,7 @@ enum class ScrollbarOrientation {
 
 struct ScrollableGuiCreateParams : public GuiCreateParams {
 	ScrollbarOrientation orientation = ScrollbarOrientation::Vertical;
+	int scrollbarSizePixels = 8;
 };
 
 class ScrollableElement : public GuiElement {
@@ -191,6 +248,8 @@ public:
 
 	std::shared_ptr<GuiElement> verticalScrollbar; // nullptr if not scrollable vertically
 	std::shared_ptr<GuiElement> horizontalScrollbar; // nullptr if not scrollable horizontally
+
+	virtual void RefreshGraphics() override;
 private:
 	ScrollableElement(GuiContainer& storeIn, ScrollableGuiCreateParams uiparams);
 

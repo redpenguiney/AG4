@@ -285,7 +285,7 @@ inline void NetworkingEngine::SendUserMessageToHost(unsigned channel, Ts ... v) 
 	auto& connectionInfo = client->connection;
 
 	int flags = k_nSteamNetworkingSend_Reliable; // TODO options
-	EResult sockError = SteamNetworkingSockets()->SendMessageToConnection(connectionInfo->connection, packet, size, flags, nullptr);
+	EResult sockError = SteamNetworkingSockets()->SendMessageToConnection(connectionInfo->connection, packet, (uint32_t)size, flags, nullptr);
 
 	free(packet);
 
@@ -316,7 +316,7 @@ inline void NetworkingEngine::SendUserMessageToClient(Player* toWho, unsigned ch
 	auto connectionInfo = playerConnections.at(toWho);
 
 	int flags = k_nSteamNetworkingSend_Reliable; // TODO options
-	EResult sockError = SteamNetworkingSockets()->SendMessageToConnection(connectionInfo->connection, packet, size, flags, nullptr);
+	EResult sockError = SteamNetworkingSockets()->SendMessageToConnection(connectionInfo->connection, packet, (uint32_t)size, flags, nullptr);
 	DebugLogInfo("Sent to client on channel ", channel);
 	free(packet);
 

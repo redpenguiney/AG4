@@ -420,13 +420,13 @@ void Window::ResizeCallback(GLFWwindow* window, int newWindowWidth, int newWindo
     glViewport(0, 0, newWindowWidth, newWindowHeight);
 
     if (newWindowWidth != 0 && newWindowHeight != 0) {
-        glm::uvec2 oldWidth(Window::Get().width, Window::Get().height);
+        glm::uvec2 oldSize(Window::Get().width, Window::Get().height);
        Window::Get().width = newWindowWidth;
        Window::Get().height = newWindowHeight;
 
         Assert(newWindowWidth != 0);
 
-       Window::Get().onWindowResize.Fire(&Window::Get(), oldWidth, glm::uvec2(newWindowWidth, newWindowHeight));
+       Window::Get().onWindowResize.Fire(&Window::Get(), oldSize, glm::uvec2(newWindowWidth, newWindowHeight));
     }
 
 }

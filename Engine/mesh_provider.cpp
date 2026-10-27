@@ -180,8 +180,8 @@ void MeshCreateParams::LoadObj(std::string path) {
     vertices.reserve(vertices.size());
 }
 
-void MeshCreateParams::LoadText(Texture& fontmap, std::string text, TextFormatting formatting) {
-    if (text.empty()) return;
+LoadedTextInfo MeshCreateParams::LoadText(Texture& fontmap, std::string text, TextFormatting formatting) {
+    if (text.empty()) return LoadedTextInfo();
 
 	defaultName = "text mesh: \"" + text + "\"";
 
@@ -306,7 +306,7 @@ void MeshCreateParams::LoadText(Texture& fontmap, std::string text, TextFormatti
     // Figure out height of first line
     if (lines.empty()) {
         DebugLogError("No text???");
-        return;
+        return LoadedTextInfo();
     }
     int textHeight = formatting.lineSpacing * (lines.size() - 1); // distance between baseline of first line and baseline of last line.
     int topLineHeight = 0; // top line baseline to top of letter with greatest yMax
@@ -330,6 +330,7 @@ void MeshCreateParams::LoadText(Texture& fontmap, std::string text, TextFormatti
     else {
         currentY = formatting.bottomMargin + textHeight;
     }
+    int initialY = currentY;
 
     // Write vertices
     unsigned vertexIndex = 0;
@@ -404,6 +405,12 @@ void MeshCreateParams::LoadText(Texture& fontmap, std::string text, TextFormatti
 
         currentY -= formatting.lineSpacing;
     }
+
+    LoadedTextInfo ret;
+    ret.success = true;
+    ret.heightPixels = initialY - currentY;
+    return ret;
+
 }
 
 //MeshCreateParams& MeshCreateParams::operator=(TextMeshCreateParams&& other) noexcept {

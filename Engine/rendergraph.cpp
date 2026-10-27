@@ -65,135 +65,147 @@ void RenderGraph::Render() {
 
 			p.bindRenderTarget();
 
-			p.params.shader->Use();
-			if (p.setUniforms.operator bool()) p.setUniforms(p.params.shader);
-
-			unsigned uboI = 0;
-			for (auto& uboRequested : p.params.shader->GetShaderUBOs()) {
-				auto logicalBuf = logicalBuffers.at(uboRequested.name);
-				logicalBuf.hardwareResource->buf.BindBase(GL_UNIFORM_BUFFER, uboI);
+			bool somethingToDraw = false;
+			for (auto& s : p.sources) {
+				if (drawPasses.at(s)->drawnObjects.empty() == false) {
+					somethingToDraw = true;
+					break;
+				}
 			}
 
-			//std::unordered_set<int> usedBufferIndices;
-			/*for (auto& buf : p.bufferBindings) {
-				int bufIndex = -1;
-				if (buf.locationToBindTo == GL_UNIFORM_BUFFER) {
-					unsigned i = 0;
-					for (auto& ubo : p.params.shader->GetShaderUBOs()) {
-						if (ubo.name == buf.shaderBindingName) {
-							bufIndex = i;
-							break;
+			if (somethingToDraw) {
+				p.params.shader->Use();
+				if (p.setUniforms.operator bool()) p.setUniforms(p.params.shader);
+
+				unsigned uboI = 0;
+				for (auto& uboRequested : p.params.shader->GetShaderUBOs()) {
+					auto logicalBuf = logicalBuffers.at(uboRequested.name);
+					logicalBuf.hardwareResource->buf.BindBase(GL_UNIFORM_BUFFER, uboI);
+				}
+
+				//std::unordered_set<int> usedBufferIndices;
+				/*for (auto& buf : p.bufferBindings) {
+					int bufIndex = -1;
+					if (buf.locationToBindTo == GL_UNIFORM_BUFFER) {
+						unsigned i = 0;
+						for (auto& ubo : p.params.shader->GetShaderUBOs()) {
+							if (ubo.name == buf.shaderBindingName) {
+								bufIndex = i;
+								break;
+							}
+							i++;
 						}
-						i++;
+
+					}
+					else if (buf.locationToBindTo == GL_SHADER_STORAGE_BUFFER) {
+						unsigned i = 0;
+						for (auto& ssbo : p.params.shader->GetShaderSSBOs()) {
+							if (ssbo.name == buf.shaderBindingName) {
+								bufIndex = i;
+								break;
+							}
+							i++;
+						}
+					}
+					else {
+						Assert(false);
 					}
 
-				}
-				else if (buf.locationToBindTo == GL_SHADER_STORAGE_BUFFER) {
-					unsigned i = 0;
-					for (auto& ssbo : p.params.shader->GetShaderSSBOs()) {
-						if (ssbo.name == buf.shaderBindingName) {
-							bufIndex = i;
-							break;
-						}
-						i++;
-					}
+					Assert(bufIndex);
+					buf.bufferToBind->BindBase(buf.locationToBindTo, bufIndex);
+				}*/
+
+				if (p.params.blending) {
+					glEnable(GL_BLEND);
 				}
 				else {
-					Assert(false);
+					glDisable(GL_BLEND);
 				}
-
-				Assert(bufIndex);
-				buf.bufferToBind->BindBase(buf.locationToBindTo, bufIndex);
-			}*/
-
-			if (p.params.blending) {
-				glEnable(GL_BLEND);
-			}
-			else {
-				glDisable(GL_BLEND);
-			}
-			glDepthMask(p.params.writeDepthBuffer);
-			if (p.params.scissoringEnabled) {
-				glEnable(GL_SCISSOR_TEST);
-				auto c1 = p.params.scissorCorner1, c2 = p.params.scissorCorner2;
-				glm::ivec2 size = c2 - c1;
-				if (size.x < 0) {
-					size.x *= -1;
-					std::swap(c1.x, c2.x);
-				}
-				if (size.y < 0) {
-					size.y = -1;
-					std::swap(c1.y, c2.y);
-				}
-				glScissor(c1.x, c1.y, size.x, size.y);
-			}
-			else {
-				glDisable(GL_SCISSOR_TEST);
-			}
-
-			glEnable(GL_DEPTH_TEST);
-			if (p.params.depthTestMode == DepthTestMode::Disabled) {
-				glDepthFunc(GL_ALWAYS);
-				//glDisable(GL_DEPTH_TEST); // todo: supposedly this cooks the depth mask?
-			}
-			else {
-				glDepthFunc(static_cast<GLenum>(p.params.depthTestMode));
-			}
-
-
-			if (p.params.cullMode == FaceCulling::None) {
-				glDisable(GL_CULL_FACE);
-			}
-			else {
-				glEnable(GL_CULL_FACE);
-				glCullFace(p.params.cullMode == FaceCulling::Frontface ? GL_FRONT : GL_BACK);
-			}
-
-			glPolygonMode(GL_FRONT_AND_BACK, static_cast<GLenum>(p.params.polygonFillMode));
-			
-			if (p.params.stencilTestMode == DepthTestMode::Disabled) {
-				glDisable(GL_STENCIL_TEST);
-			}
-			else {
-				glEnable(GL_STENCIL_TEST);
-				glStencilMask(p.params.stencilWriteMask);
-				glStencilFunc(static_cast<GLenum>(p.params.stencilTestMode), p.params.stencilTestComparisonValue, p.params.stencilTestMask);
-				glStencilOp(static_cast<GLenum>(p.params.stencilTestFailureAction), static_cast<GLenum>(p.params.stencilTestSuccessDepthTestFailureAction), static_cast<GLenum>(p.params.stencilTestSuccessDepthTestSuccessAction));
-			}
-
-			int activeTexture = 0;
-			for (auto& f : p.textures) {
-				if (f.shaderSamplerName == "fontMap") {
-					//DebugLogInfo("YO");
-				}
-				p.params.shader->Uniform(f.shaderSamplerName, activeTexture, true);
-				f.textureToBind->Use(activeTexture);
-				activeTexture++;
-			}
-
-			for (auto& src : p.sources) {
-				if (ANNOTATE_FRAMES_FOR_RENDERDOC) glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, -1, (std::string("RENDERGROUPS(") + src + ")").c_str());
-				for (RenderGroup* renderGroup : drawPasses.at(src)->drawnObjects) {
-					renderGroup->meshpool->BindVAO(p.params.shader);
-					renderGroup->meshpool->indices.Bind(GL_ELEMENT_ARRAY_BUFFER);
-					if (renderGroup->meshpool->boneTransforms) {
-						p.params.shader->Uniform("maxBones", renderGroup->meshpool->format.GetBoneCapacity());
-						renderGroup->meshpool->boneTransforms->BindBase(GL_SHADER_STORAGE_BUFFER, Meshpool::BONE_SSBO_BINDING_INDEX);
+				glDepthMask(p.params.writeDepthBuffer);
+				if (p.params.scissoringEnabled) {
+					glEnable(GL_SCISSOR_TEST);
+					auto c1 = p.params.scissorCorner1, c2 = p.params.scissorCorner2;
+					glm::ivec2 size = c2 - c1;
+					if (size.x < 0) {
+						size.x *= -1;
+						std::swap(c1.x, c2.x);
 					}
-					for (auto& c : renderGroup->commands) {
-						//glPointSize(5);
-						//if (c.count == 6) {
-						//	DebugLogInfo("Sus");
-						//}
-
-						unsigned baseVertexOffset = renderGroup->meshpool->vertices.GetOffset() / renderGroup->meshpool->format.GetNonInstancedVertexSize();
-						unsigned firstIndexOffset = renderGroup->meshpool->indices.GetOffset();
-						unsigned instanceOffset = renderGroup->meshpool->instances.GetOffset() / renderGroup->meshpool->format.GetInstancedVertexSize();
-						glDrawElementsInstancedBaseVertexBaseInstance(renderGroup->primitiveType, c.count, GL_UNSIGNED_INT, (void*)(uintptr_t)(unsigned int)((c.firstIndex + firstIndexOffset)), c.instanceCount, c.baseVertex + baseVertexOffset, c.baseInstance + instanceOffset);
+					if (size.y < 0) {
+						size.y = -1;
+						std::swap(c1.y, c2.y);
 					}
+					glScissor(c1.x, c1.y, size.x, size.y);
+				}
+				else {
+					glDisable(GL_SCISSOR_TEST);
 				}
 
-				if (ANNOTATE_FRAMES_FOR_RENDERDOC) glPopDebugGroup();
+				glEnable(GL_DEPTH_TEST);
+				if (p.params.depthTestMode == DepthTestMode::Disabled) {
+					glDepthFunc(GL_ALWAYS);
+					//glDisable(GL_DEPTH_TEST); // todo: supposedly this cooks the depth mask?
+				}
+				else {
+					glDepthFunc(static_cast<GLenum>(p.params.depthTestMode));
+				}
+
+
+				if (p.params.cullMode == FaceCulling::None) {
+					glDisable(GL_CULL_FACE);
+				}
+				else {
+					glEnable(GL_CULL_FACE);
+					glCullFace(p.params.cullMode == FaceCulling::Frontface ? GL_FRONT : GL_BACK);
+				}
+
+				glPolygonMode(GL_FRONT_AND_BACK, static_cast<GLenum>(p.params.polygonFillMode));
+
+				if (p.params.stencilTestMode == DepthTestMode::Disabled) {
+					glDisable(GL_STENCIL_TEST);
+				}
+				else {
+					glEnable(GL_STENCIL_TEST);
+					glStencilMask(p.params.stencilWriteMask.to_ulong());
+					glStencilFunc(static_cast<GLenum>(p.params.stencilTestMode), p.params.stencilTestComparisonValue, p.params.stencilTestMask.to_ulong());
+					glStencilOp(static_cast<GLenum>(p.params.stencilTestFailureAction), static_cast<GLenum>(p.params.stencilTestSuccessDepthTestFailureAction), static_cast<GLenum>(p.params.stencilTestSuccessDepthTestSuccessAction));
+					//DebugLogInfo("OH NO ", p.params.stencilWriteMask, " but ", p.params.stencilTestMask, " on ", p.sources[0]);
+				}
+
+				int activeTexture = 0;
+				for (auto& f : p.textures) {
+					if (f.shaderSamplerName == "fontMap") {
+						//DebugLogInfo("YO");
+					}
+					p.params.shader->Uniform(f.shaderSamplerName, activeTexture, true);
+					f.textureToBind->Use(activeTexture);
+					activeTexture++;
+				}
+
+				for (auto& src : p.sources) {
+					if (ANNOTATE_FRAMES_FOR_RENDERDOC) glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, -1, (std::string("RENDERGROUPS(") + src + ")").c_str());
+					for (RenderGroup* renderGroup : drawPasses.at(src)->drawnObjects) {
+						renderGroup->meshpool->BindVAO(p.params.shader);
+						renderGroup->meshpool->indices.Bind(GL_ELEMENT_ARRAY_BUFFER);
+						if (renderGroup->meshpool->boneTransforms) {
+							p.params.shader->Uniform("maxBones", renderGroup->meshpool->format.GetBoneCapacity());
+							renderGroup->meshpool->boneTransforms->BindBase(GL_SHADER_STORAGE_BUFFER, Meshpool::BONE_SSBO_BINDING_INDEX);
+						}
+						for (auto& c : renderGroup->commands) {
+							//glPointSize(5);
+							//if (c.count == 6) {
+							//	DebugLogInfo("Sus");
+							//}
+
+							unsigned baseVertexOffset = renderGroup->meshpool->vertices.GetOffset() / renderGroup->meshpool->format.GetNonInstancedVertexSize();
+							unsigned firstIndexOffset = renderGroup->meshpool->indices.GetOffset();
+							unsigned instanceOffset = renderGroup->meshpool->instances.GetOffset() / renderGroup->meshpool->format.GetInstancedVertexSize();
+							glDrawElementsInstancedBaseVertexBaseInstance(renderGroup->primitiveType, c.count, GL_UNSIGNED_INT, (void*)(uintptr_t)(unsigned int)((c.firstIndex + firstIndexOffset)), c.instanceCount, c.baseVertex + baseVertexOffset, c.baseInstance + instanceOffset);
+						}
+					}
+
+					if (ANNOTATE_FRAMES_FOR_RENDERDOC) glPopDebugGroup();
+				}
+
 			}
 
 			if (ANNOTATE_FRAMES_FOR_RENDERDOC) glPopDebugGroup();
@@ -335,6 +347,8 @@ static Framebuffer::Attachment GetAttachmentForDescriptor(FramebufferAttachmentF
 		TextureCreateParams tcp({});
 		tcp.format = params.format;
 		tcp.wrappingBehaviour = Texture::WrapClampToEdge;
+		tcp.filteringBehaviour = params.filteringBehaviour;
+		tcp.wrappingBehaviour = params.wrappingBehaviour;
 		tcp.renderBuffer = params.renderbuffer;
 		a = std::make_shared<Texture>(attachmentSize, tcp, Texture::Texture2DFlat);
 	}
