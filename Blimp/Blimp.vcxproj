@@ -158,10 +158,11 @@
   <ItemGroup>
     <ClCompile Include="body.cpp" />
     <ClCompile Include="chat.cpp" />
+    <ClCompile Include="chat_commands.cpp" />
     <ClCompile Include="game.cpp" />
     <ClCompile Include="main_menu.cpp" />
     <ClCompile Include="ui_colors.cpp" />
-    <ClCompile Include="worldgen.cpp" />
+    <ClCompile Include="gameplay_session.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Engine\Engine.vcxproj">
@@ -171,10 +172,12 @@
   <ItemGroup>
     <ClInclude Include="body.hpp" />
     <ClInclude Include="chat.hpp" />
+    <ClInclude Include="chat_commands.hpp" />
     <ClInclude Include="game_state.hpp" />
     <ClInclude Include="inventory.hpp" />
     <ClInclude Include="item.hpp" />
     <ClInclude Include="ui_colors.hpp" />
+    <ClInclude Include="gameplay_session.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

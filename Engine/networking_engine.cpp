@@ -13,7 +13,7 @@ void Client::HandleRecievedMessage(SteamNetworkingMessage_t* message) {
     Assert(bytesRemaining > 0);
 
     PacketType pktType = (PacketType)Deserialize<uint8_t>(currentPacketPosition, bytesRemaining);
-    DebugLogInfo("RECIEVED MESSAGE from server: pkt type ", (uint8_t)pktType);
+    //DebugLogInfo("RECIEVED MESSAGE from server: pkt type ", (uint8_t)pktType);
 
 	Player* sender = connection->connectee;
     Assert(sender);
@@ -52,7 +52,7 @@ void Client::SteamNetConnectionStatusChangedCallback(SteamNetConnectionStatusCha
             NetworkingEngine::Get().onConnectionAttemptFailure.FireNow(&NetworkingEngine::Get(), ConnectionFailureReason::Unknown, pInfo->m_info.m_szEndDebug);
         }
 
-        // kill client
+        // either server died or we died, so kill the client; there are no other connections so unlike server we just go offline
         NetworkingEngine::Get().stateData = std::monostate();
 
         NetworkingEngine::Get().SetState(NetworkState::Offline);
@@ -130,16 +130,38 @@ void Server::SteamNetConnectionStatusChangedCallback(SteamNetConnectionStatusCha
 
     }
     else if (pInfo->m_info.m_eState == ESteamNetworkingConnectionState::k_ESteamNetworkingConnectionState_ProblemDetectedLocally) {
-        DebugLogError("Server: local connection problem:", pInfo->m_info.m_szEndDebug);
+        DebugLogInfo("Server: local connection problem:", pInfo->m_info.m_szEndDebug);
         
         // TODO: remaining messages to grab from connection before deletion
 
-        // kill server
-        NetworkingEngine::Get().stateData = std::monostate();
+        // Despite the name, the problem probably isn't on the server (unless server lost internet or something), but more likely the client crashed/timed out.
+        // Delete the client just like if they closed it deliberately.
 
-        NetworkingEngine::Get().SetState(NetworkState::Offline);
-        NetworkingEngine::Get().players.clear();
-        NetworkingEngine::Get().playerConnections.clear();
+        Player* playerThatLeft = nullptr;
+        unsigned connectionI = 0;
+        for (auto& c : server.connections) {
+            if (c->connection == pInfo->m_hConn) {
+                playerThatLeft = c->connectee;
+                break;
+            }
+            connectionI++;
+        }
+
+        NetworkingEngine::Get().onPlayerRemoved.FireNow(&NetworkingEngine::Get(), playerThatLeft);
+
+        // TODO: remaining messages to grab from connection before deletion
+
+        server.connections[connectionI] = std::move(server.connections.back());
+        server.connections.pop_back();
+        NetworkingEngine::Get().playerConnections.erase(playerThatLeft);
+        std::erase_if(NetworkingEngine::Get().players, [playerThatLeft](const std::shared_ptr<Player>& p) { return p.get() == playerThatLeft; });
+
+        // kill server 
+        //NetworkingEngine::Get().stateData = std::monostate();
+
+        //NetworkingEngine::Get().SetState(NetworkState::Offline);
+        //NetworkingEngine::Get().players.clear();
+        //NetworkingEngine::Get().playerConnections.clear();
     }
 	else if (pInfo->m_info.m_eState == ESteamNetworkingConnectionState::k_ESteamNetworkingConnectionState_FindingRoute) {
 		DebugLogInfo("Server: connection state is finding route??");
@@ -171,6 +193,15 @@ const std::shared_ptr<Player> NetworkingEngine::GetLocalMachinePlayer() const
     return players[0];
 }
 
+const std::shared_ptr<Player> NetworkingEngine::GetServerPlayer() const {
+    if (players.size() == 0) return nullptr;
+    if (IsHost()) return GetLocalMachinePlayer();
+    else if (IsClient() && players.size() > 1) {
+        return players[1];
+    }
+    return nullptr;
+}
+
 NetworkingEngine& NetworkingEngine::Get() {
     static NetworkingEngine instance;
     return instance;
@@ -196,16 +227,15 @@ void NetworkingEngine::Update() {
     }
 }
 
-bool NetworkingEngine::IsHost() {
+bool NetworkingEngine::IsHost() const {
     return state == NetworkState::Server || state == NetworkState::ServerShuttingDown;
 }
 
-bool NetworkingEngine::IsClient() {
+bool NetworkingEngine::IsClient() const {
     return state == NetworkState::Client || state == NetworkState::ClientConnecting || state == NetworkState::ClientDisconnecting;
 }
 
-bool NetworkingEngine::IsReadyClient()
-{
+bool NetworkingEngine::IsReadyClient() const {
     return state == NetworkState::Client;
 }
 
@@ -278,7 +308,8 @@ NetworkingEngine::NetworkingEngine() {
         //std::unreachable();
     }
 
-    SteamNetworkingUtils()->SetDebugOutputFunction(k_ESteamNetworkingSocketsDebugOutputType_Debug, SteamDebugCallback);
+    SteamNetworkingUtils()->SetDebugOutputFunction(k_ESteamNetworkingSocketsDebugOutputType_Msg, SteamDebugCallback);
+    //SteamNetworkingUtils()->SetDebugOutputFunction(k_ESteamNetworkingSocketsDebugOutputType_Debug, SteamDebugCallback);
     SteamNetworkingUtils()->SetGlobalCallback_SteamNetConnectionStatusChanged(NetworkingEngine::SteamNetConnectionStatusChangedCallback);
 }
 
@@ -298,7 +329,7 @@ void NetworkingEngine::HandleUserMessage(Player* fromWho, uint8_t* data, size_t 
     if (size < sizeof(unsigned int)) return;
 
     unsigned int channel = Deserialize<unsigned int>(data, size);
-    DebugLogInfo("RECIEVED USER MESSAGE ON CHANNEL ", channel);
+    //DebugLogInfo("RECIEVED USER MESSAGE ON CHANNEL ", channel);
     if (userEventChannels.contains(channel)) {
         for (auto& f : userEventChannels[channel].connected) { // TODO: deserialization of entire message should happen here 
             f.second(fromWho, data, size);

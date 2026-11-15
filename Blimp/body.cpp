@@ -7,6 +7,7 @@
 #include <hierachy_component.hpp>
 #include <debug_prefabs.hpp>
 #include <window.hpp>
+#include <networking_engine.hpp>
 
 static std::unique_ptr<Scene>& GetHumanoidMesh() {
 	LoadSceneParams sceneParams;
@@ -53,9 +54,15 @@ Body::Body(std::unique_ptr<BodyController> c, BodyCreateParams bodyParams):
 		collider->elasticity = 0.0f;
 		collider->friction = 4.0f;
 		glm::vec3 scl { bodyParams.radius * 2.0f, bodyParams.height, bodyParams.radius * 2.0f };
-		collider->AddComponent<Hierarchy>(true)->Transform(glm::dvec3(0, 0, 0), glm::quat(1, 0, 0, 0), scl);
-
-
+		auto hierarchy = collider->AddComponent<Hierarchy>(true);
+		hierarchy->Transform(glm::dvec3(0, 0, 0), glm::quat(1, 0, 0, 0), scl);
+		if (bodyParams.syncId) {
+			auto sync = collider->AddComponent<TransformSync>(*bodyParams.syncId, hierarchy);
+			auto remoteController = dynamic_cast<RemotePlayerController*>(controller.get());
+			if (remoteController != nullptr && NetworkingEngine::Get().IsHost()) {
+				sync->SetNetworkOwner(remoteController->owner);
+			}
+		}
 	}
 
 	{
@@ -164,3 +171,7 @@ void LocalPlayerController::FixedUpdate(float dt)
 {
 
 }
+
+RemotePlayerController::RemotePlayerController(Player* p): owner(p) {}
+void RemotePlayerController::Update(float dt) {}
+void RemotePlayerController::FixedUpdate(float dt) {}

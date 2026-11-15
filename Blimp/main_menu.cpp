@@ -337,7 +337,7 @@ void GameState::MakeHostLoadingScreen() {
 	menuContainer = nullptr;
 	menuEventConnections.clear();
 
-	MakeGameplay();
+	MakeGameplaySession();
 }
 
 void GameState::MakeClientLoadingScreen() {
@@ -425,7 +425,7 @@ void GameState::MakeClientLoadingScreen() {
 			menuEventConnections.clear();
 
 			chat.SetVisible(true);
-			MakeGameplay();
+			MakeGameplaySession();
 		}
 		});
 	menuEventConnections.push_back(std::move(connChange));

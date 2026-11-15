@@ -587,13 +587,23 @@ void ScrollableElement::RefreshGraphics() {
 ScrollableElement::ScrollableElement(GuiContainer& storeIn, ScrollableGuiCreateParams uiparams) :
 	GuiElement(storeIn, uiparams)
 {
-    canvas = GuiElement::New(storeIn, GuiCreateParams{ .background = uiparams.background, .clipChildren = true });
-    canvas->SetParent(this);
+    clippingMask = GuiElement::New(storeIn, GuiCreateParams{ .background = nullptr, .clipChildren = true });
+    clippingMask->SetParent(this);
+    clippingMask->backgroundColor = { 0, 0, 0, 0 };
+    clippingMask->pixelPosition = { 0, 0 };
+    clippingMask->percentagePosition = { 0, 1 };
+    clippingMask->anchorPoint = { -0.5, 0.5 };
+    clippingMask->percentageSize = { 1, 1 };
+    clippingMask->pixelSize = { uiparams.orientation == ScrollbarOrientation::Horizontal ? 0 : -uiparams.scrollbarSizePixels, uiparams.orientation == ScrollbarOrientation::Vertical ? 0 : -uiparams.scrollbarSizePixels };
+    clippingMask->RefreshGraphics();
+
+    canvas = GuiElement::New(storeIn, GuiCreateParams{ .background = uiparams.background, .clipChildren = false});
+    canvas->SetParent(clippingMask.get());
     canvas->pixelPosition = { 0, 0 };
     canvas->percentagePosition = { 0, 1 };
     canvas->anchorPoint = { -0.5, 0.5 };
     canvas->percentageSize = { 1, 1 };
-    canvas->pixelSize = { uiparams.orientation == ScrollbarOrientation::Horizontal ? 0 : -uiparams.scrollbarSizePixels, uiparams.orientation == ScrollbarOrientation::Vertical ? 0 : -uiparams.scrollbarSizePixels };
+    canvas->pixelSize = { 0, 0 };
 }
 
 void ListLayout::Apply(GuiElement& target) {

@@ -1,2 +1,2 @@
 cd Engine
-..\x64\Release\Engine.exe
+..\x64\Release\Blimp.exe

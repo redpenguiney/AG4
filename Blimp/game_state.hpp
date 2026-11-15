@@ -6,6 +6,7 @@
 #include "gameobject.hpp"
 #include "body.hpp"
 #include "chat.hpp"
+#include "gameplay_session.hpp"
 
 class GuiElement;
 
@@ -15,7 +16,7 @@ public:
 
 	Chat chat;
 
-	void MakeGameplay();
+	void MakeGameplaySession();
 
 
 	void MakeMainMenu();
@@ -30,10 +31,7 @@ public:
 
 	void MakeClientLoadingScreen();
 
+	std::unique_ptr<GameplaySession> currentSession = nullptr;
 	std::shared_ptr<GuiElement> menuContainer = nullptr;
 	std::vector<Connection> menuEventConnections;
-
-	std::vector<std::shared_ptr<Gameobject>> staticObjects;
-	std::vector<std::shared_ptr<Gameobject>> dynamicObjects;
-	std::vector<std::unique_ptr<Body>> bodies;
 };

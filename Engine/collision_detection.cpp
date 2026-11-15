@@ -72,7 +72,8 @@ static float SignedDistanceToPlane(glm::vec3 planeNormal, glm::vec3 point, glm::
 }
 
 static void ValidateVector(glm::vec3 vec) {
-    Assert(!std::isnan(vec.x) && !std::isnan(vec.y) && !std::isnan(vec.z));
+    if (std::isnan(vec.x) || std::isnan(vec.y) || std::isnan(vec.z))
+        throw std::runtime_error("nan found in collision detection");
 }
 
 // used to find contact points for face-face contacts
@@ -950,23 +951,29 @@ std::optional<Collision> NarrowphaseCollisionDetection(Gameobject* a, Gameobject
     auto convexMeshA = std::dynamic_pointer_cast<ConvexMeshPhysicsGeometry>(a->GetCollider()->physicsMesh);
     auto convexMeshB = std::dynamic_pointer_cast<ConvexMeshPhysicsGeometry>(b->GetCollider()->physicsMesh);
 
-    if (sphereA && sphereB) {
-        return CollideSpheres(a, b);
+    try {
+        if (sphereA && sphereB) {
+            return CollideSpheres(a, b);
+        }
+        /*else if (sphereA && convexMeshB) {
+            return CollideSphereConvexMesh(a, b);
+        }*/
+        /* else if (convexMeshA && sphereB) {
+             return InvertCollision(CollideSphereConvexMesh(b, a));
+         }*/
+        else if (convexMeshA && convexMeshB && convexMeshA->polygons.size() <= SAT_THRESHOLD && convexMeshB->polygons.size() <= SAT_THRESHOLD) {
+            return CollideSAT(a, b);
+        }
+        else if (convexA && convexB) {
+            return CollideGJKEPA(a, b);
+        }
+        else {
+            DebugLogError("Incompatible/unimplemented narrowphase collision detection type pair. No collision reported.");
+            return std::nullopt;
+        }
     }
-    /*else if (sphereA && convexMeshB) {
-        return CollideSphereConvexMesh(a, b);
-    }*/
-   /* else if (convexMeshA && sphereB) {
-        return InvertCollision(CollideSphereConvexMesh(b, a));
-    }*/
-    else if (convexMeshA && convexMeshB && convexMeshA->polygons.size() <= SAT_THRESHOLD && convexMeshB->polygons.size() <= SAT_THRESHOLD) {
-        return CollideSAT(a, b);
-    } 
-    else if (convexA && convexB) {
-        return CollideGJKEPA(a , b);
-    }
-    else {
-        DebugLogError("Incompatible/unimplemented narrowphase collision detection type pair. No collision reported.");
+    catch (std::exception& e) {
+        DebugLogError("Collision detection threw exception:\n", e.what(), "\nNo collision reported.");
         return std::nullopt;
     }
 }

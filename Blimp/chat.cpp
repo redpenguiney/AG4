@@ -33,7 +33,7 @@ void Chat::SetUsername(std::string name)
 	ourUsername = name;
 
 	if (NetworkingEngine::Get().IsReadyClient()) {
-		NetworkingEngine::Get().SendUserMessageToHost(CLIENT_TO_SERVER_USERNAME_IDENTIFICATION_CHANNEL, ourUsername);
+		NetworkingEngine::Get().SendUserMessageToHost(CLIENT_TO_SERVER_USERNAME_IDENTIFICATION_CHANNEL, SendMessageParams(), ourUsername);
 	}
 }
 
@@ -45,7 +45,7 @@ void Chat::SendMessage(std::string message) {
 		messages.push_back({ ourUsername, message });
 		for (auto& p : NetworkingEngine::Get().GetPlayers()) {
 			if (p->IsLocalMachine()) continue;
-			NetworkingEngine::Get().SendUserMessageToClient<std::string, std::string>(p.get(), SERVER_TO_CLIENT_MESSAGING_CHANNEL, ourUsername, message);
+			NetworkingEngine::Get().SendUserMessageToClient<std::string, std::string>(p.get(), SERVER_TO_CLIENT_MESSAGING_CHANNEL, SendMessageParams(), ourUsername, message);
 			DebugLogInfo("Sending to client w/ username ", usernames.contains(p.get()) ? usernames[p.get()] : std::string("UNKNOWN"));
 		}
 
@@ -53,11 +53,15 @@ void Chat::SendMessage(std::string message) {
 	}
 	else if (NetworkingEngine::Get().IsReadyClient()) {
 		//messages.push_back({ ourUsername, message }); message won't appear until server sends it back to us
-		NetworkingEngine::Get().SendUserMessageToHost<std::string>(CLIENT_TO_SERVER_MESSAGING_CHANNEL, message);
+		NetworkingEngine::Get().SendUserMessageToHost<std::string>(CLIENT_TO_SERVER_MESSAGING_CHANNEL, SendMessageParams(), message);
 	}
 	else {
 		DebugLogError("Cannot send message while not connected to a server.");
 	}
+}
+
+void Chat::LogMessage(std::string message) {
+	AddUiForMessage(message, "[System]");
 }
 
 void Chat::BuildUi() {
@@ -159,14 +163,14 @@ void Chat::OnNetworkStateChange(Chat* c, NetworkState old, NetworkState now)
 			// forward message to all other players
 			for (auto& p : NetworkingEngine::Get().GetPlayers()) {
 				if (/*p.get() == from ||*/ p->IsLocalMachine()) continue;
-				NetworkingEngine::Get().SendUserMessageToClient<std::string, std::string>(p.get(), SERVER_TO_CLIENT_MESSAGING_CHANNEL, c->usernames[from], message);
+				NetworkingEngine::Get().SendUserMessageToClient<std::string, std::string>(p.get(), SERVER_TO_CLIENT_MESSAGING_CHANNEL, SendMessageParams(), c->usernames[from], message);
 			}
 
 			DebugLogInfo("PLAYER ", from->id, " SENT MESSAGE: ", message);
 			})));
 	}
 	else if (now == NetworkState::Client) {
-		NetworkingEngine::Get().SendUserMessageToHost<std::string>(CLIENT_TO_SERVER_USERNAME_IDENTIFICATION_CHANNEL, c->ourUsername);
+		NetworkingEngine::Get().SendUserMessageToHost<std::string>(CLIENT_TO_SERVER_USERNAME_IDENTIFICATION_CHANNEL, SendMessageParams(), c->ourUsername);
 
 		c->messageConnections.push_back(NetworkingEngine::Get().ConnectUserMessage<std::string, std::string>(SERVER_TO_CLIENT_MESSAGING_CHANNEL, std::function<void(Player*, std::string, std::string)>([c](Player* from, std::string username, std::string message) {
 			DebugLogInfo("Recieved message from ", username, ": ", message);

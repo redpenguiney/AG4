@@ -14,6 +14,7 @@
 #include "physics_engine.hpp"
 #include "gui.hpp"
 #include "game.hpp"
+#include "transform_sync.hpp"
 
 std::vector<const char*> ExtractLaunchArguments(int numArgs, const char* args[]) {
 	std::vector<const char*> argVec;
@@ -41,6 +42,8 @@ int main(int numArgs, const char* argArray[]) {
 	InputStack::Get();
 	GuiElement::InitGui();
 	GetScreenGuiContainer();
+
+	TransformSyncManager::Get();
 
 	{
 		auto& CL = ClusteredLighting::Get();

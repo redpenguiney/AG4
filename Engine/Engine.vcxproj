@@ -193,6 +193,7 @@
     <ClCompile Include="texture_collection.cpp" />
     <ClCompile Include="text_mesh.cpp" />
     <ClCompile Include="tinyobjloader.cpp" />
+    <ClCompile Include="transform_sync.cpp" />
     <ClCompile Include="utility.cpp" />
     <ClCompile Include="window.cpp" />
   </ItemGroup>
@@ -239,6 +240,7 @@
     <ClInclude Include="networking_engine.hpp" />
     <ClInclude Include="physics_engine.hpp" />
     <ClInclude Include="physics_mesh.hpp" />
+    <ClInclude Include="transform_sync.hpp" />
     <ClInclude Include="raycast.hpp" />
     <ClInclude Include="player.hpp" />
     <ClInclude Include="renderbuffer.hpp" />

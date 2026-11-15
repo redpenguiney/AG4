@@ -52,6 +52,17 @@ enum class PacketType : uint8_t {
 	UserMessage = 0, // 1 byte PacketType, 4 byte uint channel, then serialized data
 };
 
+struct SendMessageParams {
+	// If !reliable:
+	// the message may not arrive
+	// the message may arrive out of order relative to other messages
+	// the sent data's size MUST be less than 1024 bytes.
+	bool reliable = true; 
+
+	// disables Nagle's algorithm, sends packet instantly
+	bool sendImmediately = false; 
+};
+
 class NetworkUserMessageConnection : public IConnection {
 private:
 	size_t connectionId;
@@ -61,6 +72,11 @@ private:
 public:
 	~NetworkUserMessageConnection();
 };
+
+//struct UserMessageChannel {
+	//unsigned channelId;
+
+//};
 
 class NetworkingEngine {
 public:
@@ -75,17 +91,20 @@ public:
 	// will return nullptr if offline.
 	const std::shared_ptr<Player> GetLocalMachinePlayer() const;
 
+	// will return nullptr if offline. Will return local machine if host.
+	const std::shared_ptr<Player> GetServerPlayer() const;
+
 	static NetworkingEngine& Get();
 	void Update();
 
 	// also returns true if in process of shutting down.
-	bool IsHost();
+	bool IsHost() const;
 
 	// also returns true if still connecting or disconnecting, be careful.
-	bool IsClient();
+	bool IsClient() const;
 
 	// client that can send data
-	bool IsReadyClient();
+	bool IsReadyClient() const;
 
 	// state must be Offline. Changes state to Server. Never fails.
 	// Note: connect all user channel events prior to connection completion to avoid missing early calls.
@@ -114,24 +133,26 @@ public:
 
 	// All given values must be serializable.
 	// IsReadyClient() must be true.
+	// If !reliable, message may not arrive, or may arrive out of order relative to other messages, and the sent size MUST be less than 1024 bytes.
 	template <typename... Ts>
-	void SendUserMessageToHost(unsigned channel, Ts...);
+	void SendUserMessageToHost(unsigned channel, SendMessageParams params, Ts...);
 
 	// All given values must be serializable.
 	// IsHost() must be true.
 	// toWho must be connected and not the local machine player.
+ 	// If !reliable, message may not arrive, or may arrive out of order relative to other messages, and the sent size MUST be less than 1024 bytes.
 	// May throw.
 	template <typename... Ts>
-	void SendUserMessageToClient(Player* toWho, unsigned channel, Ts... v);
+	void SendUserMessageToClient(Player* toWho, unsigned channel, SendMessageParams params, Ts... v);
 
 	// All given values must be serializable.
 	// IsHost() must be true.
 	// May throw.
 	template <typename... Ts>
-	void SendUserMessageToAllClients(unsigned channel, Ts... v) {
+	void SendUserMessageToAllClients(unsigned channel, SendMessageParams params, Ts... v) {
 		for (auto& p : GetPlayers()) {
 			if (p != GetLocalMachinePlayer()) {
-				SendUserMessageToClient(p.get(), channel, v...);
+				SendUserMessageToClient(p.get(), channel, params, v...);
 			}
 		}
 	}
@@ -269,10 +290,11 @@ private:
 // All given values must be serializable.
 // IsReadyClient() must be true.
 template<typename ...Ts>
-inline void NetworkingEngine::SendUserMessageToHost(unsigned channel, Ts ... v) {
+inline void NetworkingEngine::SendUserMessageToHost(unsigned channel, SendMessageParams params, Ts ... v) {
 	Assert(IsReadyClient());
 
 	size_t size = (SerializedSize(v) + ...) + SerializedSize((uint8_t)PacketType::UserMessage) + SerializedSize(channel);
+	if (!params.reliable) Assert(size <= 1024);
 
 	uint8_t* packet = reinterpret_cast<uint8_t*>(malloc(size));
 	uint8_t* currentPos = packet;
@@ -284,7 +306,8 @@ inline void NetworkingEngine::SendUserMessageToHost(unsigned channel, Ts ... v) 
 
 	auto& connectionInfo = client->connection;
 
-	int flags = k_nSteamNetworkingSend_Reliable; // TODO options
+	int flags = params.reliable ? k_nSteamNetworkingSend_Reliable : k_nSteamNetworkingSend_Unreliable;
+	if (params.sendImmediately) flags = flags | k_nSteamNetworkingSend_NoNagle;
 	EResult sockError = SteamNetworkingSockets()->SendMessageToConnection(connectionInfo->connection, packet, (uint32_t)size, flags, nullptr);
 
 	free(packet);
@@ -299,11 +322,12 @@ inline void NetworkingEngine::SendUserMessageToHost(unsigned channel, Ts ... v) 
 // toWho must not be the local machine player.
 // May throw.
 template<typename ...Ts>
-inline void NetworkingEngine::SendUserMessageToClient(Player* toWho, unsigned channel, Ts ...v) {
+inline void NetworkingEngine::SendUserMessageToClient(Player* toWho, unsigned channel, SendMessageParams params, Ts ...v) {
 	Assert(IsHost());
 	Assert(toWho->IsConnected());
 	Assert(toWho != GetLocalMachinePlayer().get());
 	size_t size = (SerializedSize(v) + ...) + SerializedSize((uint8_t)PacketType::UserMessage) + SerializedSize(channel);
+	if (!params.reliable) Assert(size <= 1024);
 
 	uint8_t* packet = reinterpret_cast<uint8_t*>(malloc(size));
 	uint8_t* currentPos = packet;
@@ -315,9 +339,10 @@ inline void NetworkingEngine::SendUserMessageToClient(Player* toWho, unsigned ch
 	
 	auto connectionInfo = playerConnections.at(toWho);
 
-	int flags = k_nSteamNetworkingSend_Reliable; // TODO options
+	int flags = params.reliable ? k_nSteamNetworkingSend_Reliable : k_nSteamNetworkingSend_Unreliable;
+	if (params.sendImmediately) flags = flags | k_nSteamNetworkingSend_NoNagle;
 	EResult sockError = SteamNetworkingSockets()->SendMessageToConnection(connectionInfo->connection, packet, (uint32_t)size, flags, nullptr);
-	DebugLogInfo("Sent to client on channel ", channel);
+	//DebugLogInfo("Sent to client on channel ", channel);
 	free(packet);
 
 	if (sockError != EResult::k_EResultOK) {

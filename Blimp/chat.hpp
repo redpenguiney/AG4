@@ -42,8 +42,11 @@ public:
 
 	void SendMessage(std::string message);
 
-	// fired immediately.
-	// will be fired for messages originally sent by the local machine.
+	// adds the given message to the local UI, but doesn't send it to other players.
+	void LogMessage(std::string message);
+
+	// fired immediately after network recieve, or immediately after SendMessage() is called IF we're the host and we called SendMessage().
+	// WILL be fired for messages originally sent by the local machine.
 		// though, for clients there will still be a delay since the message must be sent to the server and then back to the client before it is received.
 	static inline Event<Chat, const Message&>& onMessageReceived = Event<Chat, const Message&>::New();
 private:

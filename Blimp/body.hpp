@@ -1,6 +1,8 @@
 #pragma once
 #include "ik.hpp"
 #include <event.hpp>
+#include <transform_sync.hpp>
+#include <optional>
 
 class Gameobject;
 class Physobject;
@@ -42,9 +44,19 @@ public:
 	
 };
 
+class RemotePlayerController: public BodyController {
+public:
+	RemotePlayerController(Player* owner);
+	Player* const owner;
+
+	void Update(float dt) override;
+	void FixedUpdate(float dt) override;
+};
+
 struct BodyCreateParams {
 	float height = 1.8f;
 	float radius = 0.3f;
+	std::optional<TransformSyncId> syncId = std::nullopt;
 };
 
 class Body {
